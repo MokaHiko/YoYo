@@ -1,0 +1,12 @@
+[submodule "YoYo/vendor/SDL"]
+	path = YoYo/vendor/SDL
+	url = https://github.com/MokaHiko/SDL.git
+[submodule "YoYo/vendor/VkBootstrap"]
+	path = YoYo/vendor/VkBootstrap
+	url = https://github.com/charles-lunarg/vk-bootstrap.git
+[submodule "YoYo/vendor/Vma"]
+	path = YoYo/vendor/Vma
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+[submodule "YoYo/vendor/SPIRVReflect"]
+	path = YoYo/vendor/SPIRVReflect
+	url = https://github.com/KhronosGroup/SPIRV-Reflect.git
