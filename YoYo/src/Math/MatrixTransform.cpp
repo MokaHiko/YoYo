@@ -47,7 +47,7 @@ namespace yoyo
 
     YAPI Mat4x4 RotateMat4x4(float angle_radians, const Vec3 &axis)
     {
-        return YAPI Mat4x4();
+        return Mat4x4();
     }
 
     YAPI Mat4x4 TransposeMat4x4(Mat4x4 &matrix)

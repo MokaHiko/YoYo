@@ -4,13 +4,13 @@
 
 namespace yoyo
 {
-    YAPI struct ShaderParameter
+    struct YAPI ShaderParameter
     {
         void* data;
         std::string name;
     };
 
-    YAPI class Shader
+    class YAPI Shader
     {
     public:
         Shader();

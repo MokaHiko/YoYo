@@ -10,10 +10,10 @@ namespace yoyo
         VkCommandBufferAllocateInfo CommandBufferAllocInfo(VkCommandPool cmd_pool, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
         VkCommandBufferBeginInfo CommandBufferBeginInfo(VkCommandBufferUsageFlags usage);
-        VkRenderPassBeginInfo RenderPassBeginInfo(VkFramebuffer frame_buffer, VkRenderPass render_pass, VkRect2D &render_area, VkClearValue *clear_value, uint32_t clear_value_count);
+        VkRenderPassBeginInfo RenderPassBeginInfo(VkFramebuffer frame_buffer, VkRenderPass render_pass, VkRect2D& render_area, VkClearValue* clear_value, uint32_t clear_value_count);
 
         // Pipelines configuration
-        VkPipelineShaderStageCreateInfo PipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule, const char *entrypoint = "main");
+        VkPipelineShaderStageCreateInfo PipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule, const char* entrypoint = "main");
         VkPipelineVertexInputStateCreateInfo PipelineVertexInputStateCreateInfo();
         VkPipelineInputAssemblyStateCreateInfo PipelineInputAssemblyStateCreateInfo(VkPrimitiveTopology topology);
         VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo(VkPolygonMode polygonMode);

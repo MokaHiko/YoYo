@@ -4,7 +4,7 @@
 
 namespace yoyo
 {
-    YAPI union Vec2
+    union YAPI Vec2
     {
         float elements[2];
 
@@ -23,7 +23,7 @@ namespace yoyo
         Vec2 &operator*=(const Vec2 &other);
     };
 
-    YAPI union Vec3
+    union YAPI Vec3
     {
         float elements[3];
 
@@ -46,7 +46,7 @@ namespace yoyo
         Vec3 &operator*=(const Vec3 &other);
     };
 
-    YAPI union Vec4
+    union YAPI Vec4
     {
 #ifdef YUSESIMD
         // Use SIMD
@@ -74,14 +74,14 @@ namespace yoyo
         };
     };
 
-    struct Quat
+    struct YAPI Quat
     {
     private:
         Vec4 m_quat;
     };
 
     // Matrices by default are the identity matrix nxn
-    YAPI union Mat4x4
+    union YAPI Mat4x4
     {
         Mat4x4();
         ~Mat4x4();

@@ -5,7 +5,7 @@
 
 namespace yoyo
 {
-    YAPI enum class RendererType
+    enum class RendererType
     {
         UKNOWN = 0,
         VULKAN,
@@ -13,7 +13,7 @@ namespace yoyo
         MOLTENVK,
     };
 
-    YAPI struct RendererSettings
+    struct YAPI RendererSettings
     {
         RendererType type;
         int max_frames_in_flight;
@@ -25,12 +25,12 @@ namespace yoyo
         std::vector<uint32_t> object_ids;
     };
 
-    YAPI struct RenderPacket
+    struct YAPI RenderPacket
     {
         double dt;
     };
 
-    YAPI class Renderer
+    class YAPI Renderer
     {
     public:
         Renderer(const RendererSettings& settings) 

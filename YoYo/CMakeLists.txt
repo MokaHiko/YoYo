@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 option(USE_SIMD "Use SIMD math" OFF)
 
 add_library(YoYo SHARED
+    src/Defines.h
     src/Defines.cpp
     src/Platform/Platform.h
 
@@ -62,16 +63,22 @@ endif()
 
 if (WIN32)
     add_compile_definitions(Y_PLATFORM_WIN32)
-    set(YRENDERERTYPE "VULKAN")
-endif()
+    target_sources(${PROJECT_NAME} PRIVATE src/Platform/Win32/PlatformWin32.h src/Platform/Win32/PlatformWin32.cpp)
 
-if (APPLE)
+    add_subdirectory(vendor/SDL)
+    target_link_libraries(${PROJECT_NAME} PRIVATE SDL2 vulkan-1)
+
+    target_include_directories(${PROJECT_NAME} PRIVATE vendor/SDL/include $ENV{VULKAN_SDK}/include)
+    target_link_directories(${PROJECT_NAME} PRIVATE $ENV{VULKAN_SDK}/Lib)
+
+    set(YRENDERERTYPE "VULKAN")
+elseif (APPLE)
     add_compile_definitions(Y_PLATFORM_APPLE)
     target_sources(${PROJECT_NAME} PRIVATE src/Platform/OSX/OSX.h src/Platform/OSX/OSX.cpp)
 
-    add_subdirectory(Vendor/SDL)
+    add_subdirectory(vendor/SDL)
     target_link_libraries(${PROJECT_NAME} PRIVATE SDL2 vulkan)
-    target_include_directories(${PROJECT_NAME} PRIVATE Vendor/SDL/include "/Users/caltax/VulkanSDK/1.3.243.0/macOS/include")
+    target_include_directories(${PROJECT_NAME} PRIVATE vendor/SDL/include "/Users/caltax/VulkanSDK/1.3.243.0/macOS/include")
 
     target_link_directories(${PROJECT_NAME} PRIVATE
                 "/Users/caltax/VulkanSDK/1.3.243.0/macOS/lib")
@@ -102,6 +109,10 @@ if (YRENDERERTYPE STREQUAL "VULKAN")
         src/Renderer/Vulkan/VulkanMesh.cpp
         src/Renderer/Vulkan/VulkanMaterial.h
         src/Renderer/Vulkan/VulkanMaterial.cpp
+        src/Renderer/Vulkan/VulkanMaterialSystem.h
+        src/Renderer/Vulkan/VulkanMaterialSystem.cpp
+        src/Renderer/Vulkan/VulkanResourceManager.h
+        src/Renderer/Vulkan/VulkanResourceManager.cpp
         src/Renderer/Vulkan/VulkanRenderer.h
         src/Renderer/Vulkan/VulkanRenderer.cpp
     )

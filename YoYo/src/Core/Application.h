@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Defines.h"
 #include "Layer.h"
 
 namespace yoyo
@@ -15,7 +16,7 @@ namespace yoyo
         float height;
     };
 
-    class Application
+    class YAPI Application
     {
     public:
         Application(const ApplicationSettings &settings);

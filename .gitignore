@@ -5,6 +5,9 @@ Assets
 #vs/vscode
 .vscode
 
+# Mac
+.DS_Store
+
 # Prerequisites
 *.d
 

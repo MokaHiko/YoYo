@@ -10,7 +10,7 @@
 
 namespace yoyo
 {
-    YAPI class Material
+    class YAPI Material
     {
     public:
         Material() = default;
@@ -26,7 +26,7 @@ namespace yoyo
 
         static Ref<Material> Create();
     protected:
-        uint64_t m_render_pass; // The id of this material's render pass
+        uint64_t m_renderpass; // The id of this material's render pass
         uint64_t m_id; // Id of this resource
     };
 }

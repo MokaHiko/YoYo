@@ -1,5 +1,6 @@
-#include "Renderer/Mesh.h"
+#pragma once
 
+#include "Renderer/Mesh.h"
 #include "VulkanStructures.h"
 
 namespace yoyo
@@ -15,7 +16,11 @@ namespace yoyo
     public:
         VulkanMesh();
         virtual ~VulkanMesh();
-    private:
-        AllocatedBuffer m_buffer;
+
+        virtual void Bind(void* render_context) override;
+        virtual void Unbind() override;
+
+        AllocatedBuffer vertex_buffer;
+        AllocatedBuffer index_buffer;
     };
 };

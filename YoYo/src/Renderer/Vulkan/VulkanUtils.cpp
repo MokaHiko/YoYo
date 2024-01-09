@@ -100,6 +100,8 @@ namespace yoyo
             re_alloc = true;
             break;
         }
+        default:
+            break;
         }
 
         if (re_alloc)

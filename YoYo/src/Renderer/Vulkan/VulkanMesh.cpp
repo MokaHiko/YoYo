@@ -2,7 +2,7 @@
 
 namespace yoyo
 {
-    const std::vector<VkVertexInputAttributeDescription> &VertexAttributeDescriptions()
+    const std::vector<VkVertexInputAttributeDescription>& VertexAttributeDescriptions()
     {
         static std::vector<VkVertexInputAttributeDescription> attributes = {};
 
@@ -46,7 +46,7 @@ namespace yoyo
         return attributes;
     }
 
-    const std::vector<VkVertexInputBindingDescription> &VertexBindingDescriptions()
+    const std::vector<VkVertexInputBindingDescription>& VertexBindingDescriptions()
     {
         static std::vector<VkVertexInputBindingDescription> bindings = {};
 
@@ -65,11 +65,39 @@ namespace yoyo
         return bindings;
     }
 
+    Ref<Mesh> Mesh::Create()
+    {
+        // TODO: Upload Here
+        Ref<VulkanMesh> mesh = CreateRef<VulkanMesh>();
+
+        return mesh;
+    }
+
     VulkanMesh::VulkanMesh()
     {
+
     }
 
     VulkanMesh::~VulkanMesh()
     {
+
     }
-}
+
+    void VulkanMesh::Bind(void* render_context) 
+    {
+        const VulkanRenderContext* ctx  = static_cast<VulkanRenderContext*>(render_context);
+        VkDeviceSize offset = 0;
+
+        if(draw_indexed)
+        {
+            vkCmdBindIndexBuffer(ctx->cmd, index_buffer.buffer, offset, VK_INDEX_TYPE_UINT32);
+        }
+
+        vkCmdBindVertexBuffers(ctx->cmd, 0, 1, &vertex_buffer.buffer, &offset);
+    }
+
+    void VulkanMesh::Unbind() 
+    {
+    }
+
+} // namespace yoyo

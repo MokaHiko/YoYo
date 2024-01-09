@@ -17,6 +17,6 @@ namespace yoyo {
 
         void Assert(bool value, const char* msg);
 
-        bool FileRead(const char *path, char **buffer);
+        bool FileRead(const char *path, char **buffer, size_t* size);
     };
 }

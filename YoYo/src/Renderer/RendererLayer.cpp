@@ -14,7 +14,7 @@ namespace yoyo
 
     void RendererLayer::OnAttach()
     {
-        const char* renderer_type_strings[]
+        static const char* renderer_type_strings[]
         {
             "Uknown",
             "Vulkan",

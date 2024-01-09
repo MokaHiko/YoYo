@@ -8,7 +8,7 @@
 
 namespace yoyo
 {
-    YAPI class RendererLayer : public Layer
+    class YAPI RendererLayer : public Layer
     {
     public:
         RendererLayer();

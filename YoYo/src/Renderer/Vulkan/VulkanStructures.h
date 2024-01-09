@@ -5,6 +5,11 @@
 
 namespace yoyo
 {
+    struct VulkanRenderContext
+    {
+        VkCommandBuffer cmd;
+    };
+
     struct VulkanQueue
     {
         VkQueue queue;

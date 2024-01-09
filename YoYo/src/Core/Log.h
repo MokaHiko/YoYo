@@ -4,7 +4,7 @@
 
 namespace yoyo
 {
-    YAPI enum class LOG_LEVEL
+    enum class LOG_LEVEL
     {
         FATAL = 0,
         ERROR,
@@ -14,7 +14,7 @@ namespace yoyo
         TRACE
     };
 
-    YAPI class Logger
+     class YAPI Logger 
     {
     public:
         static void Log(LOG_LEVEL level, const char *message, ...);

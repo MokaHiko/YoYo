@@ -1,10 +1,11 @@
 #pragma once
 
+#include "Defines.h"
 #include "Application.h"
 
 extern yoyo::Application* CreateApplication();
 
-int main()
+YAPI int main()
 {
     yoyo::Application* app = CreateApplication();
 
