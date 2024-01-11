@@ -1,36 +1,34 @@
 #pragma once
 
+#include "Core/Memory.h"
 #include "Renderer/Shader.h"
-
 #include "VulkanStructures.h"
 
 namespace yoyo
 {
-    struct VulkanShaderModule
-    {
-        std::vector<uint32_t> code;
-        VkShaderModule module;
-    };
+    // Fills descriptor array from spriv code
+    void ParseDescriptorSetsFromSpirV(const void* spirv_code, size_t spirv_nbytes, VkShaderStageFlagBits stage, std::vector<VulkanDescriptorSet>& descriptors);
 
     // Holds all the shader related state to build a render pipeline
     struct VulkanShaderEffect
     {
-        VkPipelineLayout pipeline_layout;
-        std::vector<VulkanDescriptorSet> set_layouts;
+        std::vector<VulkanDescriptorSet> sets;
 
         struct ShaderStage
         {
-            VulkanShaderModule* module;
+            Ref<VulkanShaderModule> module;
             VkShaderStageFlagBits stage;
         };
 
         std::vector<ShaderStage> stages;
+
+        void PushShader(Ref<VulkanShaderModule> shader_module, VkShaderStageFlagBits stage);
     };
 
     // A Shader Pass is the built version of shader effect
     struct VulkanShaderPass
     {
-        VulkanShaderEffect* effect;
+        Ref<VulkanShaderEffect> effect;
         VkPipeline pipeline;
         VkPipelineLayout layout;
     };
@@ -41,7 +39,5 @@ namespace yoyo
     public:
         VulkanShader();
         ~VulkanShader();
-    private:
-        std::vector<VulkanShaderPass*> m_passes;
     };
 }

@@ -21,7 +21,7 @@ namespace yoyo
 
     Mat4x4::Mat4x4()
     {
-        memset(data, 0, 16);
+        memset(data, 0, sizeof(float) * 16);
 
         data[0] = 1;
         data[5] = 1;
@@ -57,6 +57,16 @@ namespace yoyo
 
         return *this;
     }
+
+	Mat4x4& Mat4x4::operator*=(float scalar)
+	{
+        for(int i = 0; i < 16; i++)
+        {
+            data[i] *= scalar;
+        }
+
+        return *this;
+	}
 
     float& Mat4x4::operator[](int index)
     {

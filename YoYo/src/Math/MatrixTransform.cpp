@@ -14,8 +14,6 @@ namespace yoyo
         float half_tan_fov = tan(fov_radians * 0.5f);
         Mat4x4 out_matrix = {};
 
-        memset(out_matrix.data, 0, sizeof(float) * 16);
-
         out_matrix.data[0] = 1.0f / (aspect_ratio * half_tan_fov);
         out_matrix.data[5] = 1.0f / half_tan_fov;
         out_matrix.data[10] = -((far + near) / (far - near));

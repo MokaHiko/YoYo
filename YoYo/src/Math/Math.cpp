@@ -39,4 +39,12 @@ namespace yoyo
 
         return sum;
     }
+
+	const Mat4x4 operator*(const Mat4x4& v1, float scalar)
+	{
+        Mat4x4 out = v1;
+        out *= scalar;
+
+        return out;
+	}
 }

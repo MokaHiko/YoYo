@@ -6,6 +6,7 @@
 #include "Core/Log.h"
 
 #include "VulkanMesh.h"
+#include "Math/MatrixTransform.h"
 
 namespace yoyo
 {
@@ -44,13 +45,99 @@ namespace yoyo
         m_resource_manager = CreateRef<VulkanResourceManager>();
         m_resource_manager->Init(this);
 
-        InitBlitPipeline();
-        blit_screen_mesh = CreateRef<VulkanMesh>();
-        blit_screen_mesh->vertices.push_back({-1, 0, 0});
-        blit_screen_mesh->vertices.push_back({1, 0, 0});
-        blit_screen_mesh->vertices.push_back({0, 1.0, 0});
+        m_material_system = CreateRef<VulkanMaterialSystem>();
+        m_material_system->Init(this);
 
-        m_resource_manager->UploadMesh(blit_screen_mesh);
+        InitForwardPass();
+        InitForwardPassAttachments();
+        InitForwardPassFramebufffer();
+
+        InitBlitPipeline();
+        m_screen_quad = CreateRef<VulkanMesh>();
+        m_screen_quad->vertices =
+        {
+            {{-1.00, -1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.00,  1.00}},
+            {{ 1.00, -1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {1.00,  1.00}},
+            {{-1.00,  1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.00,  0.00}},
+            {{ 1.00, -1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {1.00,  1.00}},
+            {{ 1.00,  1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {1.00,  0.00}},
+            {{-1.00,  1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.00,  0.00}},
+        };
+        m_resource_manager->UploadMesh(m_screen_quad);
+
+        // Init mesh passes
+        m_scene.forward_pass = CreateRef<MeshPass>();
+        m_scene.transparent_forward_pass = CreateRef<MeshPass>();
+        m_scene.shadow_pass = CreateRef<MeshPass>();
+
+        // TODO: Move to Application Layer
+        m_cube_mesh = CreateRef<VulkanMesh>();
+        m_cube_mesh->vertices = {
+        {{ 1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  1.00,  0.00},  {0.625,  0.50}},
+        {{-1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  1.00,  0.00},  {0.875,  0.50}},
+        {{ 1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  1.00,  0.00},  {0.625,  0.25}},
+        {{-1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  1.00,  0.00},  {0.875,  0.50}},
+        {{-1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  1.00,  0.00},  {0.875,  0.25}},
+        {{ 1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  1.00,  0.00},  {0.625,  0.25}},
+        {{ 1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.375,  0.25}},
+        {{ 1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.625,  0.25}},
+        {{-1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.375,  0.00}},
+        {{ 1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.625,  0.25}},
+        {{-1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.625,  0.00}},
+        {{-1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.375,  0.00}},
+        {{-1.00, -1.00,  1.00}, {0.00, 0.00, 0.00}, {-1.00,  0.00,  0.00},  {0.375,  1.00}},
+        {{-1.00,  1.00,  1.00}, {0.00, 0.00, 0.00}, {-1.00,  0.00,  0.00},  {0.625,  1.00}},
+        {{-1.00, -1.00, -1.00}, {0.00, 0.00, 0.00}, {-1.00,  0.00,  0.00},  {0.375,  0.75}},
+        {{-1.00,  1.00,  1.00}, {0.00, 0.00, 0.00}, {-1.00,  0.00,  0.00},  {0.625,  1.00}},
+        {{-1.00,  1.00, -1.00}, {0.00, 0.00, 0.00}, {-1.00,  0.00,  0.00},  {0.625,  0.75}},
+        {{-1.00, -1.00, -1.00}, {0.00, 0.00, 0.00}, {-1.00,  0.00,  0.00},  {0.375,  0.75}},
+        {{-1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00, -1.00,  0.00},  {0.125,  0.50}},
+        {{ 1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00, -1.00,  0.00},  {0.375,  0.50}},
+        {{-1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00, -1.00,  0.00},  {0.125,  0.25}},
+        {{ 1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00, -1.00,  0.00},  {0.375,  0.50}},
+        {{ 1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00, -1.00,  0.00},  {0.375,  0.25}},
+        {{-1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00, -1.00,  0.00},  {0.125,  0.25}},
+        {{ 1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {1.00,  0.00,  0.00},  {0.375,  0.50}},
+        {{ 1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {1.00,  0.00,  0.00},  {0.625,  0.50}},
+        {{ 1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {1.00,  0.00,  0.00},  {0.375,  0.25}},
+        {{ 1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {1.00,  0.00,  0.00},  {0.625,  0.50}},
+        {{ 1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {1.00,  0.00,  0.00},  {0.625,  0.25}},
+        {{ 1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {1.00,  0.00,  0.00},  {0.375,  0.25}},
+        {{-1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00, -1.00},  {0.375,  0.75}},
+        {{-1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00, -1.00},  {0.625,  0.75}},
+        {{ 1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00, -1.00},  {0.375,  0.50}},
+        {{-1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00, -1.00},  {0.625,  0.75}},
+        {{ 1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00, -1.00},  {0.625,  0.50}},
+        {{ 1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00, -1.00},  {0.375,  0.50}},
+        };
+        m_resource_manager->UploadMesh(m_cube_mesh);
+
+        // Describe effect
+        // TODO: Cache Effect description
+        Ref<VulkanShaderEffect> lit_effect = CreateRef<VulkanShaderEffect>();
+        Ref<VulkanShaderModule> vertex_module = m_resource_manager->CreateShaderModule("assets/shaders/lit_shader.vert.spv");
+        lit_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+
+        Ref<VulkanShaderModule> fragment_module = m_resource_manager->CreateShaderModule("assets/shaders/lit_shader.frag.spv");
+        lit_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        // Create or get shader pass from effect description
+        lit_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_effect);
+
+        Ref<Shader> effect_template = CreateRef<Shader>();
+        effect_template->shader_passes[MeshPassType::FORWARD] = lit_shader_pass;
+
+        Ref<Material> red_material = Material::Create();
+        red_material->shader = effect_template;
+        red_material->color = Vec3{ 1.0f, 1.0f, 0.0f };
+
+        Ref<MeshPassObject> pass_obj = CreateRef<MeshPassObject>();
+        pass_obj->material = red_material;
+        pass_obj->mesh = m_cube_mesh;
+        //pass_obj->mesh = m_blit_screen_mesh;
+        pass_obj->model_matrix = {};
+
+        m_scene.forward_pass->renderables.push_back(pass_obj);
     }
 
     void VulkanRenderer::Shutdown()
@@ -58,6 +145,7 @@ namespace yoyo
         m_descriptor_allocator->CleanUp();
         m_descriptor_layout_cache->Clear();
 
+        m_material_system->Shutdown();
         m_resource_manager->Shutdown();
 
         m_deletion_queue.Flush();
@@ -80,6 +168,73 @@ namespace yoyo
         // TODO: Bind shadow pass and draw shadow mesh passes
 
         // TODO: Bind main render pass and draw mesh passes
+        VkRect2D rect = {};
+        rect.offset.x = 0;
+        rect.offset.y = 0;
+        rect.extent.width = 720;
+        rect.extent.height = 480;
+
+        VkClearValue color_clear = {};
+        color_clear.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        VkClearValue depth_clear = {};
+        depth_clear.depthStencil = { 1.0f, 0 };
+
+        VkClearValue clear_values[2] = { color_clear, depth_clear };
+        VkRenderPassBeginInfo forward_pass_begin = vkinit::RenderPassBeginInfo(m_forward_frame_buffer, m_forward_pass, rect, clear_values, 2);
+        vkCmdBeginRenderPass(cmd, &forward_pass_begin, VK_SUBPASS_CONTENTS_INLINE);
+
+        // Move to RendererLayer
+        {
+            VulkanRenderContext ctx = {};
+            ctx.cmd = cmd;
+
+            // Update Scene data
+            void* data;
+            m_resource_manager->MapMemory(scene_data_uniform_buffer.allocation, &data);
+
+            SceneData scene_data = {};
+            static float angle = 0;
+            scene_data.view  = TranslationMat4x4({2.0f * sin(angle * (1.0f/144.0f)), 0.0f, 0.0f});
+            angle += 20.0f * (Y_PI/180.0f);
+            scene_data.proj = PerspectiveProjectionMat4x4((90.0f * Y_PI) / 180.0f, 720.0f / 480.0f, 0.1f, 100.0f);
+            memcpy(data, &scene_data, sizeof(SceneData));
+
+            m_resource_manager->UnmapMemory(scene_data_uniform_buffer.allocation);
+
+            // ... draw forward for each mesh passes
+
+            // TODO: Build renderable batches and draw indirect
+            // TODO: sort by material forward Shader Pass
+            for (Ref<MeshPassObject> obj : m_scene.forward_pass->renderables)
+            {
+                // Bind material forward pipeline
+                auto shader_pass = obj->material->shader->shader_passes[MeshPassType::FORWARD];
+                vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->pipeline);
+
+                uint32_t dynamic_offset = 0;
+                vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, 0, 1, &m_forward_pass_ds, 0, &dynamic_offset);
+
+                // FOR EACH GAMEOBJECT
+
+                // Bind material descriptors 
+                obj->material->Bind(&ctx, MeshPassType::FORWARD);
+
+                // Bind mesh
+                obj->mesh->Bind(&ctx);
+
+                // Draw every object with material
+                if (!obj->mesh->indices.empty())
+                {
+                    vkCmdDrawIndexed(cmd, obj->mesh->indices.size(), 1, 0, 0, 0);
+                }
+                else
+                {
+                    vkCmdDraw(cmd, obj->mesh->vertices.size(), 1, 0, 0);
+                }
+            }
+
+            vkCmdEndRenderPass(cmd);
+        }
 
         // TODO: Bind post processing render pass and draw post process passes
         return true;
@@ -89,6 +244,24 @@ namespace yoyo
     {
         // Blit offscreen target to swapchain
         VkCommandBuffer cmd = m_frame_context[m_frame_count].command_buffer;
+
+        // Blit output_texture barrier
+        VkImageMemoryBarrier blit_output_texture_barrier = {};
+        blit_output_texture_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        blit_output_texture_barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        blit_output_texture_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        blit_output_texture_barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        blit_output_texture_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        blit_output_texture_barrier.image = m_forward_pass_color_texture.image;
+
+        VkImageSubresourceRange blit_texture_range = {};
+        blit_texture_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        blit_texture_range.layerCount = 1;
+        blit_texture_range.baseArrayLayer = 0;
+        blit_texture_range.levelCount = 1;
+
+        blit_output_texture_barrier.subresourceRange = blit_texture_range;
+        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &blit_output_texture_barrier);
 
         VkRect2D rect = {};
         rect.offset.x = 0;
@@ -103,11 +276,21 @@ namespace yoyo
         vkCmdBeginRenderPass(cmd, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blit_pipeline);
 
+        uint32_t dynamic_offset = 0;
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blit_pipeline_layout, 0, 1, &m_blit_output_texture_ds, 0, &dynamic_offset);
+
         VulkanRenderContext ctx = {};
         ctx.cmd = cmd;
 
-        blit_screen_mesh->Bind(&ctx);
-        vkCmdDraw(cmd, blit_screen_mesh->vertices.size(), 1, 0, 0);
+        m_screen_quad->Bind(&ctx);
+        if (!m_screen_quad->indices.empty())
+        {
+            vkCmdDrawIndexed(cmd, m_screen_quad->indices.size(), 1, 0, 0, 0);
+        }
+        else
+        {
+            vkCmdDraw(cmd, m_screen_quad->vertices.size(), 1, 0, 0);
+        }
 
         vkCmdEndRenderPass(cmd);
 
@@ -149,6 +332,7 @@ namespace yoyo
             .request_validation_layers()
             .use_default_debug_messenger()
             .build();
+
         if (!inst_ret)
         {
             YERROR("Failed to create Vulkan instance. Error: ", inst_ret.error().message().c_str());
@@ -244,7 +428,7 @@ namespace yoyo
         vkb::SwapchainBuilder builder{ m_physical_device, m_device, m_surface };
 
         VkSurfaceFormatKHR surface_format = {};
-        surface_format.format = VK_FORMAT_B8G8R8A8_UNORM;
+        surface_format.format = m_forward_pass_format;
         vkb::Swapchain vkb_swapchain = builder.use_default_format_selection()
             .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
             .set_desired_extent(720, 480)
@@ -284,7 +468,6 @@ namespace yoyo
             vkCreateCommandPool(m_device, &compute_cp_info, nullptr, &ctx.compute_command_pool);
             VkCommandBufferAllocateInfo compute_alloc_info = vkinit::CommandBufferAllocInfo(ctx.compute_command_pool);
             vkAllocateCommandBuffers(m_device, &compute_alloc_info, &ctx.compute_command_buffer);
-
         }
 
         m_deletion_queue.Push([=]() {
@@ -329,52 +512,15 @@ namespace yoyo
     {
         std::vector<VulkanDescriptorSet> descriptors;
 
-        // TODO : VulkanShaderModule VulkanResource::CreateShaderModule();
-        VkShaderModule vertex_module;
-        VkShaderModule fragment_module;
-        {
-            char* buffer;
-            size_t buffer_size;
-            if (Platform::FileRead("assets/shaders/lit_shader.vert.spv", &buffer, &buffer_size))
-            {
-                VkShaderModuleCreateInfo shader_info = {};
-                shader_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-                shader_info.pCode = reinterpret_cast<uint32_t*>(buffer);
-                shader_info.codeSize = buffer_size;
-                VK_CHECK(vkCreateShaderModule(m_device, &shader_info, nullptr, &vertex_module));
+        Ref<VulkanShaderModule> vertex_module = m_resource_manager->CreateShaderModule("assets/shaders/full_screen_shader.vert.spv");
+        ParseDescriptorSetsFromSpirV(vertex_module->code.data(), vertex_module->code.size() * sizeof(uint32_t), VK_SHADER_STAGE_VERTEX_BIT, descriptors);
 
-                ParseDescriptorSetsFromSpirV(buffer, buffer_size, VK_SHADER_STAGE_VERTEX_BIT, descriptors);
-                delete buffer;
-            }
-            else
-            {
-                YERROR("Failed to create shader module!");
-            }
-        }
-
-        {
-            char* buffer;
-            size_t buffer_size;
-            if (Platform::FileRead("assets/shaders/lit_shader.frag.spv", &buffer, &buffer_size))
-            {
-                VkShaderModuleCreateInfo shader_info = {};
-                shader_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-                shader_info.pCode = reinterpret_cast<uint32_t*>(buffer);
-                shader_info.codeSize = buffer_size;
-                VK_CHECK(vkCreateShaderModule(m_device, &shader_info, nullptr, &fragment_module));
-
-                ParseDescriptorSetsFromSpirV(buffer, buffer_size, VK_SHADER_STAGE_VERTEX_BIT, descriptors);
-                delete buffer;
-            }
-            else
-            {
-                YERROR("Failed to create shader module!");
-            }
-        }
+        Ref<VulkanShaderModule> fragment_module = m_resource_manager->CreateShaderModule("assets/shaders/blit_shader.frag.spv");
+        ParseDescriptorSetsFromSpirV(fragment_module->code.data(), fragment_module->code.size() * sizeof(uint32_t), VK_SHADER_STAGE_FRAGMENT_BIT, descriptors);
 
         PipelineBuilder builder = {};
-        builder.shader_stages.push_back(vkinit::PipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertex_module));
-        builder.shader_stages.push_back(vkinit::PipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragment_module));
+        builder.shader_stages.push_back(vkinit::PipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertex_module->module));
+        builder.shader_stages.push_back(vkinit::PipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragment_module->module));
 
         builder.vertex_input_info = vkinit::PipelineVertexInputStateCreateInfo();
         builder.vertex_input_info.vertexAttributeDescriptionCount = static_cast<uint32_t>(VertexAttributeDescriptions().size());
@@ -437,15 +583,27 @@ namespace yoyo
 
         m_blit_pipeline = builder.Build(m_device, m_swapchain_render_pass);
 
-        // VulkanShaderPass shader_pass = MaterialSystem::CreateShaderPass(some_shader_effect);
-        // shader_pass.pipeline 
-        // shader_pass.
-
         m_deletion_queue.Push([=]()
             {
                 vkDestroyPipelineLayout(m_device, m_blit_pipeline_layout, nullptr);
                 vkDestroyPipeline(m_device, m_blit_pipeline, nullptr);
             });
+
+        // TODO: move to resource manager
+        VkSampler linear_sampler = {};
+        VkSamplerCreateInfo linear_sampler_info = vkinit::SamplerCreateInfo(VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+        vkCreateSampler(m_device, &linear_sampler_info, nullptr, &linear_sampler);
+
+        // Descriptors
+        VkDescriptorImageInfo output_image_info = {};
+        output_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        output_image_info.imageView = m_forward_pass_color_texture_view;
+        output_image_info.sampler = linear_sampler;
+
+        DescriptorBuilder ds_builder = {};
+        ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+            .BindImage(0, &output_image_info, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .Build(&m_blit_output_texture_ds, &m_blit_pass_ds_layout);
     }
 
     void VulkanRenderer::InitSwapchainRenderPass()
@@ -509,5 +667,118 @@ namespace yoyo
 
     void VulkanRenderer::InitForwardPass()
     {
+        VkAttachmentDescription color_attachment = {};
+        color_attachment.format = VK_FORMAT_B8G8R8A8_UNORM;
+        color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        color_attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference color_attachment_ref = {};
+        color_attachment_ref.attachment = 0;
+        color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentDescription depth_attachment = {};
+        depth_attachment.format = VK_FORMAT_D32_SFLOAT;
+        depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depth_attachment_ref = {};
+        depth_attachment_ref.attachment = 1;
+        depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass = {};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &color_attachment_ref;
+        subpass.pDepthStencilAttachment = &depth_attachment_ref;
+
+        VkSubpassDependency dependency = {};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        VkAttachmentDescription attachments[2] = { color_attachment, depth_attachment };
+        VkRenderPassCreateInfo render_pass_info = {};
+        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+
+        render_pass_info.attachmentCount = 2;
+        render_pass_info.pAttachments = attachments;
+        render_pass_info.subpassCount = 1;
+        render_pass_info.pSubpasses = &subpass;
+
+        VK_CHECK(vkCreateRenderPass(m_device, &render_pass_info, nullptr, &m_forward_pass));
+
+        m_deletion_queue.Push([=]()
+            {
+                vkDestroyRenderPass(m_device, m_forward_pass, nullptr);
+            });
+
+        // Descriptors
+        // TODO: Pad to uniform buffer size
+        scene_data_uniform_buffer = m_resource_manager->CreateBuffer<SceneData>(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+
+        VkDescriptorBufferInfo scene_data_info = {};
+        scene_data_info.buffer = scene_data_uniform_buffer.buffer;
+        scene_data_info.offset = 0;
+        scene_data_info.range = sizeof(SceneData);
+
+        DescriptorBuilder ds_builder = {};
+        ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+            .BindBuffer(0, &scene_data_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+            .Build(&m_forward_pass_ds, &m_forward_pass_ds_layout);
+    }
+
+    void VulkanRenderer::InitForwardPassFramebufffer()
+    {
+        VkImageView views[2] = { m_forward_pass_color_texture_view, m_forward_pass_depth_texture_view };
+
+        VkFramebufferCreateInfo frame_buffer_info = {};
+        frame_buffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        frame_buffer_info.attachmentCount = 2;
+        frame_buffer_info.pAttachments = views;
+        frame_buffer_info.renderPass = m_forward_pass;
+        frame_buffer_info.width = 720;
+        frame_buffer_info.height = 480;
+        frame_buffer_info.layers = 1;
+
+        VK_CHECK(vkCreateFramebuffer(m_device, &frame_buffer_info, nullptr, &m_forward_frame_buffer));
+
+        m_deletion_queue.Push([=]() {
+            vkDestroyFramebuffer(m_device, m_forward_frame_buffer, nullptr);
+            });
+    }
+
+    void VulkanRenderer::InitForwardPassAttachments()
+    {
+        VkExtent3D extent = {};
+        extent.width = 720;
+        extent.height = 480;
+        extent.depth = 1;
+
+        m_forward_pass_color_texture = m_resource_manager->CreateImage(extent, m_forward_pass_format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+        m_forward_pass_depth_texture = m_resource_manager->CreateImage(extent, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+        VkImageViewCreateInfo color_info = vkinit::ImageViewCreateInfo(m_forward_pass_color_texture.image, m_forward_pass_format, VK_IMAGE_ASPECT_COLOR_BIT);
+        VkImageViewCreateInfo depth_info = vkinit::ImageViewCreateInfo(m_forward_pass_depth_texture.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+        VK_CHECK(vkCreateImageView(m_device, &color_info, nullptr, &m_forward_pass_color_texture_view));
+        VK_CHECK(vkCreateImageView(m_device, &depth_info, nullptr, &m_forward_pass_depth_texture_view));
+
+        m_deletion_queue.Push([=]() {
+            vkDestroyImageView(m_device, m_forward_pass_color_texture_view, nullptr);
+            vkDestroyImageView(m_device, m_forward_pass_depth_texture_view, nullptr);
+            });
     }
 };

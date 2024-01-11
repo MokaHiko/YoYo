@@ -10,16 +10,10 @@
 
 #include "VulkanResourceManager.h"
 #include "VulkanMesh.h"
+#include "VulkanMaterial.h"
 
 namespace yoyo
 {
-    struct VulkanRenderTarget
-    {
-        VkFramebuffer framebuffer;
-        AllocatedImage image;
-        uint32_t id;
-    };
-
     class VulkanRenderer : public Renderer
     {
     public:
@@ -38,6 +32,9 @@ namespace yoyo
 
         VulkanQueues& Queues() {return m_queues;}
         VulkanDeletionQueue& DeletionQueue() {return m_deletion_queue;}
+
+		Ref<DescriptorAllocator> DescAllocator() {return m_descriptor_allocator;}
+		Ref<DescriptorLayoutCache> DescLayoutCache() {return m_descriptor_layout_cache;}
     private:
         void InitVulkan();
         void InitSwapchain();
@@ -53,20 +50,51 @@ namespace yoyo
         
         std::vector<VkFramebuffer> m_swapchain_framebuffers;
         VkRenderPass m_swapchain_render_pass;
-        Ref<VulkanMesh> blit_screen_mesh;
+
+        VkDescriptorSet m_blit_output_texture_ds;
+        VkDescriptorSetLayout m_blit_pass_ds_layout;
+
+        Ref<VulkanMesh> m_screen_quad;
 
         // TODO: Encapsulate as render targets
         VkRenderPass m_shadow_render_pass;
         VkRenderPass m_post_process_render_pass;
 
+        // Forward Pass
+        struct SceneData
+        {
+            Mat4x4 view;
+            Mat4x4 proj;
+        };
+
         void InitForwardPass();
-        VkRenderPass m_mesh_render_pass;
+        void InitForwardPassAttachments();
+        void InitForwardPassFramebufffer();
+        VkFormat m_forward_pass_format = VK_FORMAT_B8G8R8A8_UNORM;
+
+        AllocatedImage m_forward_pass_color_texture;
+        AllocatedImage m_forward_pass_depth_texture;
+        VkImageView m_forward_pass_color_texture_view;
+        VkImageView m_forward_pass_depth_texture_view;
+
+        AllocatedBuffer<SceneData> scene_data_uniform_buffer;
+
+        VkFramebuffer m_forward_frame_buffer;
+        VkRenderPass m_forward_pass;
+
+        VkDescriptorSet m_forward_pass_ds;
+        VkDescriptorSetLayout m_forward_pass_ds_layout;
+    private:
+        // Demo Scene
+        Ref<VulkanMesh> m_cube_mesh;
+        Ref<VulkanShaderPass> lit_shader_pass;
     private:
         std::vector<VulkanFrameContext> m_frame_context;
 
         uint32_t m_swapchain_index = -1;
         int m_frame_count;
     private:
+        Ref<VulkanMaterialSystem> m_material_system;
         Ref<VulkanResourceManager> m_resource_manager;
     private:
         VulkanQueues m_queues;
@@ -82,6 +110,7 @@ namespace yoyo
         VkPhysicalDevice m_physical_device;
         VkDevice m_device;
 
+        // TODO: Delete and make one for each subsystem to vulkan material system
         // Descriptor allocator and layout cache
 		Ref<DescriptorAllocator> m_descriptor_allocator;
 		Ref<DescriptorLayoutCache> m_descriptor_layout_cache;

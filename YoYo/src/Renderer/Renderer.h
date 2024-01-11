@@ -3,6 +3,8 @@
 #include "Defines.h"
 #include "Core/Memory.h"
 
+#include "RenderScene.h"
+
 namespace yoyo
 {
     enum class RendererType
@@ -18,11 +20,6 @@ namespace yoyo
         RendererType type;
         int max_frames_in_flight;
         bool tesselation;
-    };
-
-    class MeshPass
-    {
-        std::vector<uint32_t> object_ids;
     };
 
     struct YAPI RenderPacket
@@ -46,6 +43,7 @@ namespace yoyo
         virtual bool BeginFrame(const RenderPacket& rp) = 0;
         virtual void EndFrame() = 0;
     protected:
+        RenderScene m_scene;
         RendererSettings m_settings;
     };
 

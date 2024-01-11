@@ -43,9 +43,10 @@ namespace yoyo
 
     void RendererLayer::OnUpdate(float dt)
     {
+        // TODO: Build Batches/Renderpacket 
+
         RenderPacket rp;
         m_renderer->BeginFrame(rp);
-
         m_renderer->EndFrame();
     }
 }

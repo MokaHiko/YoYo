@@ -6,9 +6,10 @@
 
 namespace yoyo
 {
-    struct VertexFormat
+    enum class VertexFormat
     {
-        // 
+        P3C3N3U2,
+        P4C4N3U2,
     };
 
     struct YAPI Vertex
@@ -16,6 +17,7 @@ namespace yoyo
         Vec3 position;
         Vec3 color;
         Vec3 normal;
+
         Vec2 uv;
     };
 
@@ -32,8 +34,6 @@ namespace yoyo
         std::vector<uint32_t> indices;
 
         static Ref<Mesh> Create();
-
-        bool draw_indexed = false;
     private:
         uint64_t m_id;
     };

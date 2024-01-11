@@ -20,7 +20,7 @@ namespace yoyo
         virtual void Bind(void* render_context) override;
         virtual void Unbind() override;
 
-        AllocatedBuffer vertex_buffer;
-        AllocatedBuffer index_buffer;
+        AllocatedBuffer<Vertex> vertex_buffer;
+        AllocatedBuffer<uint32_t> index_buffer;
     };
 };

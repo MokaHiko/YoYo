@@ -2,6 +2,7 @@
 
 #include "Renderer/Material.h"
 #include "VulkanStructures.h"
+#include "VulkanShader.h"
 
 namespace yoyo 
 {
@@ -10,8 +11,10 @@ namespace yoyo
     public:
         VulkanMaterial();
         virtual ~VulkanMaterial();
+
+        virtual void Bind(void* render_context, MeshPassType type) override;
     private:
-        VulkanDescriptorSet descriptor_set;
+        std::pair<MeshPassType, VulkanDescriptorSet> descriptors;
     };
 
 }

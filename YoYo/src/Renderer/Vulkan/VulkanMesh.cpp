@@ -88,7 +88,7 @@ namespace yoyo
         const VulkanRenderContext* ctx  = static_cast<VulkanRenderContext*>(render_context);
         VkDeviceSize offset = 0;
 
-        if(draw_indexed)
+        if(!indices.empty())
         {
             vkCmdBindIndexBuffer(ctx->cmd, index_buffer.buffer, offset, VK_INDEX_TYPE_UINT32);
         }

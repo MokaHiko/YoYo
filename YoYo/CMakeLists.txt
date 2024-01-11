@@ -39,6 +39,8 @@ add_library(YoYo SHARED
     src/Renderer/Material.cpp
     src/Renderer/Mesh.h
     src/Renderer/Mesh.cpp
+    src/Renderer/RenderScene.h
+    src/Renderer/RenderScene.cpp
     src/Renderer/RendererLayer.h
     src/Renderer/RendererLayer.cpp
 
@@ -101,6 +103,7 @@ if (YRENDERERTYPE STREQUAL "VULKAN")
         src/Renderer/Vulkan/VulkanUtils.cpp
         src/Renderer/Vulkan/VulkanInitializers.h
         src/Renderer/Vulkan/VulkanInitializers.cpp
+
         src/Renderer/Vulkan/VulkanTexture.h
         src/Renderer/Vulkan/VulkanTexture.cpp
         src/Renderer/Vulkan/VulkanShader.h
@@ -109,10 +112,15 @@ if (YRENDERERTYPE STREQUAL "VULKAN")
         src/Renderer/Vulkan/VulkanMesh.cpp
         src/Renderer/Vulkan/VulkanMaterial.h
         src/Renderer/Vulkan/VulkanMaterial.cpp
+
         src/Renderer/Vulkan/VulkanMaterialSystem.h
         src/Renderer/Vulkan/VulkanMaterialSystem.cpp
         src/Renderer/Vulkan/VulkanResourceManager.h
         src/Renderer/Vulkan/VulkanResourceManager.cpp
+
+        src/Renderer/Vulkan/VulkanScene.h
+        src/Renderer/Vulkan/VulkanScene.cpp
+
         src/Renderer/Vulkan/VulkanRenderer.h
         src/Renderer/Vulkan/VulkanRenderer.cpp
     )

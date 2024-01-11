@@ -1,25 +1,25 @@
 #pragma once
 
 #include "Defines.h"
+#include "Core/Memory.h"
 
 namespace yoyo
 {
-    struct YAPI ShaderParameter
+    enum class MeshPassType
     {
-        void* data;
-        std::string name;
+        FORWARD,
+        FORWARD_TRANSPARENT,
     };
 
+    // TODO: Abstract to general ShaderPass
+    struct VulkanShaderPass;
     class YAPI Shader
     {
     public:
         Shader();
         ~Shader();
 
-        virtual void Bind() {};
-        virtual void Unbind() {};
-
-        std::vector<ShaderParameter> parameters;
+        std::unordered_map<MeshPassType, Ref<VulkanShaderPass>> shader_passes;
     private:
         // TODO: change uint64_t to resource type to support 32 bit
         uint64_t m_id; // Id of this resource

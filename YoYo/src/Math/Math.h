@@ -16,4 +16,6 @@ namespace yoyo
 
     const Vec2 operator+(const Vec2& v1,  const Vec2& v2);
     const Vec3 operator+(const Vec3& v1,  const Vec3& v2);
+
+    const Mat4x4 operator*(const Mat4x4& v1, float scalar);
 }

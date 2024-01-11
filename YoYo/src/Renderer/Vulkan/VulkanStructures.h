@@ -44,7 +44,14 @@ namespace yoyo
         VkFence render_fence;
     };
 
+    struct VulkanShaderModule
+    {
+        std::vector<uint32_t> code;
+        VkShaderModule module;
+    };
+
     // A struct that holds a handle to buffer and its allocation
+    template<typename T = void>
     struct AllocatedBuffer
     {
         VkBuffer buffer;

@@ -91,6 +91,7 @@ namespace yoyo
         alignas(16) Vec4 rows[4];
 #endif
         Mat4x4 &operator*=(const Mat4x4 &other);
+        Mat4x4 &operator*=(float scalar);
         float &operator[](int index);
     };
 

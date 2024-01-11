@@ -1,73 +1,24 @@
 #include "VulkanMaterialSystem.h"
 
-#include "VulkanShader.h"
 #include "VulkanMaterial.h"
 
-#include "Core/Log.h"
-#include <spirv_reflect.h>
+#include "VulkanUtils.h"
+#include "VulkanInitializers.h"
+
+#include "VulkanRenderer.h"
+
+// TODO: Separate Vertex Descriptions
+#include "VulkanMesh.h"
 
 namespace yoyo
 {
-	void ParseDescriptorSetsFromSpirV(const void* spirv_code, size_t spirv_nbytes, VkShaderStageFlagBits stage, std::vector<VulkanDescriptorSet>& descriptors)
+	void VulkanMaterialSystem::Init(VulkanRenderer* renderer)
 	{
-		// Generate reflection data for a shader
-		SpvReflectShaderModule module;
-		SpvReflectResult result = spvReflectCreateShaderModule(spirv_nbytes, spirv_code, &module);
-		YASSERT(result == SPV_REFLECT_RESULT_SUCCESS);
+        m_descriptor_allocator = renderer->DescAllocator();
+        m_descriptor_layout_cache = renderer->DescLayoutCache();
 
-		// Get descriptor bindings
-		uint32_t count = 0;
-		result = spvReflectEnumerateDescriptorSets(&module, &count, NULL);
-		YASSERT(result == SPV_REFLECT_RESULT_SUCCESS);
-
-		std::vector<SpvReflectDescriptorSet*> r_descriptor_sets(count);
-		result = spvReflectEnumerateDescriptorSets(&module, &count, r_descriptor_sets.data());
-		YASSERT(result == SPV_REFLECT_RESULT_SUCCESS);
-
-		for (uint32_t i = 0; i < r_descriptor_sets.size(); i++)
-		{
-			YINFO("Descriptor Set: %d", i);
-			const SpvReflectDescriptorSet& r_descriptor_set = *r_descriptor_sets[i];
-
-			// Check if descriptor set already exists
-			auto it = std::find_if(descriptors.begin(), descriptors.end(), [&](const VulkanDescriptorSet& ds) {return ds.set_index == r_descriptor_set.set;});
-
-			if (it != descriptors.end())
-			{
-				for (uint32_t j = 0; j < r_descriptor_set.binding_count; j++)
-				{
-					const SpvReflectDescriptorBinding& r_descriptor_binding = *r_descriptor_set.bindings[j];
-					VkDescriptorType type = static_cast<VkDescriptorType>(r_descriptor_binding.descriptor_type);
-
-					YINFO("binding: %d, descriptor type: %d", r_descriptor_binding.binding, r_descriptor_binding.descriptor_type);
-					it->AddBinding(r_descriptor_binding.binding, type, stage);
-				};
-			}
-			else
-			{
-				VulkanDescriptorSet descriptor_set = {};
-				descriptor_set.shader_stage = stage;
-				descriptor_set.set_index = r_descriptor_set.set;
-
-				for (uint32_t j = 0; j < r_descriptor_set.binding_count; j++)
-				{
-					const SpvReflectDescriptorBinding& r_descriptor_binding = *r_descriptor_set.bindings[j];
-					VkDescriptorType type = static_cast<VkDescriptorType>(r_descriptor_binding.descriptor_type);
-
-					YINFO("binding: %d, descriptor type: %d", r_descriptor_binding.binding, r_descriptor_binding.descriptor_type);
-					descriptor_set.AddBinding(r_descriptor_binding.binding, type, stage);
-				};
-
-				descriptors.push_back(descriptor_set);
-			}
-		}
-
-		// Clean up
-		spvReflectDestroyShaderModule(&module);
-	}
-
-	void VulkanMaterialSystem::Init()
-	{
+		m_device = renderer->Device();
+		m_deletion_queue = &renderer->DeletionQueue();
 	}
 
 	void VulkanMaterialSystem::Shutdown()
@@ -78,4 +29,90 @@ namespace yoyo
 	{
 		return Ref<Material>();
 	}
+
+	Ref<VulkanShaderPass> VulkanMaterialSystem::CreateShaderPass(VkRenderPass render_pass, Ref<VulkanShaderEffect> effect)
+	{
+		Ref<VulkanShaderPass> shader_pass = CreateRef<VulkanShaderPass>();
+		shader_pass->effect = effect;
+
+ 		PipelineBuilder builder = {};
+		for(VulkanShaderEffect::ShaderStage& stage : effect->stages)
+		{
+        	builder.shader_stages.push_back(vkinit::PipelineShaderStageCreateInfo(stage.stage, stage.module->module));
+		}
+
+        builder.vertex_input_info = vkinit::PipelineVertexInputStateCreateInfo();
+        builder.vertex_input_info.vertexAttributeDescriptionCount = static_cast<uint32_t>(VertexAttributeDescriptions().size());
+        builder.vertex_input_info.pVertexAttributeDescriptions = VertexAttributeDescriptions().data();
+        builder.vertex_input_info.vertexBindingDescriptionCount = static_cast<uint32_t>(VertexBindingDescriptions().size());
+        builder.vertex_input_info.pVertexBindingDescriptions = VertexBindingDescriptions().data();
+
+        builder.input_assembly = vkinit::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+        builder.rasterizer = vkinit::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL);
+
+        builder.multisampling = vkinit::PipelineMultisampleStateCreateInfo();
+
+        builder.color_blend_attachment = vkinit::PipelineColorBlendAttachmentState();
+
+        builder.depth_stencil = vkinit::PipelineDepthStencilStateCreateInfo(true, true, VK_COMPARE_OP_LESS_OR_EQUAL);
+
+        builder.tesselation_state = {};
+
+        // Build descriptor set layouts
+        std::vector<VkDescriptorSetLayout> descriptor_layouts;
+        for (VulkanDescriptorSet& descriptor : effect->sets)
+        {
+            // Build descriptor set layouts
+            DescriptorBuilder builder = DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get());
+            for (auto it = descriptor.bindings.begin(); it != descriptor.bindings.end(); it++)
+            {
+                uint32_t binding = it->first;
+                VkDescriptorType type = it->second;
+                if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                {
+                    builder.BindBuffer(binding, nullptr, type, descriptor.shader_stage);
+                }
+                else if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+                {
+                    builder.BindImage(binding, nullptr, type, descriptor.shader_stage);
+                }
+            }
+
+            builder.Build(nullptr, &descriptor.descriptor_set_layout);
+            descriptor_layouts.push_back(descriptor.descriptor_set_layout);
+        }
+
+        VkPipelineLayoutCreateInfo pipeline_layout_info = vkinit::PipelineLayoutCreateInfo();
+        pipeline_layout_info.setLayoutCount = static_cast<uint32_t>(descriptor_layouts.size());
+        pipeline_layout_info.pSetLayouts = descriptor_layouts.data();
+        vkCreatePipelineLayout(m_device, &pipeline_layout_info, nullptr, &shader_pass->layout);
+        builder.pipeline_layout = shader_pass->layout;
+
+        builder.viewport.x = 0;
+        builder.viewport.y = 0;
+        builder.viewport.width = 720;
+        builder.viewport.height = 480;
+
+        builder.viewport.minDepth = 0;
+        builder.viewport.maxDepth = 1.0f;
+
+        builder.scissor = {};
+        builder.scissor.extent.width = 720;
+        builder.scissor.extent.height = 480;
+        builder.scissor.offset.x = 0;
+        builder.scissor.offset.y = 0;
+
+		// TODO: Cache Shader passes (pipelines)
+        shader_pass->pipeline = builder.Build(m_device, render_pass);
+
+        m_deletion_queue->Push([=]()
+		{
+			vkDestroyPipelineLayout(m_device, shader_pass->layout, nullptr);
+			vkDestroyPipeline(m_device, shader_pass->pipeline, nullptr);
+		});
+
+		return shader_pass;
+	}
+
 } // namespace yoyo
