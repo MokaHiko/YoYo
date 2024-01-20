@@ -3,17 +3,21 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include "Platform/Platform.h"
+
 namespace yoyo
 {
     void Logger::Log(LOG_LEVEL log_level, const char *message, ...)
     {
-        static const char *level_strings[6]{
-            "FATAL",
-            "ERROR",
-            "WARN",
-            "INFO",
-            "DEBUG",
-            "TRACE"};
+		static const char* level_strings[6] =
+		{
+			"Unknown",
+			"INFO",
+			"SUCCESS",
+			"TRACE",
+			"ERROR",
+			"WARN",
+		};
 
         char out_message[32000] = {0};
 
@@ -24,6 +28,7 @@ namespace yoyo
 
         char formatted_message[32000];
         snprintf(formatted_message, 32000, "[%s]: %s \n", level_strings[(int)log_level], out_message);
-        printf("%s", formatted_message);
+
+        Platform::ConsoleWrite(formatted_message, (uint8_t)log_level);
     }
 }

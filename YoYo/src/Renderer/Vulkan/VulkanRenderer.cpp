@@ -3,9 +3,11 @@
 #include "VulkanRenderer.h"
 
 #include "Platform/Platform.h"
+#include "Core/Time.h"
 #include "Core/Log.h"
 
 #include "VulkanMesh.h"
+#include "VulkanTexture.h"
 #include "Math/MatrixTransform.h"
 
 namespace yoyo
@@ -16,7 +18,7 @@ namespace yoyo
     }
 
     VulkanRenderer::VulkanRenderer()
-        : Renderer({ RendererType::VULKAN, 2, true }),
+        : Renderer({ RendererType::Vulkan, 2, true }),
         m_instance(VK_NULL_HANDLE), m_surface(VK_NULL_HANDLE),
         m_device(VK_NULL_HANDLE), m_physical_device(VK_NULL_HANDLE) {}
 
@@ -53,6 +55,8 @@ namespace yoyo
         InitForwardPassFramebufffer();
 
         InitBlitPipeline();
+
+        // TODO: All uploads must be done immediately uppon creation and update
         m_screen_quad = CreateRef<VulkanMesh>();
         m_screen_quad->vertices =
         {
@@ -73,42 +77,42 @@ namespace yoyo
         // TODO: Move to Application Layer
         m_cube_mesh = CreateRef<VulkanMesh>();
         m_cube_mesh->vertices = {
-        {{ 1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  1.00,  0.00},  {0.625,  0.50}},
-        {{-1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  1.00,  0.00},  {0.875,  0.50}},
-        {{ 1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  1.00,  0.00},  {0.625,  0.25}},
-        {{-1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  1.00,  0.00},  {0.875,  0.50}},
-        {{-1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  1.00,  0.00},  {0.875,  0.25}},
-        {{ 1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  1.00,  0.00},  {0.625,  0.25}},
-        {{ 1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.375,  0.25}},
-        {{ 1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.625,  0.25}},
-        {{-1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.375,  0.00}},
-        {{ 1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.625,  0.25}},
-        {{-1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.625,  0.00}},
-        {{-1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.375,  0.00}},
-        {{-1.00, -1.00,  1.00}, {0.00, 0.00, 0.00}, {-1.00,  0.00,  0.00},  {0.375,  1.00}},
-        {{-1.00,  1.00,  1.00}, {0.00, 0.00, 0.00}, {-1.00,  0.00,  0.00},  {0.625,  1.00}},
-        {{-1.00, -1.00, -1.00}, {0.00, 0.00, 0.00}, {-1.00,  0.00,  0.00},  {0.375,  0.75}},
-        {{-1.00,  1.00,  1.00}, {0.00, 0.00, 0.00}, {-1.00,  0.00,  0.00},  {0.625,  1.00}},
-        {{-1.00,  1.00, -1.00}, {0.00, 0.00, 0.00}, {-1.00,  0.00,  0.00},  {0.625,  0.75}},
-        {{-1.00, -1.00, -1.00}, {0.00, 0.00, 0.00}, {-1.00,  0.00,  0.00},  {0.375,  0.75}},
-        {{-1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00, -1.00,  0.00},  {0.125,  0.50}},
-        {{ 1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00, -1.00,  0.00},  {0.375,  0.50}},
-        {{-1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00, -1.00,  0.00},  {0.125,  0.25}},
-        {{ 1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00, -1.00,  0.00},  {0.375,  0.50}},
-        {{ 1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00, -1.00,  0.00},  {0.375,  0.25}},
-        {{-1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {0.00, -1.00,  0.00},  {0.125,  0.25}},
-        {{ 1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {1.00,  0.00,  0.00},  {0.375,  0.50}},
-        {{ 1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {1.00,  0.00,  0.00},  {0.625,  0.50}},
-        {{ 1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {1.00,  0.00,  0.00},  {0.375,  0.25}},
-        {{ 1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {1.00,  0.00,  0.00},  {0.625,  0.50}},
-        {{ 1.00,  1.00,  1.00}, {0.00, 0.00, 0.00},  {1.00,  0.00,  0.00},  {0.625,  0.25}},
-        {{ 1.00, -1.00,  1.00}, {0.00, 0.00, 0.00},  {1.00,  0.00,  0.00},  {0.375,  0.25}},
-        {{-1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00, -1.00},  {0.375,  0.75}},
-        {{-1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00, -1.00},  {0.625,  0.75}},
-        {{ 1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00, -1.00},  {0.375,  0.50}},
-        {{-1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00, -1.00},  {0.625,  0.75}},
-        {{ 1.00,  1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00, -1.00},  {0.625,  0.50}},
-        {{ 1.00, -1.00, -1.00}, {0.00, 0.00, 0.00},  {0.00,  0.00, -1.00},  {0.375,  0.50}},
+        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.625,  0.50}},
+        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.875,  0.50}},
+        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.625,  0.25}},
+        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.875,  0.50}},
+        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.875,  0.25}},
+        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.625,  0.25}},
+        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.375,  0.25}},
+        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.625,  0.25}},
+        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.375,  0.00}},
+        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.625,  0.25}},
+        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.625,  0.00}},
+        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.375,  0.00}},
+        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.375,  1.00}},
+        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.625,  1.00}},
+        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.375,  0.75}},
+        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.625,  1.00}},
+        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.625,  0.75}},
+        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.375,  0.75}},
+        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.125,  0.50}},
+        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.375,  0.50}},
+        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.125,  0.25}},
+        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.375,  0.50}},
+        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.375,  0.25}},
+        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.125,  0.25}},
+        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.375,  0.50}},
+        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.625,  0.50}},
+        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.375,  0.25}},
+        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.625,  0.50}},
+        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.625,  0.25}},
+        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.375,  0.25}},
+        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.375,  0.75}},
+        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.625,  0.75}},
+        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.375,  0.50}},
+        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.625,  0.75}},
+        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.625,  0.50}},
+        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.375,  0.50}},
         };
         m_resource_manager->UploadMesh(m_cube_mesh);
 
@@ -124,20 +128,28 @@ namespace yoyo
         // Create or get shader pass from effect description
         lit_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_effect);
 
-        Ref<Shader> effect_template = CreateRef<Shader>();
-        effect_template->shader_passes[MeshPassType::FORWARD] = lit_shader_pass;
+        // Create shader (Effect Template)
+        Ref<Shader> lit_shader = CreateRef<Shader>();
+        lit_shader->shader_passes[MeshPassType::Forward] = lit_shader_pass;
 
-        Ref<Material> red_material = Material::Create();
-        red_material->shader = effect_template;
-        red_material->color = Vec3{ 1.0f, 1.0f, 0.0f };
+        // Scene Creation TODO: Make scene incremental build
+        {
+            Ref<Texture> container_diffuse = Texture::LoadFromAsset("assets/textures/container2.yo");
+            m_resource_manager->UploadTexture(std::static_pointer_cast<VulkanTexture>(container_diffuse));
 
-        Ref<MeshPassObject> pass_obj = CreateRef<MeshPassObject>();
-        pass_obj->material = red_material;
-        pass_obj->mesh = m_cube_mesh;
-        //pass_obj->mesh = m_blit_screen_mesh;
-        pass_obj->model_matrix = {};
+            Ref<Material> red_material = m_material_system->CreateMaterial(std::static_pointer_cast<VulkanShader>(lit_shader));
+            red_material->SetTexture(MaterialTextureType::MainTexture, container_diffuse);
+            red_material->color = Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+            red_material->SetVec4("diffuse_color", Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+            red_material->SetVec4("specular_color", Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
 
-        m_scene.forward_pass->renderables.push_back(pass_obj);
+            Ref<MeshPassObject> pass_obj = CreateRef<MeshPassObject>();
+            pass_obj->material = red_material;
+            pass_obj->mesh = m_cube_mesh;
+            pass_obj->model_matrix = TranslationMat4x4({ 0.0, 0.0, -5.0f });
+
+            m_scene.forward_pass->renderables.push_back(pass_obj);
+        }
     }
 
     void VulkanRenderer::Shutdown()
@@ -156,11 +168,21 @@ namespace yoyo
         vkWaitForFences(m_device, 1, &m_frame_context[m_frame_count].render_fence, VK_TRUE, 1000000000);
         vkResetFences(m_device, 1, &m_frame_context[m_frame_count].render_fence);
 
+        // Update Scene data
+        void* data;
+        m_resource_manager->MapMemory(scene_data_uniform_buffer.allocation, &data);
+        SceneData scene_data = {};
+        static float angle = 0;
+        scene_data.view = RotateMat4x4(angle * (1.0f / 144.0f), {}) * TranslationMat4x4({ 2.0f * sin(angle * (1.0f / 144.0f)), 0.0f, -5.0f });
+        angle += 20.0f * (Y_PI / 180.0f);
+        scene_data.proj = PerspectiveProjectionMat4x4((90.0f * Y_PI) / 180.0f, 720.0f / 480.0f, 0.1f, 100.0f);
+        memcpy(data, &scene_data, sizeof(SceneData));
+        m_resource_manager->UnmapMemory(scene_data_uniform_buffer.allocation);
+
         m_swapchain_index = -1;
         VK_CHECK(vkAcquireNextImageKHR(m_device, m_swapchain, 1000000000, m_frame_context[m_frame_count].present_semaphore, VK_NULL_HANDLE, &m_swapchain_index));
 
         VkCommandBufferBeginInfo cmd_begin_info = vkinit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-
         VkCommandBuffer cmd = m_frame_context[m_frame_count].command_buffer;
         VK_CHECK(vkResetCommandBuffer(cmd, 0));
         VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
@@ -188,19 +210,6 @@ namespace yoyo
             VulkanRenderContext ctx = {};
             ctx.cmd = cmd;
 
-            // Update Scene data
-            void* data;
-            m_resource_manager->MapMemory(scene_data_uniform_buffer.allocation, &data);
-
-            SceneData scene_data = {};
-            static float angle = 0;
-            scene_data.view  = TranslationMat4x4({2.0f * sin(angle * (1.0f/144.0f)), 0.0f, 0.0f});
-            angle += 20.0f * (Y_PI/180.0f);
-            scene_data.proj = PerspectiveProjectionMat4x4((90.0f * Y_PI) / 180.0f, 720.0f / 480.0f, 0.1f, 100.0f);
-            memcpy(data, &scene_data, sizeof(SceneData));
-
-            m_resource_manager->UnmapMemory(scene_data_uniform_buffer.allocation);
-
             // ... draw forward for each mesh passes
 
             // TODO: Build renderable batches and draw indirect
@@ -208,7 +217,7 @@ namespace yoyo
             for (Ref<MeshPassObject> obj : m_scene.forward_pass->renderables)
             {
                 // Bind material forward pipeline
-                auto shader_pass = obj->material->shader->shader_passes[MeshPassType::FORWARD];
+                auto shader_pass = obj->material->shader->shader_passes[MeshPassType::Forward];
                 vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->pipeline);
 
                 uint32_t dynamic_offset = 0;
@@ -216,8 +225,17 @@ namespace yoyo
 
                 // FOR EACH GAMEOBJECT
 
+                // TODO: Make sure before all draws of material
+                static float angle = 0.0f;
+                obj->material->SetVec4("diffuse_color", obj->material->color * sin(angle));
+                angle += (Y_PI * 25.0f / 180.0f) * Time::DeltaTime();
+                if (obj->material->Dirty())
+                {
+                    m_material_system->UpdateMaterial(std::static_pointer_cast<VulkanMaterial>(obj->material));
+                }
+
                 // Bind material descriptors 
-                obj->material->Bind(&ctx, MeshPassType::FORWARD);
+                obj->material->Bind(&ctx, MeshPassType::Forward);
 
                 // Bind mesh
                 obj->mesh->Bind(&ctx);
@@ -367,6 +385,7 @@ namespace yoyo
             return;
         }
         m_physical_device = phys_ret.value().physical_device;
+        m_physical_device_properties = phys_ret.value().properties;
         YINFO("Physical Device Selected: %s", phys_ret.value().name.c_str());
 
         vkb::DeviceBuilder device_builder{ phys_ret.value() };
@@ -510,13 +529,13 @@ namespace yoyo
 
     void VulkanRenderer::InitBlitPipeline()
     {
-        std::vector<VulkanDescriptorSet> descriptors;
+        std::vector<VulkanDescriptorSetInformation> descriptors_info;
 
         Ref<VulkanShaderModule> vertex_module = m_resource_manager->CreateShaderModule("assets/shaders/full_screen_shader.vert.spv");
-        ParseDescriptorSetsFromSpirV(vertex_module->code.data(), vertex_module->code.size() * sizeof(uint32_t), VK_SHADER_STAGE_VERTEX_BIT, descriptors);
+        ParseDescriptorSetsFromSpirV(vertex_module->code.data(), vertex_module->code.size() * sizeof(uint32_t), VK_SHADER_STAGE_VERTEX_BIT, descriptors_info);
 
         Ref<VulkanShaderModule> fragment_module = m_resource_manager->CreateShaderModule("assets/shaders/blit_shader.frag.spv");
-        ParseDescriptorSetsFromSpirV(fragment_module->code.data(), fragment_module->code.size() * sizeof(uint32_t), VK_SHADER_STAGE_FRAGMENT_BIT, descriptors);
+        ParseDescriptorSetsFromSpirV(fragment_module->code.data(), fragment_module->code.size() * sizeof(uint32_t), VK_SHADER_STAGE_FRAGMENT_BIT, descriptors_info);
 
         PipelineBuilder builder = {};
         builder.shader_stages.push_back(vkinit::PipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertex_module->module));
@@ -542,21 +561,21 @@ namespace yoyo
 
         // Build descriptor set layouts
         std::vector<VkDescriptorSetLayout> descriptor_layouts;
-        for (VulkanDescriptorSet& descriptor : descriptors)
+        for (VulkanDescriptorSetInformation& descriptor : descriptors_info)
         {
             // Build descriptor set layouts
             DescriptorBuilder builder = DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get());
             for (auto it = descriptor.bindings.begin(); it != descriptor.bindings.end(); it++)
             {
-                uint32_t binding = it->first;
-                VkDescriptorType type = it->second;
-                if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                uint32_t binding_index = it->first;
+                const VulkanBinding& binding = it->second;
+                if (binding.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || binding.type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                 {
-                    builder.BindBuffer(binding, nullptr, type, descriptor.shader_stage);
+                    builder.BindBuffer(binding_index, nullptr, binding.type, descriptor.shader_stage);
                 }
-                else if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+                else if (binding.type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
                 {
-                    builder.BindImage(binding, nullptr, type, descriptor.shader_stage);
+                    builder.BindImage(binding_index, nullptr, binding.type, descriptor.shader_stage);
                 }
             }
 
@@ -726,8 +745,8 @@ namespace yoyo
             });
 
         // Descriptors
-        // TODO: Pad to uniform buffer size
-        scene_data_uniform_buffer = m_resource_manager->CreateBuffer<SceneData>(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        size_t padded_scene_data_size = m_resource_manager->PadToUniformBufferSize(sizeof(SceneData));
+        scene_data_uniform_buffer = m_resource_manager->CreateBuffer<SceneData>(padded_scene_data_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
         VkDescriptorBufferInfo scene_data_info = {};
         scene_data_info.buffer = scene_data_uniform_buffer.buffer;

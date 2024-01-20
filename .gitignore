@@ -1,6 +1,8 @@
 #build
 [Bb]uild
-Assets
+
+# Assets
+.yo
 
 #vs/vscode
 .vscode

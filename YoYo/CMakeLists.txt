@@ -31,6 +31,11 @@ add_library(YoYo SHARED
     src/Core/Application.h
     src/Core/Application.cpp
 
+    src/Events/Event.h
+    src/Events/Event.cpp
+    src/Events/ApplicationEvent.h
+    src/Events/ApplicationEvent.cpp
+
     src/Renderer/Renderer.h
     src/Renderer/Renderer.cpp
     src/Renderer/Shader.h
@@ -39,10 +44,15 @@ add_library(YoYo SHARED
     src/Renderer/Material.cpp
     src/Renderer/Mesh.h
     src/Renderer/Mesh.cpp
-    src/Renderer/RenderScene.h
-    src/Renderer/RenderScene.cpp
+    src/Renderer/Texture.h
+    src/Renderer/Texture.cpp
     src/Renderer/RendererLayer.h
     src/Renderer/RendererLayer.cpp
+
+    src/Renderer/Light.h
+    src/Renderer/Light.cpp
+    src/Renderer/RenderScene.h
+    src/Renderer/RenderScene.cpp
 
     src/Core/EntryPoint.h
     include/Yoyo.h
@@ -53,6 +63,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_include_directories(${PROJECT_NAME} PUBLIC src include)
 
 add_compile_definitions(Y_EXPORT)
+add_subdirectory(vendor/Hurno)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE Hurno)
 
 # TODO Detect build type
 if(true)

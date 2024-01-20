@@ -67,9 +67,7 @@ namespace yoyo
 
     Ref<Mesh> Mesh::Create()
     {
-        // TODO: Upload Here
         Ref<VulkanMesh> mesh = CreateRef<VulkanMesh>();
-
         return mesh;
     }
 

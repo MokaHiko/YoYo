@@ -8,8 +8,8 @@ namespace yoyo
 {
     enum class VertexFormat
     {
-        P3C3N3U2,
-        P4C4N3U2,
+        P3c3n3u2,
+        P4c4n3u2,
     };
 
     struct YAPI Vertex

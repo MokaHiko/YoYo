@@ -46,8 +46,9 @@ namespace yoyo
 
     struct VulkanShaderModule
     {
-        std::vector<uint32_t> code;
         VkShaderModule module;
+        std::vector<uint32_t> code;
+        std::string source_path;
     };
 
     // A struct that holds a handle to buffer and its allocation
@@ -65,18 +66,64 @@ namespace yoyo
         VmaAllocation allocation;
     };
 
-    struct VulkanDescriptorSet
+    struct VulkanBinding
     {
-        uint32_t set_index;
+        std::string name;
+        VkDescriptorType type;
+
+        struct BindingProperty
+        {
+            uint64_t size;    // size of binding property member in bytes
+            uint64_t offset;  // offset of binding property member in bytes
+        };
+
+        // Size of binding in bytes
+        const uint64_t Size() const
+        {
+            return m_size;
+        }
+
+        void AddProperty(const std::string& name, const BindingProperty& binding_prop)
+        {
+            m_properties[name] = binding_prop;
+            m_size += binding_prop.size;
+        }
+
+        const std::unordered_map<std::string, BindingProperty>& Properties()
+        {
+            return m_properties;
+        }
+    private:
+        uint64_t m_size;  
+        std::unordered_map<std::string, BindingProperty> m_properties;
+    };
+
+    struct VulkanDescriptorSetInformation
+    {
         VkShaderStageFlagBits shader_stage;
         VkDescriptorSetLayout descriptor_set_layout;
-        std::unordered_map<uint32_t, VkDescriptorType> bindings;
 
-        void AddBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlagBits stage)
+        uint32_t index;
+        std::unordered_map<uint32_t, VulkanBinding> bindings;
+
+        void AddBinding(uint32_t index, VkShaderStageFlagBits stage, const VulkanBinding& binding)
         {
-            bindings[binding] = type;
-            shader_stage = static_cast<VkShaderStageFlagBits>(shader_stage | stage);
+            // Check if binding already exists
+            if(bindings.find(index) != bindings.end())
+            {
+                shader_stage = static_cast<VkShaderStageFlagBits>(shader_stage | stage);
+            }
+            else
+            {
+                bindings[index] = binding;
+            }
         }
+    };
+
+    struct VulkanDescriptorSet
+    {
+        VkDescriptorSet set;
+        VulkanDescriptorSetInformation info;
     };
 
     // Queue that keeps clean up functions

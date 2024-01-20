@@ -21,9 +21,9 @@ namespace yoyo
 {
     enum class MemoryTag
     {
-        UKNOWN,
-        RENDERER,
-        STRING,
+        Uknown,
+        Renderer,
+        String,
     };
 
     YAPI void *

@@ -9,6 +9,9 @@
 #include "Core/Log.h"
 #include "Core/Memory.h"
 
+#include "Events/Event.h"
+#include "Events/ApplicationEvent.h"
+
 namespace yoyo
 {
     static SDL_Window *window = nullptr;
@@ -40,11 +43,21 @@ namespace yoyo
         return true;
     }
 
-    void Platform::PumpMessages()
+	void Platform::ConsoleWrite(const char *message, uint8_t color)
+    {
+        printf("message");
+    }
+
+    void Platform::PumpMessages(EventManager* event_manager)
     {
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
+            if(event.type == SDL_QUIT)
+            {
+                Ref<Event> app_close_event = CreateRef<ApplicationCloseEvent>();
+                event_manager->Dispatch(app_close_event);
+            }
         }
     }
 
@@ -90,5 +103,10 @@ namespace yoyo
             YERROR("Failed to load file at path %s", path);
             return false;
         }
+    }
+
+    std::string GenerateUUIDV4()
+    {
+        return {};
     }
 }

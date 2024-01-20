@@ -9,37 +9,116 @@
 
 // TODO: Separate Vertex Descriptions
 #include "VulkanMesh.h"
+#include "VulkanTexture.h"
 
 namespace yoyo
 {
-	void VulkanMaterialSystem::Init(VulkanRenderer* renderer)
-	{
+    void VulkanMaterialSystem::Init(VulkanRenderer* renderer)
+    {
         m_descriptor_allocator = renderer->DescAllocator();
         m_descriptor_layout_cache = renderer->DescLayoutCache();
 
-		m_device = renderer->Device();
-		m_deletion_queue = &renderer->DeletionQueue();
-	}
+        m_device = renderer->Device();
+        m_deletion_queue = &renderer->DeletionQueue();
 
-	void VulkanMaterialSystem::Shutdown()
-	{
-	}
+        m_resource_manager = renderer->ResourceManager();
 
-	Ref<Material> VulkanMaterialSystem::CreateMaterial() 
-	{
-		return Ref<Material>();
-	}
+        m_linear_sampler = {};
+        VkSamplerCreateInfo linear_sampler_info = vkinit::SamplerCreateInfo(VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+        vkCreateSampler(m_device, &linear_sampler_info, nullptr, &m_linear_sampler);
 
-	Ref<VulkanShaderPass> VulkanMaterialSystem::CreateShaderPass(VkRenderPass render_pass, Ref<VulkanShaderEffect> effect)
-	{
-		Ref<VulkanShaderPass> shader_pass = CreateRef<VulkanShaderPass>();
-		shader_pass->effect = effect;
+        m_deletion_queue->Push([=]() {
+            vkDestroySampler(m_device, m_linear_sampler, nullptr);
+            });
+    }
 
- 		PipelineBuilder builder = {};
-		for(VulkanShaderEffect::ShaderStage& stage : effect->stages)
-		{
-        	builder.shader_stages.push_back(vkinit::PipelineShaderStageCreateInfo(stage.stage, stage.module->module));
-		}
+    void VulkanMaterialSystem::Shutdown()
+    {
+    }
+
+    Ref<Material> VulkanMaterialSystem::CreateMaterial(Ref<VulkanShader> shader)
+    {
+        Ref<VulkanMaterial> material = CreateRef<VulkanMaterial>();
+        material->shader = shader;
+
+        for (auto pass_it = shader->shader_passes.begin(); pass_it != shader->shader_passes.end(); pass_it++)
+        {
+            // Create descriptor for public material properties
+            std::vector<VulkanDescriptorSetInformation>& shader_pass_sets = (*(pass_it->second)).effect->set_infos;
+            auto ds_it = std::find_if(shader_pass_sets.begin(), shader_pass_sets.end(), [=](const VulkanDescriptorSetInformation& set)
+                {
+                    return set.index == MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX;
+                });
+
+            if (ds_it != shader_pass_sets.end())
+            {
+                VulkanDescriptorSetInformation& material_property_set_info = material->descriptors[MeshPassType::Forward][MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX].info;
+                material_property_set_info = *ds_it;
+
+                // Copy binding info to material properties
+                for (auto binding_it = material_property_set_info.bindings.begin(); binding_it != material_property_set_info.bindings.end(); binding_it++)
+                {
+                    VulkanBinding& binding = binding_it->second;
+                    for (auto binding_prop_it = binding.Properties().begin(); binding_prop_it != binding.Properties().end(); binding_prop_it++)
+                    {
+                        const std::string& binding_prop_name = binding_prop_it->first;
+                        const VulkanBinding::BindingProperty& binding_prop = binding_prop_it->second;
+
+                        MaterialProperty material_prop = {};
+                        material_prop.size = binding_prop.size;
+                        material_prop.offset = binding_prop.offset;
+
+                        material->AddProperty(binding_prop_name, material_prop);
+                    }
+                }
+            }
+        }
+
+        // TODO: Give default main texture value or send to untextured material
+        VkDescriptorSet textures_set = {};
+        material->descriptors[MeshPassType::Forward][MATERIAL_MAIN_TEXTURE_DESCRIPTOR_SET_INDEX].set = textures_set;
+
+        // TODO: move to shader pass loop
+        {
+            VulkanBinding binding = material->descriptors[MeshPassType::Forward][MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX].info.bindings[0];
+            uint32_t binding_index = 0;
+
+            size_t padded_material_property_size = m_resource_manager->PadToUniformBufferSize(binding.Size());
+            material->m_properties_buffer = m_resource_manager->CreateBuffer(padded_material_property_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+            // 0 out property buffer
+            void* property_data;
+            m_resource_manager->MapMemory(material->m_properties_buffer.allocation, &property_data);
+            memset(property_data, 0, material->PropertyDataSize());
+            m_resource_manager->UnmapMemory(material->m_properties_buffer.allocation);
+
+            VkDescriptorBufferInfo property_buffer_info = {};
+            property_buffer_info.offset = 0;
+            property_buffer_info.buffer = material->m_properties_buffer.buffer;
+            property_buffer_info.range = VK_WHOLE_SIZE;
+
+            VulkanDescriptorSet& property_set = material->descriptors[MeshPassType::Forward][MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX];
+            VkDescriptorSetLayout property_set_layout;
+            DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get()).
+                BindBuffer(binding_index, &property_buffer_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT).
+                Build(&property_set.set, &property_set_layout);
+
+            material->descriptors[MeshPassType::Forward][MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX].set = property_set.set;
+        }
+
+        return material;
+    }
+
+    Ref<VulkanShaderPass> VulkanMaterialSystem::CreateShaderPass(VkRenderPass render_pass, Ref<VulkanShaderEffect> effect)
+    {
+        Ref<VulkanShaderPass> shader_pass = CreateRef<VulkanShaderPass>();
+        shader_pass->effect = effect;
+
+        PipelineBuilder builder = {};
+        for (VulkanShaderEffect::ShaderStage& stage : effect->stages)
+        {
+            builder.shader_stages.push_back(vkinit::PipelineShaderStageCreateInfo(stage.stage, stage.module->module));
+        }
 
         builder.vertex_input_info = vkinit::PipelineVertexInputStateCreateInfo();
         builder.vertex_input_info.vertexAttributeDescriptionCount = static_cast<uint32_t>(VertexAttributeDescriptions().size());
@@ -61,21 +140,22 @@ namespace yoyo
 
         // Build descriptor set layouts
         std::vector<VkDescriptorSetLayout> descriptor_layouts;
-        for (VulkanDescriptorSet& descriptor : effect->sets)
+        for (VulkanDescriptorSetInformation& descriptor : effect->set_infos)
         {
             // Build descriptor set layouts
             DescriptorBuilder builder = DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get());
             for (auto it = descriptor.bindings.begin(); it != descriptor.bindings.end(); it++)
             {
-                uint32_t binding = it->first;
-                VkDescriptorType type = it->second;
-                if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                uint32_t binding_index = it->first;
+                const VulkanBinding& binding = it->second;
+
+                if (binding.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || binding.type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                 {
-                    builder.BindBuffer(binding, nullptr, type, descriptor.shader_stage);
+                    builder.BindBuffer(binding_index, nullptr, binding.type, descriptor.shader_stage);
                 }
-                else if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+                else if (binding.type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
                 {
-                    builder.BindImage(binding, nullptr, type, descriptor.shader_stage);
+                    builder.BindImage(binding_index, nullptr, binding.type, descriptor.shader_stage);
                 }
             }
 
@@ -103,16 +183,43 @@ namespace yoyo
         builder.scissor.offset.x = 0;
         builder.scissor.offset.y = 0;
 
-		// TODO: Cache Shader passes (pipelines)
+        // TODO: Cache Shader passes (pipelines)
         shader_pass->pipeline = builder.Build(m_device, render_pass);
 
         m_deletion_queue->Push([=]()
-		{
-			vkDestroyPipelineLayout(m_device, shader_pass->layout, nullptr);
-			vkDestroyPipeline(m_device, shader_pass->pipeline, nullptr);
-		});
+            {
+                vkDestroyPipelineLayout(m_device, shader_pass->layout, nullptr);
+                vkDestroyPipeline(m_device, shader_pass->pipeline, nullptr);
+            });
+        return shader_pass;
+    }
 
-		return shader_pass;
-	}
+    void VulkanMaterialSystem::UpdateMaterial(Ref<VulkanMaterial> material)
+    {
+        if((material->DirtyFlags() & MaterialDirtyFlags::TextureChange) == MaterialDirtyFlags::TextureChange)
+        {
+            VkDescriptorImageInfo main_texture = {};
+            main_texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            main_texture.imageView = std::static_pointer_cast<VulkanTexture>(material->MainTexture())->image_view;
+            main_texture.sampler = m_linear_sampler;
 
+            VkDescriptorSet textures_set = {};
+            VkDescriptorSetLayout textures_set_layout = {};
+
+            DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+                .BindImage(0, &main_texture, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+                .Build(&textures_set, &textures_set_layout);
+            material->descriptors[MeshPassType::Forward][MATERIAL_MAIN_TEXTURE_DESCRIPTOR_SET_INDEX].set = textures_set;
+        }
+
+        if((material->DirtyFlags() & MaterialDirtyFlags::PropertyChange) == MaterialDirtyFlags::PropertyChange)
+        {
+            void* property_data;
+            m_resource_manager->MapMemory(material->m_properties_buffer.allocation, &property_data);
+            memcpy(property_data, material->PropertyData(), material->PropertyDataSize());
+            m_resource_manager->UnmapMemory(material->m_properties_buffer.allocation);
+        }
+
+        material->DirtyFlags() = MaterialDirtyFlags::Clean;
+    }
 } // namespace yoyo

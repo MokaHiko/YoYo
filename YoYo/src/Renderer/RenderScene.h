@@ -3,6 +3,8 @@
 #include "Core/Memory.h"
 #include "Math/Math.h"
 
+#include "Light.h"
+
 namespace yoyo
 {
     class Mesh;
@@ -34,6 +36,10 @@ namespace yoyo
     public:
         RenderScene();
         virtual ~RenderScene();
+
+    public:
+        std::vector<DirectionalLight> directional_lights;
+        std::vector<PointLight> point_lights;
 
         Ref<MeshPass> shadow_pass;
         Ref<MeshPass> forward_pass;

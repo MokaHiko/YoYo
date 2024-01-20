@@ -4,14 +4,14 @@
 
 namespace yoyo
 {
-    enum class LOG_LEVEL
+    enum class LOG_LEVEL : uint8_t
     {
-        FATAL = 0,
-        ERROR,
-        WARN,
-        INFO,
-        DEBUG,
-        TRACE
+        Unknown = 0,
+        Info,
+        Debug,
+        Trace,
+        Error,
+        Warn
     };
 
      class YAPI Logger 
@@ -27,6 +27,8 @@ namespace yoyo
 	#define YASSERT(value, ...) 
 #endif
 
-#define YFATAL(message, ...) yoyo::Logger::Log(yoyo::LOG_LEVEL::FATAL, message, ##__VA_ARGS__)
-#define YERROR(message, ...) yoyo::Logger::Log(yoyo::LOG_LEVEL::ERROR, message, ##__VA_ARGS__)
-#define YINFO(message, ...) yoyo::Logger::Log(yoyo::LOG_LEVEL::INFO, message, ##__VA_ARGS__)
+#define YFATAL(message, ...) yoyo::Logger::Log(yoyo::LOG_LEVEL::Error, message, ##__VA_ARGS__)
+#define YERROR(message, ...) yoyo::Logger::Log(yoyo::LOG_LEVEL::Error , message, ##__VA_ARGS__)
+#define YWARN(message, ...) yoyo::Logger::Log(yoyo::LOG_LEVEL::Warn, message, ##__VA_ARGS__)
+#define YTRACE(message, ...) yoyo::Logger::Log(yoyo::LOG_LEVEL::Trace, message, ##__VA_ARGS__)
+#define YINFO(message, ...) yoyo::Logger::Log(yoyo::LOG_LEVEL::Info, message, ##__VA_ARGS__)

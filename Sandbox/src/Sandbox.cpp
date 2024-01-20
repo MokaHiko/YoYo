@@ -3,6 +3,8 @@
 #include <Core/Log.h>
 #include <Math/Math.h>
 
+#include <Renderer/Texture.h>
+
 class Sandbox : public yoyo::Application
 {
 public:

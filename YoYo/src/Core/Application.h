@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Defines.h"
+
+#include "Events/Event.h"
 #include "Layer.h"
 
 namespace yoyo
@@ -27,11 +29,15 @@ namespace yoyo
         void Shutdown();
 
         void PushLayer(Layer* layer);
-        void PopLayer(uint32_t id);
+        void PopLayer(Layer* layer);
 
         ApplicationSettings& Settings();
+
+        bool OnWindowResize(float x, float y, float width, float height);
+        bool OnClose();
     private:
         ApplicationSettings m_settings;
+        EventManager m_event_manager;
 
         LayerStack m_layers;
         bool m_running;

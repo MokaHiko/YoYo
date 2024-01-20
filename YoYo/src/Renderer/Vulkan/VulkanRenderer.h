@@ -28,6 +28,7 @@ namespace yoyo
 
         const VkDevice Device() const { return m_device;}
         const VkPhysicalDevice PhysicalDevice() const { return m_physical_device;}
+        const VkPhysicalDeviceProperties& PhysicalDeviceProperties() const { return m_physical_device_properties;}
         const VkInstance Instance() const {return m_instance;}
 
         VulkanQueues& Queues() {return m_queues;}
@@ -35,6 +36,8 @@ namespace yoyo
 
 		Ref<DescriptorAllocator> DescAllocator() {return m_descriptor_allocator;}
 		Ref<DescriptorLayoutCache> DescLayoutCache() {return m_descriptor_layout_cache;}
+
+		Ref<VulkanResourceManager> ResourceManager() {return m_resource_manager;}
     private:
         void InitVulkan();
         void InitSwapchain();
@@ -108,6 +111,7 @@ namespace yoyo
         std::vector<VkImageView> m_swapchain_image_views;
 
         VkPhysicalDevice m_physical_device;
+        VkPhysicalDeviceProperties m_physical_device_properties;
         VkDevice m_device;
 
         // TODO: Delete and make one for each subsystem to vulkan material system

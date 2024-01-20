@@ -23,7 +23,7 @@ namespace yoyo
         return out_matrix;
     }
 
-    YAPI Mat4x4 TranslationMat4x4(const Vec3 &position)
+    YAPI Mat4x4 TranslationMat4x4(const Vec3& position)
     {
         Mat4x4 out_matrix = {};
         out_matrix[12] = position.x;
@@ -33,7 +33,7 @@ namespace yoyo
         return out_matrix;
     }
 
-    YAPI Mat4x4 ScaleMat4x4(const Vec3 &scale)
+    YAPI Mat4x4 ScaleMat4x4(const Vec3& scale)
     {
         Mat4x4 out_matrix = {};
         out_matrix[0] = scale.x;
@@ -43,12 +43,52 @@ namespace yoyo
         return out_matrix;
     }
 
-    YAPI Mat4x4 RotateMat4x4(float angle_radians, const Vec3 &axis)
-    {
-        return Mat4x4();
+    // mat4 mat4_euler_x(f32 angle_radians) {
+    //     mat4 out_matrix = mat4_identity();
+    //     f32 c = kcos(angle_radians);
+    //     f32 s = ksin(angle_radians);
+
+    //     out_matrix.data[5] = c;
+    //     out_matrix.data[6] = s;
+    //     out_matrix.data[9] = -s;
+    //     out_matrix.data[10] = c;
+    //     return out_matrix;
+    // }
+
+
+    Mat4x4 RotateEulerY(float angle_radians) {
+        Mat4x4 out_matrix = {};
+        float c = cos(angle_radians);
+        float s = sin(angle_radians);
+
+        out_matrix.data[0] = c;
+        out_matrix.data[2] = -s;
+        out_matrix.data[8] = s;
+        out_matrix.data[10] = c;
+
+        return out_matrix;
     }
 
-    YAPI Mat4x4 TransposeMat4x4(Mat4x4 &matrix)
+
+    // mat4 mat4_euler_z(f32 angle_radians) {
+    //     mat4 out_matrix = mat4_identity();
+
+    //     f32 c = kcos(angle_radians);
+    //     f32 s = ksin(angle_radians);
+
+    //     out_matrix.data[0] = c;
+    //     out_matrix.data[1] = s;
+    //     out_matrix.data[4] = -s;
+    //     out_matrix.data[5] = c;
+    //     return out_matrix;
+    // }
+
+    YAPI Mat4x4 RotateMat4x4(float angle_radians, const Vec3& axis)
+    {
+        return RotateEulerY(angle_radians);
+    }
+
+    YAPI Mat4x4 TransposeMat4x4(Mat4x4& matrix)
     {
         Mat4x4 out_matrix = {};
 

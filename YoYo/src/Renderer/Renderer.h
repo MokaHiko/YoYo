@@ -9,10 +9,10 @@ namespace yoyo
 {
     enum class RendererType
     {
-        UKNOWN = 0,
-        VULKAN,
-        DIRECTX,
-        MOLTENVK,
+        Uknown = 0,
+        Vulkan,
+        Directx,
+        Moltenvk,
     };
 
     struct YAPI RendererSettings
@@ -22,6 +22,7 @@ namespace yoyo
         bool tesselation;
     };
 
+    // Structure that sends info about updates to the scene
     struct YAPI RenderPacket
     {
         double dt;
