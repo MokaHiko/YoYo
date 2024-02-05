@@ -1,7 +1,5 @@
 #include "MatrixTransform.h"
 
-#include <math.h>
-
 namespace yoyo
 {
     Mat4x4 OrthographicProjectionMat4x4(float left, float right, float bottom, float top, float near, float far)
@@ -11,14 +9,47 @@ namespace yoyo
 
     Mat4x4 PerspectiveProjectionMat4x4(float fov_radians, float aspect_ratio, float near, float far)
     {
-        float half_tan_fov = tan(fov_radians * 0.5f);
         Mat4x4 out_matrix = {};
+        float half_tan_fov = tan(fov_radians * 0.5f);
 
         out_matrix.data[0] = 1.0f / (aspect_ratio * half_tan_fov);
         out_matrix.data[5] = 1.0f / half_tan_fov;
         out_matrix.data[10] = -((far + near) / (far - near));
         out_matrix.data[11] = -1.0f;
         out_matrix.data[14] = -((2.0f * far * near) / (far - near));
+
+        return out_matrix;
+    }
+
+    Mat4x4 LookAtMat4x4(const Vec3& position, const Vec3& target, const Vec3& up) {
+        // RH
+        Mat4x4 out_matrix;
+
+        Vec3 z_axis;
+        z_axis.x = target.x - position.x;
+        z_axis.y = target.y - position.y;
+        z_axis.z = target.z - position.z;
+
+        z_axis = Normalize(z_axis);
+        Vec3 x_axis = Normalize(Cross(z_axis, up));
+        Vec3 y_axis = Cross(x_axis, z_axis);
+
+        out_matrix.data[0] = x_axis.x;
+        out_matrix.data[1] = y_axis.x;
+        out_matrix.data[2] = -z_axis.x;
+        out_matrix.data[3] = 0;
+        out_matrix.data[4] = x_axis.y;
+        out_matrix.data[5] = y_axis.y;
+        out_matrix.data[6] = -z_axis.y;
+        out_matrix.data[7] = 0;
+        out_matrix.data[8] = x_axis.z;
+        out_matrix.data[9] = y_axis.z;
+        out_matrix.data[10] = -z_axis.z;
+        out_matrix.data[11] = 0;
+        out_matrix.data[12] = -Dot(x_axis, position);
+        out_matrix.data[13] = -Dot(y_axis, position);
+        out_matrix.data[14] = Dot(z_axis, position);
+        out_matrix.data[15] = 1.0f;
 
         return out_matrix;
     }
@@ -43,23 +74,24 @@ namespace yoyo
         return out_matrix;
     }
 
-    // mat4 mat4_euler_x(f32 angle_radians) {
-    //     mat4 out_matrix = mat4_identity();
-    //     f32 c = kcos(angle_radians);
-    //     f32 s = ksin(angle_radians);
-
-    //     out_matrix.data[5] = c;
-    //     out_matrix.data[6] = s;
-    //     out_matrix.data[9] = -s;
-    //     out_matrix.data[10] = c;
-    //     return out_matrix;
-    // }
-
-
-    Mat4x4 RotateEulerY(float angle_radians) {
+    Mat4x4 RotateEulerX(float angle_radians) {
         Mat4x4 out_matrix = {};
-        float c = cos(angle_radians);
-        float s = sin(angle_radians);
+        float c = Cos(angle_radians);
+        float s = Sin(angle_radians);
+
+        out_matrix.data[5] = c;
+        out_matrix.data[6] = s;
+        out_matrix.data[9] = -s;
+        out_matrix.data[10] = c;
+        return out_matrix;
+    }
+
+
+    Mat4x4 RotateEulerY(float angle_radians)
+    {
+        Mat4x4 out_matrix = {};
+        float c = Cos(angle_radians);
+        float s = Sin(angle_radians);
 
         out_matrix.data[0] = c;
         out_matrix.data[2] = -s;
@@ -70,25 +102,30 @@ namespace yoyo
     }
 
 
-    // mat4 mat4_euler_z(f32 angle_radians) {
-    //     mat4 out_matrix = mat4_identity();
+    Mat4x4 RotateEulerZ(float angle_radians) {
+        Mat4x4 out_matrix = {};
 
-    //     f32 c = kcos(angle_radians);
-    //     f32 s = ksin(angle_radians);
+        float c = Cos(angle_radians);
+        float s = Sin(angle_radians);
 
-    //     out_matrix.data[0] = c;
-    //     out_matrix.data[1] = s;
-    //     out_matrix.data[4] = -s;
-    //     out_matrix.data[5] = c;
-    //     return out_matrix;
-    // }
+        out_matrix.data[0] = c;
+        out_matrix.data[1] = s;
+        out_matrix.data[4] = -s;
+        out_matrix.data[5] = c;
+        return out_matrix;
+    }
 
     YAPI Mat4x4 RotateMat4x4(float angle_radians, const Vec3& axis)
     {
         return RotateEulerY(angle_radians);
     }
 
-    YAPI Mat4x4 TransposeMat4x4(Mat4x4& matrix)
+	YAPI Mat4x4 RotateEulerMat4x4(const Vec3& angles)
+	{
+        return RotateEulerX(angles.x) * RotateEulerY(angles.y) * RotateEulerZ(angles.z);
+	}
+
+YAPI Mat4x4 TransposeMat4x4(Mat4x4& matrix)
     {
         Mat4x4 out_matrix = {};
 

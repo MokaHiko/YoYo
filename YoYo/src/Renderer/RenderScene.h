@@ -4,6 +4,7 @@
 #include "Math/Math.h"
 
 #include "Light.h"
+#include "Camera.h"
 
 namespace yoyo
 {
@@ -20,6 +21,7 @@ namespace yoyo
         Ref<Mesh> mesh;
         Ref<Material> material;
         Mat4x4 model_matrix;
+        uint32_t id;
     };
 
     // Ex. forward pass, shadow pass, 
@@ -36,10 +38,10 @@ namespace yoyo
     public:
         RenderScene();
         virtual ~RenderScene();
-
     public:
-        std::vector<DirectionalLight> directional_lights;
-        std::vector<PointLight> point_lights;
+        std::vector<Ref<DirectionalLight>> directional_lights;
+        std::vector<Ref<PointLight>> point_lights;
+        Ref<Camera> main_camera;
 
         Ref<MeshPass> shadow_pass;
         Ref<MeshPass> forward_pass;

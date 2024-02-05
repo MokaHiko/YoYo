@@ -15,6 +15,7 @@
 
 #include "Events/Event.h"
 #include "Events/ApplicationEvent.h"
+#include "Input/InputEvent.h"
 
 #pragma comment(lib, "rpcrt4.lib") 
 
@@ -50,15 +51,35 @@ namespace yoyo
         return true;
     }
 
-    void Platform::PumpMessages(EventManager* event_manager)
+    void Platform::PumpMessages()
     {
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
-            if(event.type == SDL_QUIT)
+            switch (event.type)
+            {
+            case(SDL_QUIT):
             {
                 Ref<Event> app_close_event = CreateRef<ApplicationCloseEvent>();
-                event_manager->Dispatch(app_close_event);
+                EventManager::Instance()->Dispatch(app_close_event);
+            }break;
+
+            case(SDL_KEYDOWN):
+            {
+                Ref<Event> key_down_event = CreateRef<KeyDownEvent>((KeyCode)event.key.keysym.sym);
+                EventManager::Instance()->Dispatch(key_down_event);
+            }break;
+
+            case(SDL_KEYUP):
+            {
+                Ref<Event> key_up_event = CreateRef<KeyUpEvent>((KeyCode)event.key.keysym.sym);
+                EventManager::Instance()->Dispatch(key_up_event);
+            }break;
+
+            default:
+            {
+
+            }break;
             }
         }
     }
@@ -68,21 +89,21 @@ namespace yoyo
         assert(value && msg);
     }
 
-	void Platform::ConsoleWrite(const char *message, uint8_t color)
-	{
-		// Set color
-		HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-		static uint8_t levels[6] = { 64, 7, 1, 8, 5, 6}; // FATAL, INFO, DEBUG, TRACE, ERROR, WARN
-		SetConsoleTextAttribute(console_handle, levels[color]);
+    void Platform::ConsoleWrite(const char* message, uint8_t color)
+    {
+        // Set color
+        HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+        static uint8_t levels[6] = { 64, 7, 1, 8, 5, 6 }; // FATAL, INFO, DEBUG, TRACE, ERROR, WARN
+        SetConsoleTextAttribute(console_handle, levels[color]);
 
-		// Output to debug console
-		OutputDebugStringA(message);
+        // Output to debug console
+        OutputDebugStringA(message);
 
-		// Output to application console
-		uint64_t length = strlen(message);
-		LPDWORD number_written = 0;
-		WriteConsoleA(console_handle, message, (DWORD)length, number_written, 0);
-	}
+        // Output to application console
+        uint64_t length = strlen(message);
+        LPDWORD number_written = 0;
+        WriteConsoleA(console_handle, message, (DWORD)length, number_written, 0);
+    }
 
     void Platform::CreateSurface(void* context, void* surface)
     {

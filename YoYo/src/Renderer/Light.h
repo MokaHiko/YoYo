@@ -8,7 +8,6 @@ namespace yoyo
     {
         Vec4 color;
         Vec4 direction;
-        Vec4 position;
     };
 
     struct PointLight

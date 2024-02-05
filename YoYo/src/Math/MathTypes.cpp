@@ -19,6 +19,15 @@ namespace yoyo
         return *this;
     }
 
+	Vec3& Vec3::operator+=(const Vec3& other)
+	{
+        this->x += other.x;
+        this->y += other.y;
+        this->z += other.z;
+
+        return *this;
+	}
+
     Mat4x4::Mat4x4()
     {
         memset(data, 0, sizeof(float) * 16);

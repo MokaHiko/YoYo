@@ -44,6 +44,7 @@ namespace yoyo
         };
 
         Vec3 &operator*=(const Vec3 &other);
+        Vec3 &operator+=(const Vec3 &other);
     };
 
     union YAPI Vec4
@@ -80,7 +81,10 @@ namespace yoyo
         Vec4 m_quat;
     };
 
-    // Matrices by default are the identity matrix nxn
+    /*
+        By Default the YoYo math library assumes column major.
+        Matrices by default are the identity matrix nxn.
+    */
     union YAPI Mat4x4
     {
         Mat4x4();

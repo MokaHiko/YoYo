@@ -8,7 +8,6 @@
 
 #include "VulkanMesh.h"
 #include "VulkanTexture.h"
-#include "Math/MatrixTransform.h"
 
 namespace yoyo
 {
@@ -27,7 +26,7 @@ namespace yoyo
     void VulkanRenderer::Init()
     {
         m_frame_count = 0;
-        m_frame_context.resize(m_settings.max_frames_in_flight);
+        m_frame_context.resize(Settings().max_frames_in_flight);
 
         InitVulkan();
 
@@ -44,8 +43,7 @@ namespace yoyo
         m_descriptor_layout_cache = CreateRef<DescriptorLayoutCache>();
         m_descriptor_layout_cache->Init(m_device);
 
-        m_resource_manager = CreateRef<VulkanResourceManager>();
-        m_resource_manager->Init(this);
+        VulkanResourceManager::Init(this);
 
         m_material_system = CreateRef<VulkanMaterialSystem>();
         m_material_system->Init(this);
@@ -67,89 +65,28 @@ namespace yoyo
             {{ 1.00,  1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {1.00,  0.00}},
             {{-1.00,  1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.00,  0.00}},
         };
-        m_resource_manager->UploadMesh(m_screen_quad);
+        m_screen_quad->UploadMeshData();
 
         // Init mesh passes
-        m_scene.forward_pass = CreateRef<MeshPass>();
-        m_scene.transparent_forward_pass = CreateRef<MeshPass>();
-        m_scene.shadow_pass = CreateRef<MeshPass>();
-
-        // TODO: Move to Application Layer
-        m_cube_mesh = CreateRef<VulkanMesh>();
-        m_cube_mesh->vertices = {
-        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.625,  0.50}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.875,  0.50}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.625,  0.25}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.875,  0.50}},
-        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.875,  0.25}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.625,  0.25}},
-        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.375,  0.25}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.625,  0.25}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.375,  0.00}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.625,  0.25}},
-        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.625,  0.00}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.375,  0.00}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.375,  1.00}},
-        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.625,  1.00}},
-        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.375,  0.75}},
-        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.625,  1.00}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.625,  0.75}},
-        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.375,  0.75}},
-        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.125,  0.50}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.375,  0.50}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.125,  0.25}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.375,  0.50}},
-        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.375,  0.25}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.125,  0.25}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.375,  0.50}},
-        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.625,  0.50}},
-        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.375,  0.25}},
-        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.625,  0.50}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.625,  0.25}},
-        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.375,  0.25}},
-        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.375,  0.75}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.625,  0.75}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.375,  0.50}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.625,  0.75}},
-        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.625,  0.50}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.375,  0.50}},
-        };
-        m_resource_manager->UploadMesh(m_cube_mesh);
+        Scene().forward_pass = CreateRef<MeshPass>();
+        Scene().transparent_forward_pass = CreateRef<MeshPass>();
+        Scene().shadow_pass = CreateRef<MeshPass>();
 
         // Describe effect
         // TODO: Cache Effect description
         Ref<VulkanShaderEffect> lit_effect = CreateRef<VulkanShaderEffect>();
-        Ref<VulkanShaderModule> vertex_module = m_resource_manager->CreateShaderModule("assets/shaders/lit_shader.vert.spv");
+        Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.vert.spv");
         lit_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
 
-        Ref<VulkanShaderModule> fragment_module = m_resource_manager->CreateShaderModule("assets/shaders/lit_shader.frag.spv");
+        Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.frag.spv");
         lit_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
 
         // Create or get shader pass from effect description
         lit_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_effect);
 
         // Create shader (Effect Template)
-        Ref<Shader> lit_shader = CreateRef<Shader>();
+        Ref<Shader> lit_shader = Shader::Create("lit_shader");
         lit_shader->shader_passes[MeshPassType::Forward] = lit_shader_pass;
-
-        // Scene Creation TODO: Make scene incremental build
-        {
-            Ref<Texture> container_diffuse = Texture::LoadFromAsset("assets/textures/container2.yo");
-            m_resource_manager->UploadTexture(std::static_pointer_cast<VulkanTexture>(container_diffuse));
-
-            Ref<Material> red_material = m_material_system->CreateMaterial(std::static_pointer_cast<VulkanShader>(lit_shader));
-            red_material->SetTexture(MaterialTextureType::MainTexture, container_diffuse);
-            red_material->color = Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-            red_material->SetVec4("diffuse_color", Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
-            red_material->SetVec4("specular_color", Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
-
-            Ref<MeshPassObject> pass_obj = CreateRef<MeshPassObject>();
-            pass_obj->material = red_material;
-            pass_obj->mesh = m_cube_mesh;
-            pass_obj->model_matrix = TranslationMat4x4({ 0.0, 0.0, -5.0f });
-
-            m_scene.forward_pass->renderables.push_back(pass_obj);
-        }
     }
 
     void VulkanRenderer::Shutdown()
@@ -158,7 +95,7 @@ namespace yoyo
         m_descriptor_layout_cache->Clear();
 
         m_material_system->Shutdown();
-        m_resource_manager->Shutdown();
+        VulkanResourceManager::Shutdown();
 
         m_deletion_queue.Flush();
     }
@@ -169,15 +106,49 @@ namespace yoyo
         vkResetFences(m_device, 1, &m_frame_context[m_frame_count].render_fence);
 
         // Update Scene data
-        void* data;
-        m_resource_manager->MapMemory(scene_data_uniform_buffer.allocation, &data);
-        SceneData scene_data = {};
-        static float angle = 0;
-        scene_data.view = RotateMat4x4(angle * (1.0f / 144.0f), {}) * TranslationMat4x4({ 2.0f * sin(angle * (1.0f / 144.0f)), 0.0f, -5.0f });
-        angle += 20.0f * (Y_PI / 180.0f);
-        scene_data.proj = PerspectiveProjectionMat4x4((90.0f * Y_PI) / 180.0f, 720.0f / 480.0f, 0.1f, 100.0f);
-        memcpy(data, &scene_data, sizeof(SceneData));
-        m_resource_manager->UnmapMemory(scene_data_uniform_buffer.allocation);
+        {
+            void* data;
+            VulkanResourceManager::MapMemory(m_scene_data_uniform_buffer.allocation, &data);
+            SceneData scene_data = {};
+            scene_data.view = Scene().main_camera->View();
+            scene_data.proj = Scene().main_camera->Projection();
+
+            scene_data.point_light_count = static_cast<uint32_t>(Scene().point_lights.size());
+            scene_data.dir_light_count = static_cast<uint32_t>(Scene().directional_lights.size());
+            scene_data.spot_light_count = 0;
+            scene_data.area_light_count = 0;
+
+            memcpy(data, &scene_data, sizeof(SceneData));
+            VulkanResourceManager::UnmapMemory(m_scene_data_uniform_buffer.allocation);
+        }
+
+        {
+            char* data;
+            VulkanResourceManager::MapMemory(m_directional_lights_buffer.allocation, (void**)&data);
+            const size_t padded_directional_light_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(DirectionalLight));
+
+            for(int i = 0; i < Scene().directional_lights.size(); i++)
+            {
+                memcpy(data + (i * padded_directional_light_size), Scene().directional_lights[i].get(), sizeof(DirectionalLight));
+            }
+
+            VulkanResourceManager::UnmapMemory(m_directional_lights_buffer.allocation);
+        }
+
+        {
+            char* data;
+            VulkanResourceManager::MapMemory(m_object_data_buffer.allocation, (void**)&data);
+            const size_t padded_object_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(ObjectData));
+
+            for(int i = 0; i < Scene().forward_pass->renderables.size(); i++)
+            {
+                ObjectData obj_data = {};
+                obj_data.model_matrix = Scene().forward_pass->renderables[i]->model_matrix;
+                memcpy(data + (i * padded_object_data_size), &obj_data, sizeof(ObjectData));
+            }
+
+            VulkanResourceManager::UnmapMemory(m_object_data_buffer.allocation);
+        }
 
         m_swapchain_index = -1;
         VK_CHECK(vkAcquireNextImageKHR(m_device, m_swapchain, 1000000000, m_frame_context[m_frame_count].present_semaphore, VK_NULL_HANDLE, &m_swapchain_index));
@@ -187,9 +158,9 @@ namespace yoyo
         VK_CHECK(vkResetCommandBuffer(cmd, 0));
         VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
 
-        // TODO: Bind shadow pass and draw shadow mesh passes
+        // Bind shadow pass and draw shadow mesh passes
 
-        // TODO: Bind main render pass and draw mesh passes
+        //Bind forward render pass and draw mesh passes
         VkRect2D rect = {};
         rect.offset.x = 0;
         rect.offset.y = 0;
@@ -213,8 +184,8 @@ namespace yoyo
             // ... draw forward for each mesh passes
 
             // TODO: Build renderable batches and draw indirect
-            // TODO: sort by material forward Shader Pass
-            for (Ref<MeshPassObject> obj : m_scene.forward_pass->renderables)
+            // TODO: sort renderables by material forward Shader Pass
+            for (Ref<MeshPassObject> obj : Scene().forward_pass->renderables)
             {
                 // Bind material forward pipeline
                 auto shader_pass = obj->material->shader->shader_passes[MeshPassType::Forward];
@@ -226,9 +197,6 @@ namespace yoyo
                 // FOR EACH GAMEOBJECT
 
                 // TODO: Make sure before all draws of material
-                static float angle = 0.0f;
-                obj->material->SetVec4("diffuse_color", obj->material->color * sin(angle));
-                angle += (Y_PI * 25.0f / 180.0f) * Time::DeltaTime();
                 if (obj->material->Dirty())
                 {
                     m_material_system->UpdateMaterial(std::static_pointer_cast<VulkanMaterial>(obj->material));
@@ -243,11 +211,11 @@ namespace yoyo
                 // Draw every object with material
                 if (!obj->mesh->indices.empty())
                 {
-                    vkCmdDrawIndexed(cmd, obj->mesh->indices.size(), 1, 0, 0, 0);
+                    vkCmdDrawIndexed(cmd, obj->mesh->indices.size(), 1, 0, 0, obj->id);
                 }
                 else
                 {
-                    vkCmdDraw(cmd, obj->mesh->vertices.size(), 1, 0, 0);
+                    vkCmdDraw(cmd, obj->mesh->vertices.size(), 1, 0, obj->id);
                 }
             }
 
@@ -340,7 +308,7 @@ namespace yoyo
         present_info.pImageIndices = &m_swapchain_index;
         VK_CHECK(vkQueuePresentKHR(m_queues.graphics.queue, &present_info));
 
-        m_frame_count = (m_frame_count + 1) % m_settings.max_frames_in_flight;
+        m_frame_count = (m_frame_count + 1) % Settings().max_frames_in_flight;
     }
 
     void VulkanRenderer::InitVulkan()
@@ -370,7 +338,7 @@ namespace yoyo
         VkPhysicalDeviceFeatures required_features = {};
         required_features.multiDrawIndirect = VK_TRUE;
 
-        if (m_settings.tesselation)
+        if (Settings().tesselation)
         {
             required_features.tessellationShader = VK_TRUE;
             required_features.fillModeNonSolid = VK_TRUE;
@@ -390,6 +358,12 @@ namespace yoyo
 
         vkb::DeviceBuilder device_builder{ phys_ret.value() };
 
+        VkPhysicalDeviceShaderDrawParametersFeatures shader_draw_parameters_features = {};
+		shader_draw_parameters_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
+		shader_draw_parameters_features.pNext = nullptr;
+		shader_draw_parameters_features.shaderDrawParameters = VK_TRUE;
+
+        device_builder.add_pNext(&shader_draw_parameters_features);
         // automatically propagate needed data from instance & physical device
         auto dev_ret = device_builder.build();
         if (!dev_ret)
@@ -531,10 +505,10 @@ namespace yoyo
     {
         std::vector<VulkanDescriptorSetInformation> descriptors_info;
 
-        Ref<VulkanShaderModule> vertex_module = m_resource_manager->CreateShaderModule("assets/shaders/full_screen_shader.vert.spv");
+        Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/full_screen_shader.vert.spv");
         ParseDescriptorSetsFromSpirV(vertex_module->code.data(), vertex_module->code.size() * sizeof(uint32_t), VK_SHADER_STAGE_VERTEX_BIT, descriptors_info);
 
-        Ref<VulkanShaderModule> fragment_module = m_resource_manager->CreateShaderModule("assets/shaders/blit_shader.frag.spv");
+        Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/blit_shader.frag.spv");
         ParseDescriptorSetsFromSpirV(fragment_module->code.data(), fragment_module->code.size() * sizeof(uint32_t), VK_SHADER_STAGE_FRAGMENT_BIT, descriptors_info);
 
         PipelineBuilder builder = {};
@@ -744,18 +718,36 @@ namespace yoyo
                 vkDestroyRenderPass(m_device, m_forward_pass, nullptr);
             });
 
-        // Descriptors
-        size_t padded_scene_data_size = m_resource_manager->PadToUniformBufferSize(sizeof(SceneData));
-        scene_data_uniform_buffer = m_resource_manager->CreateBuffer<SceneData>(padded_scene_data_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        // Scene resources descriptors
+        size_t padded_scene_data_size = VulkanResourceManager::PadToUniformBufferSize(sizeof(SceneData));
+        m_scene_data_uniform_buffer = VulkanResourceManager::CreateBuffer<SceneData>(padded_scene_data_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+
+        size_t padded_directional_light_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(DirectionalLight));
+        m_directional_lights_buffer = VulkanResourceManager::CreateBuffer<DirectionalLight>(padded_directional_light_size * MAX_DIR_LIGHTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+
+        size_t padded_oject_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(ObjectData));
+        m_object_data_buffer = VulkanResourceManager::CreateBuffer<ObjectData>(padded_oject_data_size * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
         VkDescriptorBufferInfo scene_data_info = {};
-        scene_data_info.buffer = scene_data_uniform_buffer.buffer;
+        scene_data_info.buffer = m_scene_data_uniform_buffer.buffer;
         scene_data_info.offset = 0;
         scene_data_info.range = sizeof(SceneData);
+
+        VkDescriptorBufferInfo dir_light_data_info = {};
+        dir_light_data_info.buffer = m_directional_lights_buffer.buffer;
+        dir_light_data_info.offset = 0;
+        dir_light_data_info.range = VK_WHOLE_SIZE;
+
+        VkDescriptorBufferInfo obj_data_info = {};
+        obj_data_info.buffer = m_object_data_buffer.buffer;
+        obj_data_info.offset = 0;
+        obj_data_info.range = VK_WHOLE_SIZE;
 
         DescriptorBuilder ds_builder = {};
         ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
             .BindBuffer(0, &scene_data_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+            .BindBuffer(1, &dir_light_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+            .BindBuffer(2, &obj_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
             .Build(&m_forward_pass_ds, &m_forward_pass_ds_layout);
     }
 
@@ -786,8 +778,8 @@ namespace yoyo
         extent.height = 480;
         extent.depth = 1;
 
-        m_forward_pass_color_texture = m_resource_manager->CreateImage(extent, m_forward_pass_format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-        m_forward_pass_depth_texture = m_resource_manager->CreateImage(extent, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        m_forward_pass_color_texture = VulkanResourceManager::CreateImage(extent, m_forward_pass_format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+        m_forward_pass_depth_texture = VulkanResourceManager::CreateImage(extent, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
         VkImageViewCreateInfo color_info = vkinit::ImageViewCreateInfo(m_forward_pass_color_texture.image, m_forward_pass_format, VK_IMAGE_ASPECT_COLOR_BIT);
         VkImageViewCreateInfo depth_info = vkinit::ImageViewCreateInfo(m_forward_pass_depth_texture.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT);

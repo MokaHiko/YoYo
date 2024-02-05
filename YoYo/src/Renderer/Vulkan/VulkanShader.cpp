@@ -4,6 +4,7 @@
 #include <spirv_reflect.h>
 
 #include "Platform/Platform.h"
+#include "Resource/ResourceEvent.h"
 
 namespace yoyo
 {
@@ -88,9 +89,19 @@ namespace yoyo
 								binding_prop.size = 0;
 							}break;
 
+							case(SpvOpTypeRuntimeArray):
+							{
+								binding_prop.size = 0;
+							}break;
+
+							case(SpvOpTypeInt):
+							{
+								binding_prop.size = type_desc.traits.numeric.scalar.width / 8;
+							}break;
+
 							default:
 							{
-								YINFO("\t\t\t Uknown Type");
+								YINFO("\t\t\t Binding Type Uknown");
 							}break;
 						}
 
@@ -107,6 +118,16 @@ namespace yoyo
 		}
 
 		spvReflectDestroyShaderModule(&module);
+	}
+
+
+    Ref<Shader> Shader::Create(const std::string& name)
+	{
+        Ref<VulkanShader> shader = CreateRef<VulkanShader>();
+        shader->m_id = name;
+
+        EventManager::Instance()->Dispatch(CreateRef<ShaderCreatedEvent>(shader));
+        return shader;
 	}
 
     VulkanShader::VulkanShader()

@@ -21,6 +21,8 @@ namespace yoyo
 
         Ref<Material> CreateMaterial(Ref<VulkanShader> shader);
 
+        bool RegisterMaterial(Ref<VulkanMaterial> material);
+
         // Create a shader pass based of the shader effect passed
         Ref<VulkanShaderPass> CreateShaderPass(VkRenderPass render_pass, Ref<VulkanShaderEffect> effect);
 
@@ -35,6 +37,5 @@ namespace yoyo
 
         VkDevice m_device;
         VulkanDeletionQueue* m_deletion_queue;
-		Ref<VulkanResourceManager> m_resource_manager;
     };
 }

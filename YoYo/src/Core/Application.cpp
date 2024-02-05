@@ -6,6 +6,9 @@
 #include "Core/Log.h"
 #include "Core/Time.h"
 
+#include "Input/Input.h"
+
+#include "Resource/ResourceManager.h"
 #include "Renderer/RendererLayer.h"
 
 #include "Events/ApplicationEvent.h"
@@ -22,11 +25,14 @@ namespace yoyo
     void Application::Init()
     {
         bool success = Platform::Init(m_settings.x, m_settings.y, m_settings.width, m_settings.height, m_settings.app_name);
-        m_event_manager.Init();
 
-        m_event_manager.Subscribe(ApplicationCloseEvent::s_event_type, [&](Ref<Event> event) {return OnClose();});
+        // TODO: Memory System Init
+
+        EventManager::Instance()->Subscribe(ApplicationCloseEvent::s_event_type, [&](Ref<Event> event) {return OnClose();});
 
         // Default Layers
+        PushLayer(Y_NEW InputLayer());
+        PushLayer(Y_NEW RuntimeResourceLayer());
         PushLayer(Y_NEW RendererLayer());
 
         m_running = success;
@@ -34,19 +40,24 @@ namespace yoyo
 
     void Application::Shutdown()
     {
-        m_event_manager.Shutdown();
         Platform::Shutdown();
     }
 
     void Application::Run()
     {
+        // Enable layers
+        for (Layer* layer : m_layers)
+        {
+            layer->OnEnable();
+        }
+
         while (m_running)
         {
             Timer profiler_time([&](const Timer& timer) {
                 Time::SetDeltaTime(timer.delta);
             });
 
-            Platform::PumpMessages(&m_event_manager);
+            Platform::PumpMessages();
 
             const float dt = Time::DeltaTime();
             for (Layer* layer : m_layers)

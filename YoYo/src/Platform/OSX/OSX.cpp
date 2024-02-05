@@ -48,7 +48,7 @@ namespace yoyo
         printf("message");
     }
 
-    void Platform::PumpMessages(EventManager* event_manager)
+    void Platform::PumpMessages()
     {
         SDL_Event event;
         while (SDL_PollEvent(&event))
@@ -56,7 +56,7 @@ namespace yoyo
             if(event.type == SDL_QUIT)
             {
                 Ref<Event> app_close_event = CreateRef<ApplicationCloseEvent>();
-                event_manager->Dispatch(app_close_event);
+                EventManager::Instance()->Dispatch(app_close_event);
             }
         }
     }

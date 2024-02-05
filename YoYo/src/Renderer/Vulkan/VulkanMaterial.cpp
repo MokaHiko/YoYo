@@ -1,17 +1,27 @@
 #include "VulkanMaterial.h"
 
 #include "Core/Log.h"
+#include "Resource/ResourceEvent.h"
 
 namespace yoyo
 {
+    Ref<Material> Material::Create(Ref<Shader> shader, const std::string& name)
+    {
+        Ref<VulkanMaterial> material = CreateRef<VulkanMaterial>();
+        material->m_id = name;
+        material->m_dirty = MaterialDirtyFlags::Clean;
+        material->shader = shader;
+
+        EventManager::Instance()->Dispatch(CreateRef<MaterialCreatedEvent>(material));
+        return material;
+    }
+
     VulkanMaterial::VulkanMaterial()
     {
-
     }
 
     VulkanMaterial::~VulkanMaterial()
     {
-
     }
 
     void VulkanMaterial::Bind(void* render_context, MeshPassType mesh_pass_type)

@@ -16,22 +16,19 @@ namespace yoyo
     class VulkanResourceManager
     {
     public:
-        VulkanResourceManager() = default;
-        ~VulkanResourceManager() {};
+        static void Init(VulkanRenderer* renderer);
+        static void Shutdown();
 
-        void Init(VulkanRenderer* renderer);
-        void Shutdown();
+        static bool UploadMesh(VulkanMesh* mesh);
+        static bool UploadTexture(VulkanTexture* texture);
 
-        bool UploadMesh(Ref<VulkanMesh> mesh);
-        bool UploadTexture(Ref<VulkanTexture> texture);
+        static void MapMemory(VmaAllocation allocation, void** data);
+        static void UnmapMemory(VmaAllocation allocation);
 
-        void MapMemory(VmaAllocation allocation, void** data);
-        void UnmapMemory(VmaAllocation allocation);
-
-        Ref<VulkanShaderModule> CreateShaderModule(const std::string& shader_path);
+        static Ref<VulkanShaderModule> CreateShaderModule(const std::string& shader_path);
 
         template<typename T = void>
-        AllocatedBuffer<T> CreateBuffer(size_t size, VkBufferUsageFlags buffer_usage, VmaMemoryUsage memory_usage, VkMemoryPropertyFlags memory_props = 0)
+        static AllocatedBuffer<T> CreateBuffer(size_t size, VkBufferUsageFlags buffer_usage, VmaMemoryUsage memory_usage, VkMemoryPropertyFlags memory_props = 0)
         {
             VkBufferCreateInfo buffer_info = {};
             buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -56,24 +53,27 @@ namespace yoyo
             return buffer;
         }
 
-        AllocatedImage CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
+        static AllocatedImage CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
 
-        const size_t PadToUniformBufferSize(size_t original_size) const;
+        static const size_t PadToUniformBufferSize(size_t original_size);
+        static const size_t PadToStorageBufferSize(size_t original_size);
     private:
-        void ImmediateSubmit(std::function<void(VkCommandBuffer)>&& fn);
+        VulkanResourceManager() = default;
+        ~VulkanResourceManager() {};
+
+        static void ImmediateSubmit(std::function<void(VkCommandBuffer)>&& fn);
     private:
-        AllocatedBuffer<void> m_mesh_staging_buffer; // General purpose staging buffer for mesh uploads
-    private:
-        VulkanUploadContext m_upload_context;
+        inline static AllocatedBuffer<void> m_mesh_staging_buffer; // General purpose staging buffer for mesh uploads
+        inline static VulkanUploadContext m_upload_context;
 
-        VkDevice m_device;
-        VkPhysicalDeviceProperties m_physical_device_props;
-        VkPhysicalDevice m_physical_device;
-        VkInstance m_instance;
+        inline static VkDevice m_device;
+        inline static VkPhysicalDeviceProperties m_physical_device_props;
+        inline static VkPhysicalDevice m_physical_device;
+        inline static VkInstance m_instance;
 
-        VulkanDeletionQueue* m_deletion_queue;
-        VulkanQueues* m_queues;
+        inline static VulkanDeletionQueue* m_deletion_queue;
+        inline static VulkanQueues* m_queues;
 
-        VmaAllocator m_allocator;
+        inline static VmaAllocator m_allocator;
     };
 }

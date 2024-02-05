@@ -1,17 +1,64 @@
 #include "Material.h"
 #include "Core/Log.h"
 
+#include "Resource/ResourceManager.h"
+
 namespace yoyo
 {
-	Material::Material()
-		:m_property_data(nullptr), m_property_size(0)
+	template<>
+	Ref<Material> ResourceManager::Load<Material>(const std::string& path)
+	{
+		ResourceId id = FileNameFromFullPath(path);
+
+		auto material_it = m_material_cache.find(id);
+		if(material_it != m_material_cache.end())
+		{
+			return material_it->second;
+		}
+
+		// TODO: Impl load from file
+		// auto& material = Material::LoadFromAsset(path.c_str());
+		// if(!material)
+		// {
+		// 	return nullptr;
+		// }
+
+		// m_material_cache[material->m_id] = material;
+		// return material;
+
+		return nullptr;
+	}
+
+	template<>
+	void ResourceManager::Free<Material>(Ref<Material> resource)
 	{
 	}
 
-	Material::~Material()
-	{
-		free(m_property_data);
-	}
+    bool ResourceManager::OnMaterialCreated(Ref<Material> material)
+    {
+        // Check if shader already cached
+        if (material->ID().empty())
+        {
+            // TODO: Generate string uuid
+        }
+        else
+        {
+            auto material_it = m_material_cache.find(material->ID());
+            if (material_it != m_material_cache.end())
+            {
+                return true;
+            }
+        }
+
+        // TODO: Check if there is space in cache
+        m_material_cache[material->ID()] = material;
+        return true;
+    }
+
+	Material::Material()
+		:m_property_data(nullptr), m_property_size(0) {}
+
+	Material::~Material() { free(m_property_data);}
 
 	void Material::SetTexture(int index, Ref<Texture> texture)
 	{
@@ -22,7 +69,7 @@ namespace yoyo
 
 		textures[index] = texture;
 
-		dirty |= MaterialDirtyFlags::TextureChange;
+		m_dirty |= MaterialDirtyFlags::TextureChange;
 	}
 
 	void Material::SetTexture(MaterialTextureType type, Ref<Texture> texture)
@@ -38,7 +85,7 @@ namespace yoyo
 		{
 			MaterialProperty& prop = it->second;
 			memcpy((char*)m_property_data + prop.offset, data, prop.size);
-			dirty |= MaterialDirtyFlags::PropertyChange;
+			m_dirty |= MaterialDirtyFlags::PropertyChange;
 		}
 		else
 		{

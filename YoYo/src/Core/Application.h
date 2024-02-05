@@ -37,7 +37,6 @@ namespace yoyo
         bool OnClose();
     private:
         ApplicationSettings m_settings;
-        EventManager m_event_manager;
 
         LayerStack m_layers;
         bool m_running;

@@ -12,9 +12,7 @@ namespace yoyo
         ApplicationStartEvent();
         virtual ~ApplicationStartEvent() = default;
 
-        const EventType Type() const override {return s_event_type;}
-    private:
-        static const EventType s_event_type;
+        EVENT_TYPE(ApplicationStartEvent)
     };
 
     class ApplicationResizeEvent : public Event
@@ -26,8 +24,7 @@ namespace yoyo
         ApplicationResizeEvent(float x, float y, float width, float height);
         virtual ~ApplicationResizeEvent() = default;
 
-        const EventType Type() const override {return s_event_type;}
-        static const EventType s_event_type;
+        EVENT_TYPE(ApplicationResizeEvent)
     };
 
     class ApplicationCloseEvent : public Event
@@ -36,7 +33,6 @@ namespace yoyo
         ApplicationCloseEvent();
         virtual ~ApplicationCloseEvent() = default;
 
-        const EventType Type() const override {return s_event_type;}
-        static const EventType s_event_type;
+        EVENT_TYPE(ApplicationCloseEvent)
     };
 }

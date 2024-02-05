@@ -5,6 +5,8 @@
 #include "VulkanTexture.h"
 #include "VulkanRenderer.h"
 
+#include "Resource/ResourceEvent.h"
+
 namespace yoyo
 {
 	VkFormat ConvertTextureFormat(TextureFormat format)
@@ -60,10 +62,17 @@ namespace yoyo
 		{
 			m_mesh_staging_buffer = CreateBuffer(sizeof(Vertex) * MAX_MESH_VERTICES, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 		}
+
+		// Subscribe to vulkan resource events
+        EventManager::Instance()->Subscribe(MeshCreatedEvent::s_event_type, [&](Ref<Event> event){
+			return false;
+		});
 	}
 
 	void VulkanResourceManager::Shutdown()
 	{
+		// TODO: Unsubscribe to resource events
+
 		vkDestroyCommandPool(m_device, m_upload_context.command_pool, nullptr);
 		vkDestroyFence(m_device, m_upload_context.fence, nullptr);
 
@@ -72,7 +81,7 @@ namespace yoyo
 		vmaDestroyAllocator(m_allocator);
 	}
 
-	bool VulkanResourceManager::UploadMesh(Ref<VulkanMesh> mesh)
+	bool VulkanResourceManager::UploadMesh(VulkanMesh* mesh)
 	{
 		mesh->vertex_buffer = CreateBuffer<Vertex>(mesh->vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
@@ -112,7 +121,7 @@ namespace yoyo
 		return true;
 	}
 
-	bool VulkanResourceManager::UploadTexture(Ref<VulkanTexture> texture)
+	bool VulkanResourceManager::UploadTexture(VulkanTexture* texture)
 	{
 		// Copy to staging buffer
 		AllocatedBuffer staging_buffer = CreateBuffer(texture->raw_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
@@ -186,11 +195,10 @@ namespace yoyo
 		VK_CHECK(vkCreateImageView(m_device, &image_view_info, nullptr, &texture->image_view));
 
 		vmaDestroyBuffer(m_allocator, staging_buffer.buffer, staging_buffer.allocation);
-		m_deletion_queue->Push([=]()
-			{
+		m_deletion_queue->Push([=](){
 				vkDestroyImageView(m_device, texture->image_view, nullptr);
 				vmaDestroyImage(m_allocator, texture->allocated_image.image, texture->allocated_image.allocation);
-			});
+		});
 
 		return true;
 	}
@@ -252,10 +260,21 @@ namespace yoyo
 		return image;
 	}
 
-	const size_t VulkanResourceManager::PadToUniformBufferSize(size_t original_size) const
-
+	const size_t VulkanResourceManager::PadToUniformBufferSize(size_t original_size)
 	{
 		size_t min_ubo_allignment = m_physical_device_props.limits.minUniformBufferOffsetAlignment;
+		size_t aligned_size = original_size;
+
+		if (min_ubo_allignment > 0)
+		{
+			aligned_size = (aligned_size + min_ubo_allignment - 1) & ~(min_ubo_allignment - 1);
+		}
+		return aligned_size;
+	}
+
+	const size_t VulkanResourceManager::PadToStorageBufferSize(size_t original_size)
+	{
+		size_t min_ubo_allignment = m_physical_device_props.limits.minStorageBufferOffsetAlignment;
 		size_t aligned_size = original_size;
 
 		if (min_ubo_allignment > 0)

@@ -20,6 +20,8 @@ namespace yoyo
         virtual void Bind(void* render_context) override;
         virtual void Unbind() override;
 
+        virtual void UploadMeshData(bool free_host_memory = false) override;
+
         AllocatedBuffer<Vertex> vertex_buffer;
         AllocatedBuffer<uint32_t> index_buffer;
     };

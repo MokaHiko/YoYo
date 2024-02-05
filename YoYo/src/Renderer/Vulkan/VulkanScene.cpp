@@ -2,5 +2,11 @@
 
 namespace yoyo
 {
+	VulkanRenderScene::VulkanRenderScene()
+	{
+	}
 
+	VulkanRenderScene::~VulkanRenderScene()
+	{
+	}
 }

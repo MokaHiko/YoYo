@@ -2,14 +2,16 @@
 
 #include "Defines.h"
 #include "Core/Memory.h"
+#include "Resource/Resource.h"
 
 namespace yoyo
 {
     enum class MeshPassType
     {
         Forward,
-        Forward_transparent,
+        ForwardTransparent,
         Shadow,
+        PostProcess,
     };
 
     // TODO: Abstract to general ShaderPass
@@ -18,11 +20,14 @@ namespace yoyo
     class YAPI Shader
     {
     public:
-        Shader();
-        ~Shader();
-
         std::unordered_map<MeshPassType, Ref<VulkanShaderPass>> shader_passes;
-    private:
-        uint64_t m_id; // Id of this resource
+        const ResourceId ID() const {return m_id;}
+
+        static Ref<Shader> Create(const std::string& name = "");
+    protected:
+        Shader();
+        virtual ~Shader();
+
+        ResourceId m_id; // Id of this resource
     };
 }

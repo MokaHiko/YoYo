@@ -4,16 +4,12 @@
 
 namespace yoyo
 {
-	void EventManager::Init()
-	{
-	}
-	void EventManager::Shutdown()
-	{
-	}
-
 	void EventManager::Subscribe(const EventType& type, const EventHandler& handler)
 	{
-		auto it = m_event_listeners[type];
+		auto& it = m_event_listeners[type];
+
+		// TODO: Change and return EventHandler to struct with id
+		//auto some_thing = std::find(it.begin(), it.end(), handler);
 		// if(std::find(it.begin(), it.end(), handler) != it.end())
 		// {
 		// 	YINFO("EventHandler of type %d already registerd!");

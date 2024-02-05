@@ -31,10 +31,22 @@ add_library(YoYo SHARED
     src/Core/Application.h
     src/Core/Application.cpp
 
+    src/Resource/Resource.h
+    src/Resource/Resource.cpp
+    src/Resource/ResourceEvent.h
+    src/Resource/ResourceEvent.cpp
+    src/Resource/ResourceManager.h
+    src/Resource/ResourceManager.cpp
+
     src/Events/Event.h
     src/Events/Event.cpp
     src/Events/ApplicationEvent.h
     src/Events/ApplicationEvent.cpp
+
+    src/Input/Input.h
+    src/Input/Input.cpp
+    src/Input/InputEvent.h
+    src/Input/InputEvent.cpp
 
     src/Renderer/Renderer.h
     src/Renderer/Renderer.cpp
@@ -49,10 +61,24 @@ add_library(YoYo SHARED
     src/Renderer/RendererLayer.h
     src/Renderer/RendererLayer.cpp
 
+    src/Renderer/Camera.h
+    src/Renderer/Camera.cpp
     src/Renderer/Light.h
     src/Renderer/Light.cpp
     src/Renderer/RenderScene.h
     src/Renderer/RenderScene.cpp
+
+    src/Renderer/Meshes/MeshComponents.h
+    src/Renderer/Meshes/MeshComponents.cpp
+
+    src/ECS/Entity.h
+    src/ECS/Entity.cpp
+    src/ECS/EntityImpl.h
+    src/ECS/Scene.h
+    src/ECS/Scene.cpp
+
+    src/ECS/Components/Components.h
+    src/ECS/Components/Components.cpp
 
     src/Core/EntryPoint.h
     include/Yoyo.h
@@ -63,9 +89,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_include_directories(${PROJECT_NAME} PUBLIC src include)
 
 add_compile_definitions(Y_EXPORT)
-add_subdirectory(vendor/Hurno)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Hurno)
+add_subdirectory(vendor/Hurno)
+add_subdirectory(vendor/entt)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC Hurno EnTT)
 
 # TODO Detect build type
 if(true)

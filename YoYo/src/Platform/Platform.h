@@ -1,7 +1,6 @@
 #pragma once
 
 namespace yoyo {
-    class EventManager;
     namespace Platform
     {
         // Platform memory allocation call
@@ -12,7 +11,7 @@ namespace yoyo {
 
         void ConsoleWrite(const char* message, uint8_t color);
 
-        void PumpMessages(EventManager* event_manager);
+        void PumpMessages();
 
         void CreateSurface(void* context, void* surface);
 

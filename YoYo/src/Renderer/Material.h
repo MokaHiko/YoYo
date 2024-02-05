@@ -8,6 +8,8 @@
 #include "Texture.h"
 #include "Shader.h"
 
+#include "Resource/Resource.h"
+
 namespace yoyo
 {
     enum class MaterialTextureType : uint8_t
@@ -50,9 +52,6 @@ namespace yoyo
     class YAPI Material
     {
     public:
-        Material();
-        virtual ~Material();
-
         Ref<Shader> shader; // The shader used by the material.
 
         Vec4 color;     // The main color of the Material.
@@ -70,9 +69,14 @@ namespace yoyo
         virtual void Bind(void* render_context, MeshPassType mesh_pass_type) = 0;
         virtual void Unbind() {};
 
-        const bool Dirty() const { return dirty != MaterialDirtyFlags::Clean; }
+        static Ref<Material> Create(Ref<Shader> shader, const std::string& name = "");
+        const ResourceId& ID() const { return m_id; }
+        const bool Dirty() const { return m_dirty != MaterialDirtyFlags::Clean; }
     protected:
-        MaterialDirtyFlags& DirtyFlags() {return dirty;}
+        Material();
+        virtual ~Material();
+
+        MaterialDirtyFlags& DirtyFlags() {return m_dirty;}
 
         void SetProperty(const std::string& name, void* data);
         void AddProperty(const std::string& name, const MaterialProperty& property);
@@ -88,9 +92,8 @@ namespace yoyo
         // Textures
         std::vector<Ref<Texture>> textures; 
 
-        MaterialDirtyFlags dirty; 
-
+        MaterialDirtyFlags m_dirty; 
         uint64_t renderpass; // The id of this material's render pass
-        uint64_t id; // Id of this resource
+        ResourceId m_id; // Id of this resource
     };
 }

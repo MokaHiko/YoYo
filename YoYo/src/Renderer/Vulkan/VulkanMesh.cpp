@@ -1,5 +1,8 @@
 #include "VulkanMesh.h"
 
+#include "Resource/ResourceEvent.h"
+#include "VulkanResourceManager.h"
+
 namespace yoyo
 {
     const std::vector<VkVertexInputAttributeDescription>& VertexAttributeDescriptions()
@@ -65,28 +68,26 @@ namespace yoyo
         return bindings;
     }
 
-    Ref<Mesh> Mesh::Create()
+    Ref<Mesh> Mesh::Create(const std::string& name)
     {
         Ref<VulkanMesh> mesh = CreateRef<VulkanMesh>();
+        mesh->m_id = name;
+        mesh->m_dirty = MeshDirtyFlags::Unuploaded;
+
+        EventManager::Instance()->Dispatch(CreateRef<MeshCreatedEvent>(mesh));
         return mesh;
     }
 
-    VulkanMesh::VulkanMesh()
+    VulkanMesh::VulkanMesh() {}
+
+    VulkanMesh::~VulkanMesh() {}
+
+    void VulkanMesh::Bind(void* render_context)
     {
-
-    }
-
-    VulkanMesh::~VulkanMesh()
-    {
-
-    }
-
-    void VulkanMesh::Bind(void* render_context) 
-    {
-        const VulkanRenderContext* ctx  = static_cast<VulkanRenderContext*>(render_context);
+        const VulkanRenderContext* ctx = static_cast<VulkanRenderContext*>(render_context);
         VkDeviceSize offset = 0;
 
-        if(!indices.empty())
+        if (!indices.empty())
         {
             vkCmdBindIndexBuffer(ctx->cmd, index_buffer.buffer, offset, VK_INDEX_TYPE_UINT32);
         }
@@ -94,8 +95,20 @@ namespace yoyo
         vkCmdBindVertexBuffers(ctx->cmd, 0, 1, &vertex_buffer.buffer, &offset);
     }
 
-    void VulkanMesh::Unbind() 
+    void VulkanMesh::Unbind()
     {
     }
 
-} // namespace yoyo
+	void VulkanMesh::UploadMeshData(bool free_host_memory)
+	{
+        VulkanResourceManager::UploadMesh(this);
+
+        if(free_host_memory)
+        {
+            vertices.clear();
+            indices.clear();
+        }
+
+		m_dirty &= ~MeshDirtyFlags::Unuploaded;
+	}
+}

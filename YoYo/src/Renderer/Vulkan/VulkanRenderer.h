@@ -14,6 +14,8 @@
 
 namespace yoyo
 {
+    const int SCENE_DATA_DESCRIPTOR_SET_INDEX = 1;
+
     class VulkanRenderer : public Renderer
     {
     public:
@@ -26,18 +28,16 @@ namespace yoyo
         virtual bool BeginFrame(const RenderPacket& rp) override;
         virtual void EndFrame() override;
 
-        const VkDevice Device() const { return m_device;}
-        const VkPhysicalDevice PhysicalDevice() const { return m_physical_device;}
-        const VkPhysicalDeviceProperties& PhysicalDeviceProperties() const { return m_physical_device_properties;}
-        const VkInstance Instance() const {return m_instance;}
+        const VkDevice Device() const { return m_device; }
+        const VkPhysicalDevice PhysicalDevice() const { return m_physical_device; }
+        const VkPhysicalDeviceProperties& PhysicalDeviceProperties() const { return m_physical_device_properties; }
+        const VkInstance Instance() const { return m_instance; }
 
-        VulkanQueues& Queues() {return m_queues;}
-        VulkanDeletionQueue& DeletionQueue() {return m_deletion_queue;}
+        VulkanQueues& Queues() { return m_queues; }
+        VulkanDeletionQueue& DeletionQueue() { return m_deletion_queue; }
 
-		Ref<DescriptorAllocator> DescAllocator() {return m_descriptor_allocator;}
-		Ref<DescriptorLayoutCache> DescLayoutCache() {return m_descriptor_layout_cache;}
-
-		Ref<VulkanResourceManager> ResourceManager() {return m_resource_manager;}
+        Ref<DescriptorAllocator> DescAllocator() { return m_descriptor_allocator; }
+        Ref<DescriptorLayoutCache> DescLayoutCache() { return m_descriptor_layout_cache; }
     private:
         void InitVulkan();
         void InitSwapchain();
@@ -50,7 +50,7 @@ namespace yoyo
         void InitSwapchainFramebuffers();
         VkPipelineLayout m_blit_pipeline_layout;
         VkPipeline m_blit_pipeline;
-        
+
         std::vector<VkFramebuffer> m_swapchain_framebuffers;
         VkRenderPass m_swapchain_render_pass;
 
@@ -62,12 +62,24 @@ namespace yoyo
         // TODO: Encapsulate as render targets
         VkRenderPass m_shadow_render_pass;
         VkRenderPass m_post_process_render_pass;
+        
+        // Shadow Pass
 
         // Forward Pass
         struct SceneData
         {
             Mat4x4 view;
             Mat4x4 proj;
+
+            uint32_t dir_light_count;
+            uint32_t point_light_count;
+            uint32_t spot_light_count;
+            uint32_t area_light_count;
+        };
+
+        struct ObjectData
+        {
+            Mat4x4 model_matrix;
         };
 
         void InitForwardPass();
@@ -79,15 +91,18 @@ namespace yoyo
         AllocatedImage m_forward_pass_depth_texture;
         VkImageView m_forward_pass_color_texture_view;
         VkImageView m_forward_pass_depth_texture_view;
-
-        AllocatedBuffer<SceneData> scene_data_uniform_buffer;
+    private:
+        // Scene Resources
+        AllocatedBuffer<SceneData> m_scene_data_uniform_buffer;
+        AllocatedBuffer<DirectionalLight> m_directional_lights_buffer;
+        AllocatedBuffer<ObjectData> m_object_data_buffer;
 
         VkFramebuffer m_forward_frame_buffer;
         VkRenderPass m_forward_pass;
 
         VkDescriptorSet m_forward_pass_ds;
         VkDescriptorSetLayout m_forward_pass_ds_layout;
-    private:
+
         // Demo Scene
         Ref<VulkanMesh> m_cube_mesh;
         Ref<VulkanShaderPass> lit_shader_pass;
@@ -98,7 +113,6 @@ namespace yoyo
         int m_frame_count;
     private:
         Ref<VulkanMaterialSystem> m_material_system;
-        Ref<VulkanResourceManager> m_resource_manager;
     private:
         VulkanQueues m_queues;
 
@@ -116,8 +130,8 @@ namespace yoyo
 
         // TODO: Delete and make one for each subsystem to vulkan material system
         // Descriptor allocator and layout cache
-		Ref<DescriptorAllocator> m_descriptor_allocator;
-		Ref<DescriptorLayoutCache> m_descriptor_layout_cache;
+        Ref<DescriptorAllocator> m_descriptor_allocator;
+        Ref<DescriptorLayoutCache> m_descriptor_layout_cache;
 
         VulkanDeletionQueue m_deletion_queue;
     };

@@ -11,8 +11,10 @@ namespace yoyo
     class VulkanRenderScene : public RenderScene
     {
     public:
-        // TODO: Draw indirect
-        // std::vector<VkDrawIndexedIndirectCommand> 
+        VulkanRenderScene();
+        virtual ~VulkanRenderScene();
+    private:
+        std::vector<VkDrawIndexedIndirectCommand> m_draw_indirects;
     };
 }
 

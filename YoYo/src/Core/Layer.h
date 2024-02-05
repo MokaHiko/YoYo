@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Defines.h"
+
 namespace yoyo
 {
     // Application layer base class. Layers are disabled by default
-    class Layer
+    class YAPI Layer
     {
     public:
         Layer(const std::string& name);
@@ -22,7 +24,6 @@ namespace yoyo
         void Disable();
 
         inline const std::string& GetName() const {return m_name;}
-
         inline const bool IsEnabled() const {return m_enabled;}
     protected:
         friend class LayerStack;
