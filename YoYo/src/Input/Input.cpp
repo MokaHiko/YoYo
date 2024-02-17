@@ -25,11 +25,11 @@ namespace yoyo
 		memset(Input::LastMouseButtons, 0, 4);
 		memset(Input::MouseButtons, 0, 4);
 
-		EventManager::Instance()->Subscribe(KeyDownEvent::s_event_type, [&](Ref<Event> event){
+		EventManager::Instance().Subscribe(KeyDownEvent::s_event_type, [&](Ref<Event> event){
 			return OnEvent(event);
 		});
 
-		EventManager::Instance()->Subscribe(KeyUpEvent::s_event_type, [&](Ref<Event> event){
+		EventManager::Instance().Subscribe(KeyUpEvent::s_event_type, [&](Ref<Event> event){
 			return OnEvent(event);
 		});
 	}

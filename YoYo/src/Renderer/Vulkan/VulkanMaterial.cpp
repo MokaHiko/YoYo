@@ -12,7 +12,7 @@ namespace yoyo
         material->m_dirty = MaterialDirtyFlags::Clean;
         material->shader = shader;
 
-        EventManager::Instance()->Dispatch(CreateRef<MaterialCreatedEvent>(material));
+        EventManager::Instance().Dispatch(CreateRef<MaterialCreatedEvent>(material));
         return material;
     }
 

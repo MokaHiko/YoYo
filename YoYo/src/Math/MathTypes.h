@@ -45,6 +45,7 @@ namespace yoyo
 
         Vec3 &operator*=(const Vec3 &other);
         Vec3 &operator+=(const Vec3 &other);
+        Vec3 &operator-=(const Vec3 &other);
     };
 
     union YAPI Vec4
@@ -73,6 +74,8 @@ namespace yoyo
                 float w, a, q;
             };
         };
+
+        operator Vec3() const { return {x,y,z}; }
     };
 
     struct YAPI Quat
@@ -89,6 +92,8 @@ namespace yoyo
     {
         Mat4x4();
         ~Mat4x4();
+
+        Mat4x4(float val);
 
         alignas(16) float data[16];
 #ifdef YUSESIMD

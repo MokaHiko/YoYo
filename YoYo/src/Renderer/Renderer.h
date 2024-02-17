@@ -29,6 +29,29 @@ namespace yoyo
     // Structure that sends info about updates to the scene
     struct YAPI RenderPacket
     {
+        Mat4x4 view;
+        Mat4x4 proj;
+
+        void Clear()
+        {
+            new_dir_lights.clear();
+            deleted_dir_lights.clear();
+
+            new_objects.clear();
+            deleted_objects.clear();
+
+            new_camera.reset();
+            new_camera = nullptr;
+        }
+
+        std::vector<uint32_t> deleted_dir_lights;
+        std::vector<Ref<DirectionalLight>> new_dir_lights;
+
+        std::vector<uint32_t> deleted_objects;
+        std::vector<Ref<MeshPassObject>> new_objects;
+
+        Ref<Camera> new_camera;
+
         double dt;
     };
 
@@ -43,8 +66,6 @@ namespace yoyo
             :m_settings(settings) {}
         virtual ~Renderer() {};
 
-        RenderScene& Scene() {return m_scene;}
-
         const RendererType Type() const {return m_settings.type;}
         const RendererSettings& Settings() const {return m_settings;}
 
@@ -57,10 +78,9 @@ namespace yoyo
         virtual void Init() {};
         virtual void Shutdown() {};
 
-        virtual bool BeginFrame(const RenderPacket& rp) = 0;
+        virtual bool BeginFrame(Ref<RenderScene> scene) = 0;
         virtual void EndFrame() = 0;
     private:
-        RenderScene m_scene;
         RendererSettings m_settings;
         bool m_diry_flags;
     };

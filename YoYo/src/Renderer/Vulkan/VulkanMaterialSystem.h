@@ -19,15 +19,16 @@ namespace yoyo
         void Init(VulkanRenderer* renderer);
         void Shutdown();
 
-        Ref<Material> CreateMaterial(Ref<VulkanShader> shader);
-
         bool RegisterMaterial(Ref<VulkanMaterial> material);
 
         // Create a shader pass based of the shader effect passed
-        Ref<VulkanShaderPass> CreateShaderPass(VkRenderPass render_pass, Ref<VulkanShaderEffect> effect);
+        Ref<VulkanShaderPass> CreateShaderPass(VkRenderPass render_pass, Ref<VulkanShaderEffect> effect, bool offscreen = false);
 
         // Called to update material with dirty flag set
         void UpdateMaterial(Ref<VulkanMaterial> material); 
+
+        // Returns a handle to the default linear sampler
+        VkSampler LinearSampler() const {return m_linear_sampler;}
     private:
         // Allocator and cache for materials
 		Ref<DescriptorAllocator> m_descriptor_allocator;

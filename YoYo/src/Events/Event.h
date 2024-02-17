@@ -27,7 +27,7 @@ namespace yoyo
     class EventManager
     {
     public:
-        static EventManager* Instance()
+        static EventManager& Instance()
         {
             static EventManager* event_manager;
 
@@ -36,7 +36,7 @@ namespace yoyo
                 event_manager = Y_NEW EventManager;
             }
 
-            return event_manager;
+            return *event_manager;
         }
 
         void Subscribe(const EventType& type, const EventHandler& handler);

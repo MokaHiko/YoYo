@@ -8,7 +8,7 @@
 namespace yoyo
 {
 	template<>
-	Ref<Texture> ResourceManager::Load<Texture>(const std::string& path)
+	YAPI Ref<Texture> ResourceManager::Load<Texture>(const std::string& path)
 	{
 		ResourceId id = FileNameFromFullPath(path);
 
@@ -30,7 +30,7 @@ namespace yoyo
 	}
 
 	template<>
-	void ResourceManager::Free<Texture>(Ref<Texture> resource)
+	YAPI void ResourceManager::Free<Texture>(Ref<Texture> resource)
 	{
 
 	}
@@ -53,7 +53,7 @@ namespace yoyo
 
 		// Cache
         m_texture_cache[texture->ID()] = texture;
-        return true;
+        return false;
     }
 
 	Ref<Texture> Texture::LoadFromAsset(const char* asset_path)

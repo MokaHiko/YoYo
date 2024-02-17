@@ -33,7 +33,7 @@ namespace yoyo
     {
     public:
         Texture() = default;
-        ~Texture() {};
+        ~Texture() = default;
 
         virtual void UploadTextureData(bool free_host_memory = false) = 0;
 

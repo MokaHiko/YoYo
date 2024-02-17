@@ -31,88 +31,13 @@ namespace yoyo
             vkDestroySampler(m_device, m_linear_sampler, nullptr);
         });
 
-        EventManager::Instance()->Subscribe(MaterialCreatedEvent::s_event_type, [&](Ref<Event> event){
+        EventManager::Instance().Subscribe(MaterialCreatedEvent::s_event_type, [&](Ref<Event> event){
             auto material_created_event = std::static_pointer_cast<MaterialCreatedEvent>(event);
             return RegisterMaterial(std::static_pointer_cast<VulkanMaterial>(material_created_event->material));
         });
     }
 
-    void VulkanMaterialSystem::Shutdown()
-    {
-    }
-
-    Ref<Material> VulkanMaterialSystem::CreateMaterial(Ref<VulkanShader> shader)
-    {
-        Ref<VulkanMaterial> material = CreateRef<VulkanMaterial>();
-        material->shader = shader;
-
-        for (auto pass_it = shader->shader_passes.begin(); pass_it != shader->shader_passes.end(); pass_it++)
-        {
-            // Create descriptor for public material properties
-            std::vector<VulkanDescriptorSetInformation>& shader_pass_sets = (*(pass_it->second)).effect->set_infos;
-            auto ds_it = std::find_if(shader_pass_sets.begin(), shader_pass_sets.end(), [=](const VulkanDescriptorSetInformation& set)
-                {
-                    return set.index == MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX;
-                });
-
-            if (ds_it != shader_pass_sets.end())
-            {
-                VulkanDescriptorSetInformation& material_property_set_info = material->descriptors[MeshPassType::Forward][MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX].info;
-                material_property_set_info = *ds_it;
-
-                // Copy binding info to material properties
-                for (auto binding_it = material_property_set_info.bindings.begin(); binding_it != material_property_set_info.bindings.end(); binding_it++)
-                {
-                    VulkanBinding& binding = binding_it->second;
-                    for (auto binding_prop_it = binding.Properties().begin(); binding_prop_it != binding.Properties().end(); binding_prop_it++)
-                    {
-                        const std::string& binding_prop_name = binding_prop_it->first;
-                        const VulkanBinding::BindingProperty& binding_prop = binding_prop_it->second;
-
-                        MaterialProperty material_prop = {};
-                        material_prop.size = binding_prop.size;
-                        material_prop.offset = binding_prop.offset;
-
-                        material->AddProperty(binding_prop_name, material_prop);
-                    }
-                }
-            }
-        }
-
-        // TODO: Give default main texture value or send to untextured material
-        VkDescriptorSet textures_set = {};
-        material->descriptors[MeshPassType::Forward][MATERIAL_MAIN_TEXTURE_DESCRIPTOR_SET_INDEX].set = textures_set;
-
-        // TODO: move to shader pass loop
-        {
-            VulkanBinding binding = material->descriptors[MeshPassType::Forward][MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX].info.bindings[0];
-            uint32_t binding_index = 0;
-
-            size_t padded_material_property_size = VulkanResourceManager::PadToUniformBufferSize(binding.Size());
-            material->m_properties_buffer = VulkanResourceManager::CreateBuffer(padded_material_property_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-            // 0 out property buffer
-            void* property_data;
-            VulkanResourceManager::MapMemory(material->m_properties_buffer.allocation, &property_data);
-            memset(property_data, 0, material->PropertyDataSize());
-            VulkanResourceManager::UnmapMemory(material->m_properties_buffer.allocation);
-
-            VkDescriptorBufferInfo property_buffer_info = {};
-            property_buffer_info.offset = 0;
-            property_buffer_info.buffer = material->m_properties_buffer.buffer;
-            property_buffer_info.range = VK_WHOLE_SIZE;
-
-            VulkanDescriptorSet& property_set = material->descriptors[MeshPassType::Forward][MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX];
-            VkDescriptorSetLayout property_set_layout;
-            DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get()).
-                BindBuffer(binding_index, &property_buffer_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT).
-                Build(&property_set.set, &property_set_layout);
-
-            material->descriptors[MeshPassType::Forward][MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX].set = property_set.set;
-        }
-
-        return material;
-    }
+    void VulkanMaterialSystem::Shutdown() {}
 
 	bool VulkanMaterialSystem::RegisterMaterial(Ref<VulkanMaterial> material)
 	{
@@ -120,10 +45,9 @@ namespace yoyo
         {
             // Create descriptor for public material properties
             std::vector<VulkanDescriptorSetInformation>& shader_pass_sets = (*(pass_it->second)).effect->set_infos;
-            auto ds_it = std::find_if(shader_pass_sets.begin(), shader_pass_sets.end(), [=](const VulkanDescriptorSetInformation& set)
-                {
+            auto ds_it = std::find_if(shader_pass_sets.begin(), shader_pass_sets.end(), [=](const VulkanDescriptorSetInformation& set){
                     return set.index == MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX;
-                });
+            });
 
             if (ds_it != shader_pass_sets.end())
             {
@@ -184,7 +108,7 @@ namespace yoyo
 		return true;
 	}
 
-    Ref<VulkanShaderPass> VulkanMaterialSystem::CreateShaderPass(VkRenderPass render_pass, Ref<VulkanShaderEffect> effect)
+	Ref<VulkanShaderPass> VulkanMaterialSystem::CreateShaderPass(VkRenderPass render_pass, Ref<VulkanShaderEffect> effect, bool offscreen)
     {
         Ref<VulkanShaderPass> shader_pass = CreateRef<VulkanShaderPass>();
         shader_pass->effect = effect;
@@ -253,13 +177,12 @@ namespace yoyo
         builder.scissor.offset = {0,0};
 
         // TODO: Cache Shader passes (pipelines)
-        shader_pass->pipeline = builder.Build(m_device, render_pass);
+        shader_pass->pipeline = builder.Build(m_device, render_pass, offscreen);
 
-        m_deletion_queue->Push([=]()
-            {
+        m_deletion_queue->Push([=](){
                 vkDestroyPipelineLayout(m_device, shader_pass->layout, nullptr);
                 vkDestroyPipeline(m_device, shader_pass->pipeline, nullptr);
-            });
+        });
         return shader_pass;
     }
 
@@ -291,4 +214,4 @@ namespace yoyo
 
         material->DirtyFlags() = MaterialDirtyFlags::Clean;
     }
-} // namespace yoyo
+}

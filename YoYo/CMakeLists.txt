@@ -19,6 +19,8 @@ add_library(YoYo SHARED
     src/Math/MathTypes.cpp
     src/Math/MatrixTransform.h
     src/Math/MatrixTransform.cpp
+    src/Math/Random.h
+    src/Math/Random.cpp
 
     src/Core/Layer.h
     src/Core/Layer.cpp
@@ -68,18 +70,6 @@ add_library(YoYo SHARED
     src/Renderer/RenderScene.h
     src/Renderer/RenderScene.cpp
 
-    src/Renderer/Meshes/MeshComponents.h
-    src/Renderer/Meshes/MeshComponents.cpp
-
-    src/ECS/Entity.h
-    src/ECS/Entity.cpp
-    src/ECS/EntityImpl.h
-    src/ECS/Scene.h
-    src/ECS/Scene.cpp
-
-    src/ECS/Components/Components.h
-    src/ECS/Components/Components.cpp
-
     src/Core/EntryPoint.h
     include/Yoyo.h
 )
@@ -91,9 +81,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC src include)
 add_compile_definitions(Y_EXPORT)
 
 add_subdirectory(vendor/Hurno)
-add_subdirectory(vendor/entt)
-
-target_link_libraries(${PROJECT_NAME} PUBLIC Hurno EnTT)
+target_link_libraries(${PROJECT_NAME} PUBLIC Hurno)
 
 # TODO Detect build type
 if(true)
@@ -136,6 +124,7 @@ if (YRENDERERTYPE STREQUAL "VULKAN")
     set(SPIRV_REFLECT_STATIC_LIB ON)
     add_subdirectory(vendor/SPIRVReflect)
 
+    # TODO: Make spriv reflect static fork for static lib
     target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator vk-bootstrap spirv-reflect-static)
     target_sources(${PROJECT_NAME} PRIVATE 
         src/Renderer/Vulkan/VulkanStructures.cpp

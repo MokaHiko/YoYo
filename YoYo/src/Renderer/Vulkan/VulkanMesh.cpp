@@ -74,7 +74,7 @@ namespace yoyo
         mesh->m_id = name;
         mesh->m_dirty = MeshDirtyFlags::Unuploaded;
 
-        EventManager::Instance()->Dispatch(CreateRef<MeshCreatedEvent>(mesh));
+        EventManager::Instance().Dispatch(CreateRef<MeshCreatedEvent>(mesh));
         return mesh;
     }
 

@@ -61,19 +61,19 @@ namespace yoyo
             case(SDL_QUIT):
             {
                 Ref<Event> app_close_event = CreateRef<ApplicationCloseEvent>();
-                EventManager::Instance()->Dispatch(app_close_event);
+                EventManager::Instance().Dispatch(app_close_event);
             }break;
 
             case(SDL_KEYDOWN):
             {
                 Ref<Event> key_down_event = CreateRef<KeyDownEvent>((KeyCode)event.key.keysym.sym);
-                EventManager::Instance()->Dispatch(key_down_event);
+                EventManager::Instance().Dispatch(key_down_event);
             }break;
 
             case(SDL_KEYUP):
             {
                 Ref<Event> key_up_event = CreateRef<KeyUpEvent>((KeyCode)event.key.keysym.sym);
-                EventManager::Instance()->Dispatch(key_up_event);
+                EventManager::Instance().Dispatch(key_up_event);
             }break;
 
             default:

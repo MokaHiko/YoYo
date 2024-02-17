@@ -10,11 +10,6 @@ namespace yoyo
 {
     class Mesh;
     class Material;
-    struct MeshRenderer
-    {
-        Ref<Mesh> mesh;
-        Ref<Material> material;
-    };
 
     struct MeshPassObject
     {
@@ -40,8 +35,9 @@ namespace yoyo
         virtual ~RenderScene();
     public:
         std::vector<Ref<DirectionalLight>> directional_lights;
-        std::vector<Ref<PointLight>> point_lights;
-        Ref<Camera> main_camera;
+        std::vector<PointLight> point_lights;
+
+        Ref<Camera> camera;
 
         Ref<MeshPass> shadow_pass;
         Ref<MeshPass> forward_pass;

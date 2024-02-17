@@ -6,7 +6,7 @@
 namespace yoyo
 {
 	template<>
-	Ref<Material> ResourceManager::Load<Material>(const std::string& path)
+	YAPI Ref<Material> ResourceManager::Load<Material>(const std::string& path)
 	{
 		ResourceId id = FileNameFromFullPath(path);
 
@@ -30,7 +30,7 @@ namespace yoyo
 	}
 
 	template<>
-	void ResourceManager::Free<Material>(Ref<Material> resource)
+	YAPI void ResourceManager::Free<Material>(Ref<Material> resource)
 	{
 	}
 
@@ -52,13 +52,19 @@ namespace yoyo
 
         // TODO: Check if there is space in cache
         m_material_cache[material->ID()] = material;
-        return true;
+        return false;
     }
 
 	Material::Material()
 		:m_property_data(nullptr), m_property_size(0) {}
 
-	Material::~Material() { free(m_property_data);}
+	Material::~Material() 
+	{ 
+		if(m_property_data != nullptr)
+		{
+			free(m_property_data);
+		}
+	}
 
 	void Material::SetTexture(int index, Ref<Texture> texture)
 	{

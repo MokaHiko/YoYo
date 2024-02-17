@@ -14,14 +14,19 @@ namespace yoyo
         RendererLayer();
         virtual ~RendererLayer();
 
-        virtual void OnAttach();
-        virtual void OnDetatch();
+        void SendRenderPacket(RenderPacket* packet);
 
-        virtual void OnEnable();
-        virtual void OnDisable();
+        virtual void OnAttach() override;
+        virtual void OnDetatch() override;
 
-        virtual void OnUpdate(float dt);
+        virtual void OnEnable() override;
+        virtual void OnDisable() override;
+
+        virtual void OnUpdate(float dt) override;
+
+        LayerType(RendererLayer)
     private:
+        Ref<RenderScene> m_scene;
         Ref<Renderer> m_renderer;
     };
 }

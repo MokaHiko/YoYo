@@ -56,7 +56,7 @@ namespace yoyo
             if(event.type == SDL_QUIT)
             {
                 Ref<Event> app_close_event = CreateRef<ApplicationCloseEvent>();
-                EventManager::Instance()->Dispatch(app_close_event);
+                EventManager::Instance().Dispatch(app_close_event);
             }
         }
     }

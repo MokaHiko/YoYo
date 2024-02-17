@@ -104,7 +104,7 @@ namespace yoyo
     };
 
     class Event;
-    class InputLayer : public Layer
+    class YAPI InputLayer : public Layer
     {
     public:
         InputLayer() {};
@@ -117,5 +117,7 @@ namespace yoyo
         virtual void OnDisable() override;
 
         bool OnEvent(Ref<Event> event); 
+
+        LayerType(InputLayer)
     };
 }

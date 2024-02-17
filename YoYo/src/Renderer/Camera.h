@@ -16,7 +16,9 @@ namespace yoyo
     const float SENSITIVITY = 0.1f;
     const float ZOOM = 45.0f;
 
-    class Camera
+    const Vec3 WORLD_UP = {0.0f, 1.0f, 0.0f};
+
+    class YAPI Camera
     {
     public:
         Camera(const Vec3& start_position = { 0.0f }, const Vec3& up = { 0.0f, 1.0f, 0.0f }, float start_yaw = YAW, float start_pitch = PITCH);
@@ -28,12 +30,18 @@ namespace yoyo
         const Mat4x4& Projection() const {return m_proj;}
 
         const Vec3& Front() const {return m_front;}
+        const Vec3& Up() const {return m_up;}
+        const Vec3& Right() const {return m_right;}
+
+        void SetType(CameraType type);
 
         float yaw;
         float pitch;
         Vec3 position;
     private:
-		uint32_t m_aspect_ratio;
+		float m_aspect_ratio;
+		float m_fov;
+
 		float m_near;
 		float m_far;
 

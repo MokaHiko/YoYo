@@ -48,6 +48,12 @@ namespace yoyo
         m_material_system = CreateRef<VulkanMaterialSystem>();
         m_material_system->Init(this);
 
+        InitSceneResources();
+
+        InitShadowPass();
+        InitShadowPassAttachments();
+        InitShadowPassFramebufffer();
+
         InitForwardPass();
         InitForwardPassAttachments();
         InitForwardPassFramebufffer();
@@ -58,35 +64,42 @@ namespace yoyo
         m_screen_quad = CreateRef<VulkanMesh>();
         m_screen_quad->vertices =
         {
-            {{-1.00, -1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.00,  1.00}},
-            {{ 1.00, -1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {1.00,  1.00}},
-            {{-1.00,  1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.00,  0.00}},
-            {{ 1.00, -1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {1.00,  1.00}},
-            {{ 1.00,  1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {1.00,  0.00}},
-            {{-1.00,  1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.00,  0.00}},
+            {{-1.00, -1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.00,  0.00}},
+            {{ 1.00, -1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {1.00,  0.00}},
+            {{-1.00,  1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.00,  1.00}},
+            {{ 1.00, -1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {1.00,  0.00}},
+            {{ 1.00,  1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {1.00,  1.00}},
+            {{-1.00,  1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.00,  1.00}},
         };
         m_screen_quad->UploadMeshData();
 
-        // Init mesh passes
-        Scene().forward_pass = CreateRef<MeshPass>();
-        Scene().transparent_forward_pass = CreateRef<MeshPass>();
-        Scene().shadow_pass = CreateRef<MeshPass>();
-
         // Describe effect
-        // TODO: Cache Effect description
+
         Ref<VulkanShaderEffect> lit_effect = CreateRef<VulkanShaderEffect>();
-        Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.vert.spv");
-        lit_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+        {
+            Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.vert.spv");
+            lit_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
 
-        Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.frag.spv");
-        lit_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
-
+            Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.frag.spv");
+            lit_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+        }
         // Create or get shader pass from effect description
-        lit_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_effect);
+        auto lit_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_effect);
+
+        Ref<VulkanShaderEffect> shadow_lit_effect = CreateRef<VulkanShaderEffect>();
+        {
+            Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/offscreen_shadow_shader.vert.spv");
+            shadow_lit_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+
+            Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/offscreen_shadow_shader.frag.spv");
+            shadow_lit_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+        }
+        auto default_shadow_pass = m_material_system->CreateShaderPass(m_shadow_render_pass, shadow_lit_effect);
 
         // Create shader (Effect Template)
         Ref<Shader> lit_shader = Shader::Create("lit_shader");
         lit_shader->shader_passes[MeshPassType::Forward] = lit_shader_pass;
+        lit_shader->shader_passes[MeshPassType::Shadow] = default_shadow_pass;
     }
 
     void VulkanRenderer::Shutdown()
@@ -100,7 +113,7 @@ namespace yoyo
         m_deletion_queue.Flush();
     }
 
-    bool VulkanRenderer::BeginFrame(const RenderPacket& rp)
+    bool VulkanRenderer::BeginFrame(const Ref<RenderScene> scene)
     {
         vkWaitForFences(m_device, 1, &m_frame_context[m_frame_count].render_fence, VK_TRUE, 1000000000);
         vkResetFences(m_device, 1, &m_frame_context[m_frame_count].render_fence);
@@ -109,12 +122,22 @@ namespace yoyo
         {
             void* data;
             VulkanResourceManager::MapMemory(m_scene_data_uniform_buffer.allocation, &data);
-            SceneData scene_data = {};
-            scene_data.view = Scene().main_camera->View();
-            scene_data.proj = Scene().main_camera->Projection();
 
-            scene_data.point_light_count = static_cast<uint32_t>(Scene().point_lights.size());
-            scene_data.dir_light_count = static_cast<uint32_t>(Scene().directional_lights.size());
+            SceneData scene_data = {};
+
+            if(!scene->camera)
+            {
+                scene_data.view = Mat4x4(0.0f);
+                scene_data.proj = Mat4x4(0.0f);
+            }
+            else
+            {
+                scene_data.view = scene->camera->View();
+                scene_data.proj = scene->camera->Projection();
+            }
+
+            scene_data.point_light_count = static_cast<uint32_t>(scene->point_lights.size());
+            scene_data.dir_light_count = static_cast<uint32_t>(scene->directional_lights.size());
             scene_data.spot_light_count = 0;
             scene_data.area_light_count = 0;
 
@@ -127,24 +150,25 @@ namespace yoyo
             VulkanResourceManager::MapMemory(m_directional_lights_buffer.allocation, (void**)&data);
             const size_t padded_directional_light_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(DirectionalLight));
 
-            for(int i = 0; i < Scene().directional_lights.size(); i++)
+            for (int i = 0; i < scene->directional_lights.size(); i++)
             {
-                memcpy(data + (i * padded_directional_light_size), Scene().directional_lights[i].get(), sizeof(DirectionalLight));
+                memcpy(data + (i * padded_directional_light_size), scene->directional_lights[i].get(), sizeof(DirectionalLight));
             }
 
             VulkanResourceManager::UnmapMemory(m_directional_lights_buffer.allocation);
         }
 
         {
+            // The mesh pass objects ID is used for the offset into buffer
             char* data;
             VulkanResourceManager::MapMemory(m_object_data_buffer.allocation, (void**)&data);
             const size_t padded_object_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(ObjectData));
 
-            for(int i = 0; i < Scene().forward_pass->renderables.size(); i++)
+            for(const Ref<MeshPassObject>& renderable : scene->forward_pass->renderables)
             {
                 ObjectData obj_data = {};
-                obj_data.model_matrix = Scene().forward_pass->renderables[i]->model_matrix;
-                memcpy(data + (i * padded_object_data_size), &obj_data, sizeof(ObjectData));
+                obj_data.model_matrix = renderable->model_matrix;
+                memcpy(data + (renderable->id * padded_object_data_size), &obj_data, sizeof(ObjectData));
             }
 
             VulkanResourceManager::UnmapMemory(m_object_data_buffer.allocation);
@@ -159,25 +183,85 @@ namespace yoyo
         VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
 
         // Bind shadow pass and draw shadow mesh passes
-
-        //Bind forward render pass and draw mesh passes
-        VkRect2D rect = {};
-        rect.offset.x = 0;
-        rect.offset.y = 0;
-        rect.extent.width = 720;
-        rect.extent.height = 480;
-
-        VkClearValue color_clear = {};
-        color_clear.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-        VkClearValue depth_clear = {};
-        depth_clear.depthStencil = { 1.0f, 0 };
-
-        VkClearValue clear_values[2] = { color_clear, depth_clear };
-        VkRenderPassBeginInfo forward_pass_begin = vkinit::RenderPassBeginInfo(m_forward_frame_buffer, m_forward_pass, rect, clear_values, 2);
-        vkCmdBeginRenderPass(cmd, &forward_pass_begin, VK_SUBPASS_CONTENTS_INLINE);
-
-        // Move to RendererLayer
         {
+            VkRect2D rect = {};
+            rect.offset.x = 0;
+            rect.offset.y = 0;
+            rect.extent.width = Settings().width;
+            rect.extent.height = Settings().height;
+
+            VkClearValue depth_clear = {};
+            depth_clear.depthStencil = { 1.0f, 0 };
+
+            VkClearValue clear_values[1] = {depth_clear};
+
+            VkRenderPassBeginInfo shadow_pass_begin = vkinit::RenderPassBeginInfo(m_shadow_frame_buffer, m_shadow_render_pass, rect, clear_values, 1);
+            vkCmdBeginRenderPass(cmd, &shadow_pass_begin, VK_SUBPASS_CONTENTS_INLINE);
+
+            VulkanRenderContext ctx = {};
+            ctx.cmd = cmd;
+
+            for(Ref<MeshPassObject> obj : scene->shadow_pass->renderables)
+            {
+                // Bind material forward pipeline
+                auto shader_pass = obj->material->shader->shader_passes[MeshPassType::Shadow];
+                vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->pipeline);
+
+                uint32_t dynamic_offset = 0;
+                vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, 0, 1, &m_shadow_pass_ds, 0, &dynamic_offset);
+
+                // Bind mesh
+                obj->mesh->Bind(&ctx);
+
+                // Draw every object w mesh and material
+                if (!obj->mesh->indices.empty())
+                {
+                    vkCmdDrawIndexed(cmd, obj->mesh->indices.size(), 1, 0, 0, obj->id);
+                }
+                else
+                {
+                    vkCmdDraw(cmd, obj->mesh->vertices.size(), 1, 0, obj->id);
+                }
+            }
+
+            vkCmdEndRenderPass(cmd);
+        }
+
+        // Blit output_texture barrier
+        VkImageMemoryBarrier shadow_map_barrier = {};
+        shadow_map_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        shadow_map_barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        shadow_map_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        shadow_map_barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        shadow_map_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        shadow_map_barrier.image = m_shadow_pass_depth_texture.image;
+
+        VkImageSubresourceRange shadow_map_range = {};
+        shadow_map_range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        shadow_map_range.layerCount = 1;
+        shadow_map_range.baseArrayLayer = 0;
+        shadow_map_range.levelCount = 1;
+
+        shadow_map_barrier.subresourceRange = shadow_map_range;
+        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &shadow_map_barrier);
+
+        // Bind forward render pass and draw mesh passes
+        {
+            VkRect2D rect = {};
+            rect.offset.x = 0;
+            rect.offset.y = 0;
+            rect.extent.width = Settings().width;
+            rect.extent.height = Settings().height;
+
+            VkClearValue color_clear = {};
+            color_clear.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+            VkClearValue depth_clear = {};
+            depth_clear.depthStencil = { 1.0f, 0 };
+
+            VkClearValue clear_values[2] = { color_clear, depth_clear };
+            VkRenderPassBeginInfo forward_pass_begin = vkinit::RenderPassBeginInfo(m_forward_frame_buffer, m_forward_pass, rect, clear_values, 2);
+            vkCmdBeginRenderPass(cmd, &forward_pass_begin, VK_SUBPASS_CONTENTS_INLINE);
+
             VulkanRenderContext ctx = {};
             ctx.cmd = cmd;
 
@@ -185,7 +269,7 @@ namespace yoyo
 
             // TODO: Build renderable batches and draw indirect
             // TODO: sort renderables by material forward Shader Pass
-            for (Ref<MeshPassObject> obj : Scene().forward_pass->renderables)
+            for (Ref<MeshPassObject> obj : scene->forward_pass->renderables)
             {
                 // Bind material forward pipeline
                 auto shader_pass = obj->material->shader->shader_passes[MeshPassType::Forward];
@@ -252,8 +336,8 @@ namespace yoyo
         VkRect2D rect = {};
         rect.offset.x = 0;
         rect.offset.y = 0;
-        rect.extent.width = 720;
-        rect.extent.height = 480;
+        rect.extent.width = Settings().width;
+        rect.extent.height = Settings().height;
 
         VkClearValue clear_value = {};
         clear_value.color = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -359,9 +443,9 @@ namespace yoyo
         vkb::DeviceBuilder device_builder{ phys_ret.value() };
 
         VkPhysicalDeviceShaderDrawParametersFeatures shader_draw_parameters_features = {};
-		shader_draw_parameters_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
-		shader_draw_parameters_features.pNext = nullptr;
-		shader_draw_parameters_features.shaderDrawParameters = VK_TRUE;
+        shader_draw_parameters_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
+        shader_draw_parameters_features.pNext = nullptr;
+        shader_draw_parameters_features.shaderDrawParameters = VK_TRUE;
 
         device_builder.add_pNext(&shader_draw_parameters_features);
         // automatically propagate needed data from instance & physical device
@@ -424,7 +508,7 @@ namespace yoyo
         surface_format.format = m_forward_pass_format;
         vkb::Swapchain vkb_swapchain = builder.use_default_format_selection()
             .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
-            .set_desired_extent(720, 480)
+            .set_desired_extent(Settings().width, Settings().height)
             .set_desired_format(surface_format)
             .build()
             .value();
@@ -565,12 +649,12 @@ namespace yoyo
 
         builder.viewport.x = 0;
         builder.viewport.y = 0;
-        builder.viewport.width = 720;
-        builder.viewport.height = 480;
+        builder.viewport.width = Settings().width;
+        builder.viewport.height = Settings().height;
 
         builder.scissor = {};
-        builder.scissor.extent.width = 720;
-        builder.scissor.extent.height = 480;
+        builder.scissor.extent.width = Settings().width;
+        builder.scissor.extent.height = Settings().height;
         builder.scissor.offset.x = 0;
         builder.scissor.offset.y = 0;
 
@@ -582,16 +666,11 @@ namespace yoyo
                 vkDestroyPipeline(m_device, m_blit_pipeline, nullptr);
             });
 
-        // TODO: move to resource manager
-        VkSampler linear_sampler = {};
-        VkSamplerCreateInfo linear_sampler_info = vkinit::SamplerCreateInfo(VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-        vkCreateSampler(m_device, &linear_sampler_info, nullptr, &linear_sampler);
-
         // Descriptors
         VkDescriptorImageInfo output_image_info = {};
         output_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         output_image_info.imageView = m_forward_pass_color_texture_view;
-        output_image_info.sampler = linear_sampler;
+        output_image_info.sampler = m_material_system->LinearSampler();
 
         DescriptorBuilder ds_builder = {};
         ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
@@ -642,8 +721,8 @@ namespace yoyo
         framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebuffer_info.renderPass = m_swapchain_render_pass;
 
-        framebuffer_info.width = 720;
-        framebuffer_info.height = 480;
+        framebuffer_info.width = Settings().width;
+        framebuffer_info.height = Settings().height;
         framebuffer_info.layers = 1;
 
         framebuffer_info.attachmentCount = 1;
@@ -656,6 +735,112 @@ namespace yoyo
             m_deletion_queue.Push([&]()
                 { vkDestroyFramebuffer(m_device, m_swapchain_framebuffers[i], nullptr); });
         }
+    }
+
+    void VulkanRenderer::InitShadowPass()
+    {
+        VkAttachmentDescription depth_attachment = {};
+        depth_attachment.format = VK_FORMAT_D32_SFLOAT;
+        depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depth_attachment_ref = {};
+        depth_attachment_ref.attachment = 0;
+        depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass = {};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 0;
+        subpass.pColorAttachments = nullptr;
+        subpass.pDepthStencilAttachment = &depth_attachment_ref;
+
+        VkSubpassDependency dependency = {};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        VkAttachmentDescription attachments[] = { depth_attachment };
+        VkRenderPassCreateInfo render_pass_info = {};
+        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+
+        render_pass_info.attachmentCount = 1;
+        render_pass_info.pAttachments = attachments;
+        render_pass_info.subpassCount = 1;
+        render_pass_info.pSubpasses = &subpass;
+
+        VK_CHECK(vkCreateRenderPass(m_device, &render_pass_info, nullptr, &m_shadow_render_pass));
+
+        m_deletion_queue.Push([=]() {
+            vkDestroyRenderPass(m_device, m_shadow_render_pass, nullptr);
+            });
+
+        // Scene resources descriptors
+        VkDescriptorBufferInfo scene_data_info = {};
+        scene_data_info.buffer = m_scene_data_uniform_buffer.buffer;
+        scene_data_info.offset = 0;
+        scene_data_info.range = sizeof(SceneData);
+
+        VkDescriptorBufferInfo dir_light_data_info = {};
+        dir_light_data_info.buffer = m_directional_lights_buffer.buffer;
+        dir_light_data_info.offset = 0;
+        dir_light_data_info.range = VK_WHOLE_SIZE;
+
+        VkDescriptorBufferInfo obj_data_info = {};
+        obj_data_info.buffer = m_object_data_buffer.buffer;
+        obj_data_info.offset = 0;
+        obj_data_info.range = VK_WHOLE_SIZE;
+
+        DescriptorBuilder ds_builder = {};
+        ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+            .BindBuffer(SCENE_DATA_DESCRIPTOR_SET_BINDING, &scene_data_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+            .BindBuffer(DIRECTIONAL_LIGHTS_SET_BINDING, &dir_light_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+            .BindBuffer(OBJECT_DATA_SET_BINDING, &obj_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+            .Build(&m_shadow_pass_ds, &m_shadow_pass_ds_layout);
+    }
+
+    void VulkanRenderer::InitShadowPassAttachments()
+    {
+        VkExtent3D extent = {};
+        extent.width = Settings().width;
+        extent.height = Settings().height;
+        extent.depth = 1;
+
+        m_shadow_pass_depth_texture = VulkanResourceManager::CreateImage(extent, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+        VkImageViewCreateInfo depth_info = vkinit::ImageViewCreateInfo(m_shadow_pass_depth_texture.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+        VK_CHECK(vkCreateImageView(m_device, &depth_info, nullptr, &m_shadow_pass_depth_texture_view));
+
+        m_deletion_queue.Push([=]() {
+            vkDestroyImageView(m_device, m_shadow_pass_depth_texture_view, nullptr);
+            });
+    }
+
+    void VulkanRenderer::InitShadowPassFramebufffer()
+    {
+        VkImageView views[1] = { m_shadow_pass_depth_texture_view };
+
+        VkFramebufferCreateInfo frame_buffer_info = {};
+        frame_buffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        frame_buffer_info.attachmentCount = 1;
+        frame_buffer_info.pAttachments = views;
+        frame_buffer_info.renderPass = m_shadow_render_pass;
+        frame_buffer_info.width = Settings().width;
+        frame_buffer_info.height = Settings().height;
+        frame_buffer_info.layers = 1;
+
+        VK_CHECK(vkCreateFramebuffer(m_device, &frame_buffer_info, nullptr, &m_shadow_frame_buffer));
+
+        m_deletion_queue.Push([=]() {
+            vkDestroyFramebuffer(m_device, m_shadow_frame_buffer, nullptr);
+        });
     }
 
     void VulkanRenderer::InitForwardPass()
@@ -718,16 +903,6 @@ namespace yoyo
                 vkDestroyRenderPass(m_device, m_forward_pass, nullptr);
             });
 
-        // Scene resources descriptors
-        size_t padded_scene_data_size = VulkanResourceManager::PadToUniformBufferSize(sizeof(SceneData));
-        m_scene_data_uniform_buffer = VulkanResourceManager::CreateBuffer<SceneData>(padded_scene_data_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-
-        size_t padded_directional_light_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(DirectionalLight));
-        m_directional_lights_buffer = VulkanResourceManager::CreateBuffer<DirectionalLight>(padded_directional_light_size * MAX_DIR_LIGHTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-
-        size_t padded_oject_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(ObjectData));
-        m_object_data_buffer = VulkanResourceManager::CreateBuffer<ObjectData>(padded_oject_data_size * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-
         VkDescriptorBufferInfo scene_data_info = {};
         scene_data_info.buffer = m_scene_data_uniform_buffer.buffer;
         scene_data_info.offset = 0;
@@ -738,16 +913,23 @@ namespace yoyo
         dir_light_data_info.offset = 0;
         dir_light_data_info.range = VK_WHOLE_SIZE;
 
+        VkDescriptorImageInfo shadow_map_info = {};
+        shadow_map_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        shadow_map_info.imageView = m_shadow_pass_depth_texture_view;
+        shadow_map_info.sampler = m_material_system->LinearSampler();
+
         VkDescriptorBufferInfo obj_data_info = {};
         obj_data_info.buffer = m_object_data_buffer.buffer;
         obj_data_info.offset = 0;
         obj_data_info.range = VK_WHOLE_SIZE;
 
+        // TODO: Stop descriptors bindings bound to all stages used by descriptor
         DescriptorBuilder ds_builder = {};
         ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
-            .BindBuffer(0, &scene_data_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
-            .BindBuffer(1, &dir_light_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
-            .BindBuffer(2, &obj_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+            .BindBuffer(SCENE_DATA_DESCRIPTOR_SET_BINDING, &scene_data_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+            .BindBuffer(DIRECTIONAL_LIGHTS_SET_BINDING, &dir_light_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+            .BindImage(SHADOW_MAP_SET_BINDING, &shadow_map_info, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+            .BindBuffer(OBJECT_DATA_SET_BINDING, &obj_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
             .Build(&m_forward_pass_ds, &m_forward_pass_ds_layout);
     }
 
@@ -760,22 +942,35 @@ namespace yoyo
         frame_buffer_info.attachmentCount = 2;
         frame_buffer_info.pAttachments = views;
         frame_buffer_info.renderPass = m_forward_pass;
-        frame_buffer_info.width = 720;
-        frame_buffer_info.height = 480;
+        frame_buffer_info.width = Settings().width;
+        frame_buffer_info.height = Settings().height;
         frame_buffer_info.layers = 1;
 
         VK_CHECK(vkCreateFramebuffer(m_device, &frame_buffer_info, nullptr, &m_forward_frame_buffer));
 
         m_deletion_queue.Push([=]() {
             vkDestroyFramebuffer(m_device, m_forward_frame_buffer, nullptr);
-            });
+        });
+    }
+
+    void VulkanRenderer::InitSceneResources()
+    {
+        // Scene resources
+        size_t padded_scene_data_size = VulkanResourceManager::PadToUniformBufferSize(sizeof(SceneData));
+        m_scene_data_uniform_buffer = VulkanResourceManager::CreateBuffer<SceneData>(padded_scene_data_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+
+        size_t padded_directional_light_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(DirectionalLight));
+        m_directional_lights_buffer = VulkanResourceManager::CreateBuffer<DirectionalLight>(padded_directional_light_size * MAX_DIR_LIGHTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+
+        size_t padded_oject_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(ObjectData));
+        m_object_data_buffer = VulkanResourceManager::CreateBuffer<ObjectData>(padded_oject_data_size * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     }
 
     void VulkanRenderer::InitForwardPassAttachments()
     {
         VkExtent3D extent = {};
-        extent.width = 720;
-        extent.height = 480;
+        extent.width = Settings().width;
+        extent.height = Settings().height;
         extent.depth = 1;
 
         m_forward_pass_color_texture = VulkanResourceManager::CreateImage(extent, m_forward_pass_format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
@@ -790,6 +985,6 @@ namespace yoyo
         m_deletion_queue.Push([=]() {
             vkDestroyImageView(m_device, m_forward_pass_color_texture_view, nullptr);
             vkDestroyImageView(m_device, m_forward_pass_depth_texture_view, nullptr);
-            });
+        });
     }
 };

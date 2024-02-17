@@ -25,8 +25,8 @@ namespace yoyo
 
         static Ref<Shader> Create(const std::string& name = "");
     protected:
-        Shader();
-        virtual ~Shader();
+        Shader() = default;
+        virtual ~Shader() = default;
 
         ResourceId m_id; // Id of this resource
     };

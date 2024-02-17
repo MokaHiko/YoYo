@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Defines.h"
+
 namespace yoyo {
     namespace Platform
     {
@@ -21,7 +23,7 @@ namespace yoyo {
 
         bool FileRead(const char *path, char **buffer, size_t* size);
 
-        uint64_t GenerateUUIDV4();
+        YAPI uint64_t GenerateUUIDV4();
 
         // Checks if system has enough hard disk space
         static bool CheckStorage(size_t required_size);

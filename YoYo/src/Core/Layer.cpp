@@ -31,11 +31,11 @@ namespace yoyo
         }
     }
 
-    void LayerStack::EnableLayer(const std::string &layerm_name)
+    void LayerStack::EnableLayer(const std::string &layer_name)
     {
         for (Layer *layer : m_layers)
         {
-            if (layer->GetName() == layerm_name)
+            if (layer->Name() == layer_name)
             {
                 layer->Enable();
                 return;
@@ -45,11 +45,11 @@ namespace yoyo
         YERROR("No layer with such name");
     }
 
-    void LayerStack::DisableLayer(const std::string &layerm_name)
+    void LayerStack::DisableLayer(const std::string &layer_name)
     {
         for (Layer *layer : m_layers)
         {
-            if (layer->GetName() == layerm_name)
+            if (layer->Name() == layer_name)
             {
                 layer->Disable();
                 return;
@@ -61,7 +61,6 @@ namespace yoyo
 
     Layer::Layer(const std::string &name)
     {
-        m_name = name;
         m_enabled = false;
     }
 

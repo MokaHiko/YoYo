@@ -4,6 +4,7 @@
 
 #include "Events/Event.h"
 #include "Layer.h"
+#include "Log.h"
 
 namespace yoyo
 {
@@ -35,6 +36,22 @@ namespace yoyo
 
         bool OnWindowResize(float x, float y, float width, float height);
         bool OnClose();
+
+        template<typename T>
+        T* FindLayer()
+        {
+            for (Layer* layer : m_layers)
+            {
+                if(layer->Name() == T::s_name)
+                {
+                    return (T*)(layer);
+                }
+            }
+
+            YERROR("Application has no such layer!");
+            return nullptr;
+        }
+
     private:
         ApplicationSettings m_settings;
 

@@ -44,9 +44,9 @@ namespace yoyo
     class YAPI Mesh
     {
     public:
-        Mesh();
-        ~Mesh();
-        
+        Mesh() = default;
+        ~Mesh() = default;
+
         virtual void Bind(void* render_context) = 0;
         virtual void Unbind() = 0;
 

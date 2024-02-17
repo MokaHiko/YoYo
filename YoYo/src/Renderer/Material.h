@@ -15,7 +15,8 @@ namespace yoyo
     enum class MaterialTextureType : uint8_t
     {
         MainTexture,
-        SpecularTexture,
+        SpecularMap,
+        NormalMap,
     };
 
     enum class MaterialPropertyType
@@ -55,6 +56,7 @@ namespace yoyo
         Ref<Shader> shader; // The shader used by the material.
 
         Vec4 color;     // The main color of the Material.
+        bool receive_shadows;
         bool instanced; // Sets whether material uses instancing.
 
         const Ref<Texture> MainTexture() const { return textures.empty() ? nullptr : textures.front(); }// Main texture of material (textures index 0).

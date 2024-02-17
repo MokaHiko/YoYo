@@ -7,5 +7,5 @@
         #define YAPI 
     #endif
 #else
-    #define YAPI
+    #define YAPI 
 #endif

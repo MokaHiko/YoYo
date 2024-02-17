@@ -20,6 +20,42 @@ namespace yoyo
     {
     }
 
+	void RendererLayer::SendRenderPacket(RenderPacket* packet)
+	{
+        if(packet->new_camera)
+        {
+            m_scene->camera = packet->new_camera;
+        }
+
+        for(auto id : packet->deleted_dir_lights)
+        {
+        }
+
+        for(auto& light: packet->new_dir_lights)
+        {
+            m_scene->directional_lights.push_back(light);
+        }
+
+        // Remove deleted objects
+        for(auto id : packet->deleted_objects)
+        {
+
+        }
+
+        // TODO: Sort by material and if use shadows
+        // Add new objects
+        for(auto& obj : packet->new_objects)
+        {
+            m_scene->forward_pass->renderables.push_back(obj);
+
+            if(obj->material->receive_shadows)
+            {
+                m_scene->shadow_pass->renderables.push_back(obj);
+            }
+        }
+
+	}
+
     void RendererLayer::OnAttach()
     {
         static const char* renderer_type_strings[]
@@ -31,9 +67,12 @@ namespace yoyo
         };
 
         m_renderer = CreateRenderer();
-        YINFO("Renderer Type: %s", renderer_type_strings[(int)m_renderer->Type()]);
 
-        m_renderer->Init();
+        // Renderer settings
+        m_renderer->Settings().width = 720;
+        m_renderer->Settings().height = 480;
+
+        YINFO("Renderer Type: %s", renderer_type_strings[(int)m_renderer->Type()]);
     }
 
     void RendererLayer::OnDetatch()
@@ -43,90 +82,8 @@ namespace yoyo
 
     void RendererLayer::OnEnable()
     {
-        auto cube = Mesh::Create("cube");
-        cube->vertices = {
-        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.625,  0.50}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.875,  0.50}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.625,  0.25}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.875,  0.50}},
-        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.875,  0.25}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.625,  0.25}},
-        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.375,  0.25}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.625,  0.25}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.375,  0.00}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.625,  0.25}},
-        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.625,  0.00}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.375,  0.00}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.375,  1.00}},
-        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.625,  1.00}},
-        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.375,  0.75}},
-        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.625,  1.00}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.625,  0.75}},
-        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.375,  0.75}},
-        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.125,  0.50}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.375,  0.50}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.125,  0.25}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.375,  0.50}},
-        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.375,  0.25}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.125,  0.25}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.375,  0.50}},
-        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.625,  0.50}},
-        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.375,  0.25}},
-        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.625,  0.50}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.625,  0.25}},
-        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.375,  0.25}},
-        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.375,  0.75}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.625,  0.75}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.375,  0.50}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.625,  0.75}},
-        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.625,  0.50}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.375,  0.50}},
-        };
-
-        // TODO: Move to application layer
-        Ref<Camera> main_camera = CreateRef<Camera>();
-        m_renderer->Scene().main_camera = main_camera;
-
-        Ref<DirectionalLight> m_dir_light = CreateRef<DirectionalLight>();
-        m_dir_light->color = Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-        m_dir_light->direction = Vec4{ 1.0f, 1.0f, 1.0f, 1.0f } *-1.0f;
-        m_renderer->Scene().directional_lights.push_back(m_dir_light);
-
-        Ref<Material> crate_material = Material::Create(ResourceManager::Load<Shader>("lit_shader"));
-        crate_material->SetTexture(MaterialTextureType::MainTexture, ResourceManager::Load<Texture>("assets/textures/container2.yo"));
-        crate_material->color = Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-        crate_material->SetVec4("diffuse_color", Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
-        crate_material->SetVec4("specular_color", Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
-
-        Ref<Material> red_material = Material::Create(ResourceManager::Load<Shader>("lit_shader"));
-        red_material->SetTexture(MaterialTextureType::MainTexture, ResourceManager::Load<Texture>("assets/textures/container2.yo"));
-        red_material->color = Vec4{ 1.0f, 0.0f, 0.0f, 1.0f };
-        red_material->SetVec4("diffuse_color", Vec4{ 1.0f, 0.0f, 1.0f, 1.0f });
-        red_material->SetVec4("specular_color", Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
-
-        // TODO: Make scene incremental build
-        {
-            Ref<MeshPassObject> pass_obj = CreateRef<MeshPassObject>();
-            pass_obj->mesh = cube;
-            pass_obj->material = crate_material;
-            pass_obj->model_matrix = TranslationMat4x4(Vec3{-2, 0, -5.0f});
-            pass_obj->id = 0;
-            m_renderer->Scene().forward_pass->renderables.push_back(pass_obj);
-        }
-        {
-            Ref<MeshPassObject> pass_obj = CreateRef<MeshPassObject>();
-            pass_obj->mesh = cube;
-            pass_obj->material = red_material;
-            pass_obj->model_matrix = TranslationMat4x4(Vec3{2, 0, -5.0f});
-            pass_obj->id = 1;
-            m_renderer->Scene().forward_pass->renderables.push_back(pass_obj);
-        }
-
-        // {
-        //     static float angle = 0;
-        //     angle += (float)Time::DeltaTime();
-        //     obj_data.model_matrix = RotateEulerMat4x4(Vec3{1.0f, 1.0f, 1.0f} * angle) * TranslationMat4x4({0, 0, -8.0f});
-        // }
+        m_renderer->Init();
+        m_scene = CreateRef<RenderScene>();
     }
 
     void RendererLayer::OnDisable()
@@ -135,11 +92,7 @@ namespace yoyo
 
     void RendererLayer::OnUpdate(float dt)
     {
-        // TODO: Build Batches/Renderpacket that update scene
-        RenderPacket rp = {};
-        rp.dt = dt;
-
-        m_renderer->BeginFrame(rp);
+        m_renderer->BeginFrame(m_scene);
 
         m_renderer->EndFrame();
     }

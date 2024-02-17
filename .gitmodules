@@ -10,9 +10,9 @@
 [submodule "YoYo/vendor/SPIRVReflect"]
 	path = YoYo/vendor/SPIRVReflect
 	url = https://github.com/KhronosGroup/SPIRV-Reflect.git
-[submodule "YoYo/vendor/entt"]
-	path = YoYo/vendor/entt
-	url = https://github.com/skypjack/entt.git
 [submodule "YoYo/vendor/Hurno"]
 	path = YoYo/vendor/Hurno
 	url = https://github.com/MokaHiko/Hurno.git
+[submodule "Sandbox/vendor/entt"]
+	path = Sandbox/vendor/entt
+	url = https://github.com/skypjack/entt.git

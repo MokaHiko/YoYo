@@ -13,10 +13,11 @@
 template <typename T>
 using Ref = std::shared_ptr<T>;
 template <typename T, typename... Args>
-constexpr Ref<T> CreateRef(Args &&...args)
+YAPI constexpr Ref<T> CreateRef(Args &&...args)
 {
     return std::make_shared<T>(std::forward<Args>(args)...);
 }
+
 namespace yoyo
 {
     enum class MemoryTag
@@ -26,8 +27,7 @@ namespace yoyo
         String,
     };
 
-    YAPI void *
-    YAllocate(size_t size, MemoryTag tag);
+    YAPI void * YAllocate(size_t size, MemoryTag tag);
 }
 
 #else
@@ -36,7 +36,7 @@ namespace yoyo
 template <typename T>
 using Ref = std::shared_ptr<T>;
 template <typename T, typename... Args>
-constexpr Ref<T> CreateRef(Args &&...args)
+YAPI constexpr Ref<T> CreateRef(Args &&...args)
 {
     return std::make_shared<T>(std::forward<Args>(args)...);
 }

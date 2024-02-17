@@ -126,7 +126,7 @@ namespace yoyo
         Ref<VulkanShader> shader = CreateRef<VulkanShader>();
         shader->m_id = name;
 
-        EventManager::Instance()->Dispatch(CreateRef<ShaderCreatedEvent>(shader));
+        EventManager::Instance().Dispatch(CreateRef<ShaderCreatedEvent>(shader));
         return shader;
 	}
 

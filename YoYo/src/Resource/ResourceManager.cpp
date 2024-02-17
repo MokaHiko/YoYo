@@ -7,16 +7,36 @@
 
 namespace yoyo
 {
-	ResourceManager::ResourceManager() {}
+	ResourceManager::ResourceManager() 
+	{
+	}
 
-	ResourceManager::~ResourceManager() {}
+	ResourceManager::~ResourceManager() 
+	{
+	}
 
-	void ResourceManager::Init()
+	ResourceManager& ResourceManager::Instance()
+	{
+		static ResourceManager* resource_manager = nullptr;
+
+		if (!resource_manager)
+		{
+			resource_manager = Y_NEW ResourceManager;
+		}
+
+		return *resource_manager;
+	}
+
+void ResourceManager::Init()
 	{
 	}
 
 	void ResourceManager::Shutdown()
 	{
+        m_mesh_cache.clear();
+        m_texture_cache.clear();
+        //m_shader_cache.clear();
+        m_material_cache.clear();
 	}
 
     void ResourceManager::Update()
@@ -67,42 +87,46 @@ namespace yoyo
 
 	void RuntimeResourceLayer::OnAttach()
 	{
-		ResourceManager::Init();
 
-		EventManager::Instance()->Subscribe(MeshCreatedEvent::s_event_type, [](Ref<Event> event){
-			const auto& mesh_created_event = std::static_pointer_cast<MeshCreatedEvent>(event);
-			return ResourceManager::OnMeshCreated(mesh_created_event->mesh);
-		});
-
-		EventManager::Instance()->Subscribe(ShaderCreatedEvent::s_event_type, [](Ref<Event> event){
-			const auto& shader_created_event = std::static_pointer_cast<ShaderCreatedEvent>(event);
-			return ResourceManager::OnShaderCreated(shader_created_event->shader);
-		});
-
-		EventManager::Instance()->Subscribe(TextureCreatedEvent::s_event_type, [](Ref<Event> event){
-			const auto& texture_created_event = std::static_pointer_cast<TextureCreatedEvent>(event);
-			return ResourceManager::OnTextureCreated(texture_created_event->texture);
-		});
 	}
 
 	void RuntimeResourceLayer::OnDetatch()
 	{
 		// TODO: Unsubscribe
-
-
-		ResourceManager::Shutdown();
 	}
 
 	void RuntimeResourceLayer::OnUpdate(float dt)
 	{
-		ResourceManager::Update();
+		ResourceManager::Instance().Update();
 	}
 
 	void RuntimeResourceLayer::OnEnable()
 	{
+		ResourceManager::Instance().Init();
+
+		EventManager::Instance().Subscribe(MeshCreatedEvent::s_event_type, [](Ref<Event> event){
+			const auto& mesh_created_event = std::static_pointer_cast<MeshCreatedEvent>(event);
+			return ResourceManager::Instance().OnMeshCreated(mesh_created_event->mesh);
+		});
+
+		EventManager::Instance().Subscribe(ShaderCreatedEvent::s_event_type, [](Ref<Event> event){
+			const auto& shader_created_event = std::static_pointer_cast<ShaderCreatedEvent>(event);
+			return ResourceManager::Instance().OnShaderCreated(shader_created_event->shader);
+		});
+
+		EventManager::Instance().Subscribe(TextureCreatedEvent::s_event_type, [](Ref<Event> event){
+			const auto& texture_created_event = std::static_pointer_cast<TextureCreatedEvent>(event);
+			return ResourceManager::Instance().OnTextureCreated(texture_created_event->texture);
+		});
+
+		EventManager::Instance().Subscribe(MaterialCreatedEvent::s_event_type, [](Ref<Event> event){
+			const auto& material_created_event = std::static_pointer_cast<MaterialCreatedEvent>(event);
+			return ResourceManager::Instance().OnMaterialCreated(material_created_event->material);
+		});
 	}
 
 	void RuntimeResourceLayer::OnDisable()
 	{
+		ResourceManager::Instance().Shutdown();
 	}
 }

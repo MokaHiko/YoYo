@@ -7,9 +7,13 @@ layout(location = 1) in vec3 v_color;
 layout(location = 2) in vec3 v_normal_world_space;
 layout(location = 3) in vec2 v_uv;
 
+layout(location = 4) in vec4 v_position_light_space;
+
 struct DirectionalLight {
+  mat4 view_proj;
+
   vec4 color;
-  vec3 direction;
+  vec4 direction;
 };
 
 layout(set = 0, binding = 0) uniform SceneData {
@@ -26,6 +30,8 @@ layout(std140, set = 0, binding = 1) readonly buffer DirectionalLights {
   DirectionalLight dir_lights[];
 };
 
+layout(set = 0, binding = 4) uniform sampler2D shadow_map;
+
 // Descriptor set 1 is reserved for texture information
 layout(set = 1, binding = 0) uniform sampler2D main_texture;
 
@@ -35,8 +41,29 @@ layout(set = 2, binding = 0) uniform Material {
   vec4 specular_color;
 };
 
+vec4 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 view_dir);
+float CalculateShadows(vec4 frag_position_light_space, vec3 normal, vec3 light_dir);
+
+void main() {
+  vec3 normal = normalize(v_normal_world_space);
+  vec3 view_dir = normalize(v_position_world_space);
+
+  vec3 ambient = vec3(0.05f);
+  vec4 final_color = vec4(0.0f);
+
+  // Lights
+  for (int i = 0; i < dir_light_count; i++) {
+    final_color += CalculateDirectionalLight(dir_lights[i], normal, view_dir);
+  }
+
+  // Shadow
+  float shadow = (1 - CalculateShadows(v_position_light_space, normal, -dir_lights[0].direction.xyz));
+
+  frag_color = vec4(ambient, 0.0f) + (shadow * final_color); 
+}
+
 vec4 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 view_dir) {
-  vec3 light_dir = normalize(-light.direction);
+  vec3 light_dir = normalize(-light.direction.xyz);
 
   float diff_factor = max(dot(normal, light_dir), 0.25f);
 
@@ -46,14 +73,19 @@ vec4 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 view_di
   return diffuse;
 }
 
-void main() {
-  vec3 normal = normalize(v_normal_world_space);
-  vec3 view_dir = normalize(v_position_world_space);
+float CalculateShadows(vec4 frag_position_light_space, vec3 normal, vec3 light_dir)
+{
+  // Manual perspective divide (normally done after vertex shader)
+  vec3 proj_coords = frag_position_light_space.xyz / frag_position_light_space.w;
 
-  vec4 final_color = vec4(0.0f);
-  for (int i = 0; i < dir_light_count; i++) {
-    final_color += CalculateDirectionalLight(dir_lights[i], normal, view_dir);
-  }
+  // Normalize only uv to [0,1]
+  proj_coords.xy = proj_coords.xy * 0.5f + 0.5f;
 
-  frag_color = final_color;
+  float sampled_depth = texture(shadow_map, proj_coords.xy).r;
+  float current_depth = proj_coords.z;
+
+  float bias = max(0.05 * (1.0 - dot(normal, light_dir)), 0.005);  
+  float shadow = current_depth - bias > sampled_depth ? 1.0f : 0.0f;
+
+  return shadow;
 }

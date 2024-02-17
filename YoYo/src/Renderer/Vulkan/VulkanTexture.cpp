@@ -11,7 +11,7 @@ namespace yoyo
 		texture->m_id = name;
 		texture->m_dirty |= TextureDirtyFlags::Unuploaded;
 
-		EventManager::Instance()->Dispatch(CreateRef<TextureCreatedEvent>(texture));
+		EventManager::Instance().Dispatch(CreateRef<TextureCreatedEvent>(texture));
 		return texture;
 	}
 

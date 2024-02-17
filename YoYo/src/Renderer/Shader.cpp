@@ -6,7 +6,7 @@
 namespace yoyo
 {
     template<>
-    Ref<Shader> ResourceManager::Load<Shader>(const std::string& path)
+    YAPI Ref<Shader> ResourceManager::Load<Shader>(const std::string& path)
     {
         ResourceId id = FileNameFromFullPath(path);
 
@@ -16,7 +16,7 @@ namespace yoyo
             return shader_it->second;
         }
 
-        YTRACE("Cache Miss!");
+        YTRACE("[Cache Miss]: Resource Type: Shader!");
         // TODO: Load from asset file
         // auto& shader = Shader::LoadFromAsset(path.c_str());
         // if(!shader)
@@ -32,7 +32,7 @@ namespace yoyo
     }
 
     template<>
-    void ResourceManager::Free<Shader>(Ref<Shader> resource)
+    YAPI void ResourceManager::Free<Shader>(Ref<Shader> resource)
     {
         // TODO: Free resource
     }
@@ -42,6 +42,7 @@ namespace yoyo
         if (shader->ID().empty())
         {
             // TODO: Generate string uuid
+            YERROR("Shader cannot have empty name!");
         }
 
         // Check if shader already cached
@@ -55,14 +56,6 @@ namespace yoyo
 
         // Cache
         m_shader_cache[shader->ID()] = shader;
-        return true;
-    }
-
-    Shader::Shader()
-    {
-    }
-
-    Shader::~Shader()
-    {
+        return false;
     }
 }

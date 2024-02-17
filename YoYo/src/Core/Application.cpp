@@ -26,29 +26,35 @@ namespace yoyo
     {
         bool success = Platform::Init(m_settings.x, m_settings.y, m_settings.width, m_settings.height, m_settings.app_name);
 
-        // TODO: Memory System Init
+        // TODO: Init memory system
 
-        EventManager::Instance()->Subscribe(ApplicationCloseEvent::s_event_type, [&](Ref<Event> event) {return OnClose();});
+        // Subscribe to application events
+        EventManager::Instance().Subscribe(ApplicationCloseEvent::s_event_type, [&](Ref<Event> event) {return OnClose();});
 
-        // Default Layers
-        PushLayer(Y_NEW InputLayer());
-        PushLayer(Y_NEW RuntimeResourceLayer());
+        // Default layers
         PushLayer(Y_NEW RendererLayer());
+        PushLayer(Y_NEW RuntimeResourceLayer());
+        PushLayer(Y_NEW InputLayer());
 
         m_running = success;
     }
 
     void Application::Shutdown()
     {
+        for (Layer* layer : m_layers)
+        {
+            layer->OnDisable();
+        }
+
         Platform::Shutdown();
     }
 
     void Application::Run()
     {
         // Enable layers
-        for (Layer* layer : m_layers)
+        for (auto rit = m_layers.rbegin(); rit != m_layers.rend(); rit++)
         {
-            layer->OnEnable();
+            (*rit)->OnEnable();
         }
 
         while (m_running)
@@ -60,9 +66,9 @@ namespace yoyo
             Platform::PumpMessages();
 
             const float dt = Time::DeltaTime();
-            for (Layer* layer : m_layers)
+            for (auto rit = m_layers.rbegin(); rit != m_layers.rend(); rit++)
             {
-                layer->OnUpdate(dt);
+                (*rit)->OnUpdate(dt);
             }
         }
     }

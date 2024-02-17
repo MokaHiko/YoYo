@@ -64,7 +64,7 @@ namespace yoyo
 		}
 
 		// Subscribe to vulkan resource events
-        EventManager::Instance()->Subscribe(MeshCreatedEvent::s_event_type, [&](Ref<Event> event){
+        EventManager::Instance().Subscribe(MeshCreatedEvent::s_event_type, [&](Ref<Event> event){
 			return false;
 		});
 	}

@@ -7,7 +7,7 @@
 namespace yoyo
 {
     template<>
-    Ref<Mesh> ResourceManager::Load<Mesh>(const std::string& path)
+    YAPI Ref<Mesh> ResourceManager::Load<Mesh>(const std::string& path)
     {
         ResourceId id = FileNameFromFullPath(path);
 
@@ -17,7 +17,7 @@ namespace yoyo
             return mesh_it->second;
         }
 
-        YTRACE("Cache Miss!");
+        YTRACE("[Cache Miss]: Resource Type: Mesh!");
         // TODO: Load from asset file
         // auto& mesh = Mesh::LoadFromAsset(path.c_str());
         // if(!mesh)
@@ -33,7 +33,7 @@ namespace yoyo
     }
 
     template<>
-    void ResourceManager::Free<Mesh>(Ref<Mesh> resource)
+    YAPI void ResourceManager::Free<Mesh>(Ref<Mesh> resource)
     {
         // TODO: Free resource
     }
@@ -57,12 +57,8 @@ namespace yoyo
         // TODO: Check if there is space in cache
         m_mesh_cache[mesh->ID()] = mesh;
 
-        return true;
+        return false;
     }
-
-    Mesh::Mesh() {}
-
-    Mesh::~Mesh() {}
 
     void Mesh::RecalculateNormals()
     {

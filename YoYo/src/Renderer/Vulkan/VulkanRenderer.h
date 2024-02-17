@@ -15,6 +15,16 @@
 namespace yoyo
 {
     const int SCENE_DATA_DESCRIPTOR_SET_INDEX = 1;
+    const int SCENE_DATA_DESCRIPTOR_SET_BINDING = 0;
+
+    const int DIRECTIONAL_LIGHTS_SET_INDEX = 0;
+    const int DIRECTIONAL_LIGHTS_SET_BINDING = 1;
+
+    const int SHADOW_MAP_SET_INDEX = 0;
+    const int SHADOW_MAP_SET_BINDING = 4;
+
+    const int OBJECT_DATA_SET_INDEX = 0;
+    const int OBJECT_DATA_SET_BINDING = 5;
 
     class VulkanRenderer : public Renderer
     {
@@ -25,7 +35,7 @@ namespace yoyo
         virtual void Init() override;
         virtual void Shutdown() override;
 
-        virtual bool BeginFrame(const RenderPacket& rp) override;
+        virtual bool BeginFrame(const Ref<RenderScene> scene) override;
         virtual void EndFrame() override;
 
         const VkDevice Device() const { return m_device; }
@@ -60,10 +70,21 @@ namespace yoyo
         Ref<VulkanMesh> m_screen_quad;
 
         // TODO: Encapsulate as render targets
-        VkRenderPass m_shadow_render_pass;
         VkRenderPass m_post_process_render_pass;
         
         // Shadow Pass
+        void InitShadowPass();
+        void InitShadowPassAttachments();
+        void InitShadowPassFramebufffer();
+
+        VkRenderPass m_shadow_render_pass;
+        AllocatedImage m_shadow_pass_depth_texture;
+        VkImageView m_shadow_pass_depth_texture_view;
+
+        VkFramebuffer m_shadow_frame_buffer;
+
+        VkDescriptorSet m_shadow_pass_ds;
+        VkDescriptorSetLayout m_shadow_pass_ds_layout;
 
         // Forward Pass
         struct SceneData
@@ -91,21 +112,19 @@ namespace yoyo
         AllocatedImage m_forward_pass_depth_texture;
         VkImageView m_forward_pass_color_texture_view;
         VkImageView m_forward_pass_depth_texture_view;
-    private:
-        // Scene Resources
-        AllocatedBuffer<SceneData> m_scene_data_uniform_buffer;
-        AllocatedBuffer<DirectionalLight> m_directional_lights_buffer;
-        AllocatedBuffer<ObjectData> m_object_data_buffer;
 
         VkFramebuffer m_forward_frame_buffer;
         VkRenderPass m_forward_pass;
 
         VkDescriptorSet m_forward_pass_ds;
         VkDescriptorSetLayout m_forward_pass_ds_layout;
+    private:
+        // Scene Resources
+        AllocatedBuffer<SceneData> m_scene_data_uniform_buffer;
+        AllocatedBuffer<DirectionalLight> m_directional_lights_buffer;
+        AllocatedBuffer<ObjectData> m_object_data_buffer;
 
-        // Demo Scene
-        Ref<VulkanMesh> m_cube_mesh;
-        Ref<VulkanShaderPass> lit_shader_pass;
+        void InitSceneResources();
     private:
         std::vector<VulkanFrameContext> m_frame_context;
 

@@ -4,13 +4,27 @@ namespace yoyo
 {
     Mat4x4 OrthographicProjectionMat4x4(float left, float right, float bottom, float top, float near, float far)
     {
-        return Mat4x4();
+        Mat4x4 out_matrix = {};
+
+        float rl = 1.0f / (right - left);
+        float tb = 1.0f / (top - bottom);
+        float fn = 1.0f / (far - near);
+
+        out_matrix.data[0] = 2.0f * rl;
+        out_matrix.data[5] = 2.0f * tb;
+        out_matrix.data[10] = -2.0f * fn;
+
+        out_matrix.data[12] = -(right + left) * rl;
+        out_matrix.data[13] = -(top + bottom) * tb;
+        out_matrix.data[14] = -(far + near) * fn;
+
+        return out_matrix;
     }
 
     Mat4x4 PerspectiveProjectionMat4x4(float fov_radians, float aspect_ratio, float near, float far)
     {
         Mat4x4 out_matrix = {};
-        float half_tan_fov = tan(fov_radians * 0.5f);
+        float half_tan_fov = Tan(fov_radians * 0.5f);
 
         out_matrix.data[0] = 1.0f / (aspect_ratio * half_tan_fov);
         out_matrix.data[5] = 1.0f / half_tan_fov;
@@ -23,9 +37,9 @@ namespace yoyo
 
     Mat4x4 LookAtMat4x4(const Vec3& position, const Vec3& target, const Vec3& up) {
         // RH
-        Mat4x4 out_matrix;
+        Mat4x4 out_matrix = {};
 
-        Vec3 z_axis;
+        Vec3 z_axis = {};
         z_axis.x = target.x - position.x;
         z_axis.y = target.y - position.y;
         z_axis.z = target.z - position.z;
@@ -120,12 +134,12 @@ namespace yoyo
         return RotateEulerY(angle_radians);
     }
 
-	YAPI Mat4x4 RotateEulerMat4x4(const Vec3& angles)
-	{
+    YAPI Mat4x4 RotateEulerMat4x4(const Vec3& angles)
+    {
         return RotateEulerX(angles.x) * RotateEulerY(angles.y) * RotateEulerZ(angles.z);
-	}
+    }
 
-YAPI Mat4x4 TransposeMat4x4(Mat4x4& matrix)
+    YAPI Mat4x4 TransposeMat4x4(Mat4x4& matrix)
     {
         Mat4x4 out_matrix = {};
 

@@ -6,6 +6,8 @@ namespace yoyo
 {
     struct DirectionalLight
     {
+        Mat4x4 view_proj;
+
         Vec4 color;
         Vec4 direction;
     };
