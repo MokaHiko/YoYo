@@ -73,11 +73,11 @@ namespace yoyo
 	{
 		// TODO: Unsubscribe to resource events
 
+		// Destroy immediate upload context
 		vkDestroyCommandPool(m_device, m_upload_context.command_pool, nullptr);
 		vkDestroyFence(m_device, m_upload_context.fence, nullptr);
 
-		vmaDestroyBuffer(m_allocator, m_mesh_staging_buffer.buffer, m_mesh_staging_buffer.allocation);
-
+		// Destroy allocator
 		vmaDestroyAllocator(m_allocator);
 	}
 
@@ -124,7 +124,7 @@ namespace yoyo
 	bool VulkanResourceManager::UploadTexture(VulkanTexture* texture)
 	{
 		// Copy to staging buffer
-		AllocatedBuffer staging_buffer = CreateBuffer(texture->raw_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+		AllocatedBuffer staging_buffer = CreateBuffer(texture->raw_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, false);
 
 		void* pixel_ptr;
 		MapMemory(staging_buffer.allocation, &pixel_ptr);
@@ -197,7 +197,6 @@ namespace yoyo
 		vmaDestroyBuffer(m_allocator, staging_buffer.buffer, staging_buffer.allocation);
 		m_deletion_queue->Push([=](){
 				vkDestroyImageView(m_device, texture->image_view, nullptr);
-				vmaDestroyImage(m_allocator, texture->allocated_image.image, texture->allocated_image.allocation);
 		});
 
 		return true;
@@ -233,6 +232,10 @@ namespace yoyo
 			shader_module->code.resize(buffer_size / sizeof(uint32_t));
 			memcpy(shader_module->code.data(), buffer, buffer_size);
 			delete buffer;
+
+			m_deletion_queue->Push([=](){
+				vkDestroyShaderModule(m_device, shader_module->module, nullptr);
+			});
 		}
 		else
 		{
@@ -242,7 +245,7 @@ namespace yoyo
 		return shader_module;
 	}
 
-	AllocatedImage VulkanResourceManager::CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool mipmapped)
+	AllocatedImage VulkanResourceManager::CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool manage_memory, bool mipmapped)
 	{
 		AllocatedImage image = {};
 		VkImageCreateInfo image_info = vkinit::ImageCreateInfo(format, extent, usage);
@@ -253,10 +256,14 @@ namespace yoyo
 
 		VK_CHECK(vmaCreateImage(m_allocator, &image_info, &alloc_info, &image.image, &image.allocation, nullptr));
 
-		m_deletion_queue->Push([&]()
+		if(manage_memory)
+		{
+			m_deletion_queue->Push([=]()
 			{
 				vmaDestroyImage(m_allocator, image.image, image.allocation);
 			});
+		}
+
 		return image;
 	}
 

@@ -78,7 +78,14 @@ namespace yoyo
         virtual void Init() {};
         virtual void Shutdown() {};
 
+        virtual void* RenderContext() = 0; // The render context of the current frame 
+
         virtual bool BeginFrame(Ref<RenderScene> scene) = 0;
+
+        virtual void BeginBlitPass() = 0;
+
+        virtual void EndBlitPass() = 0;
+
         virtual void EndFrame() = 0;
     private:
         RendererSettings m_settings;

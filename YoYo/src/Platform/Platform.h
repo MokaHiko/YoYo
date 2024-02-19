@@ -11,6 +11,9 @@ namespace yoyo {
         // Platform specific initialization (windowing, surface, etc...)
         bool Init(float x, float y, float width, float height, const std::string& app_name = "");
 
+        // Request the platforms current applicatiion window
+        void* NativeAppWindow();
+
         void ConsoleWrite(const char* message, uint8_t color);
 
         void PumpMessages();

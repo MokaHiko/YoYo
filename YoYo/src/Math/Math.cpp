@@ -122,7 +122,9 @@ namespace yoyo
 
     const Vec3 Normalize(const Vec3& v1)
     {
-        return v1 / Length(v1);
+        float l = Length(v1);
+        YASSERT(l <= 0, "Cannot normalize a vector with 0 length");
+        return v1 / l;
     }
 
     const Vec3 Cross(const Vec3& v1, const Vec3& v2)
@@ -161,4 +163,9 @@ namespace yoyo
     {
         return (rad * 180.0f) / Y_PI;
     }
+
+	const float Lerp(float a, float b, float t)
+	{
+        return (a * (1 - t)) + (b * t);
+	}
 }

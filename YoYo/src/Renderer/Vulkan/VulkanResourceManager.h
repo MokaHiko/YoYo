@@ -28,7 +28,7 @@ namespace yoyo
         static Ref<VulkanShaderModule> CreateShaderModule(const std::string& shader_path);
 
         template<typename T = void>
-        static AllocatedBuffer<T> CreateBuffer(size_t size, VkBufferUsageFlags buffer_usage, VmaMemoryUsage memory_usage, VkMemoryPropertyFlags memory_props = 0)
+        static AllocatedBuffer<T> CreateBuffer(size_t size, VkBufferUsageFlags buffer_usage, VmaMemoryUsage memory_usage, VkMemoryPropertyFlags memory_props = 0, bool manage_memory = true /*If true memory will be managed by resource manager */)
         {
             VkBufferCreateInfo buffer_info = {};
             buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -45,23 +45,25 @@ namespace yoyo
             AllocatedBuffer<T> buffer;
             VK_CHECK(vmaCreateBuffer(m_allocator, &buffer_info, &alloc_info, &buffer.buffer, &buffer.allocation, nullptr));
 
-            m_deletion_queue->Push([=]()
-                {
-                    vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
+            if(manage_memory)
+            {
+                m_deletion_queue->Push([=]() {
+                        vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
                 });
+            }
 
             return buffer;
         }
 
-        static AllocatedImage CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
+        static AllocatedImage CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool manage_memory = true /*If true memory will be managed by resource manager */ , bool mipmapped = false);
 
         static const size_t PadToUniformBufferSize(size_t original_size);
         static const size_t PadToStorageBufferSize(size_t original_size);
+
+        static void ImmediateSubmit(std::function<void(VkCommandBuffer)>&& fn);
     private:
         VulkanResourceManager() = default;
         ~VulkanResourceManager() {};
-
-        static void ImmediateSubmit(std::function<void(VkCommandBuffer)>&& fn);
     private:
         inline static AllocatedBuffer<void> m_mesh_staging_buffer; // General purpose staging buffer for mesh uploads
         inline static VulkanUploadContext m_upload_context;

@@ -50,6 +50,9 @@ add_library(YoYo SHARED
     src/Input/InputEvent.h
     src/Input/InputEvent.cpp
 
+    src/ImGui/ImGuiLayer.h
+    src/ImGui/ImGuiLayer.cpp
+
     src/Renderer/Renderer.h
     src/Renderer/Renderer.cpp
     src/Renderer/Shader.h
@@ -81,7 +84,15 @@ target_include_directories(${PROJECT_NAME} PUBLIC src include)
 add_compile_definitions(Y_EXPORT)
 
 add_subdirectory(vendor/Hurno)
-target_link_libraries(${PROJECT_NAME} PUBLIC Hurno)
+
+find_package(Vulkan REQUIRED)
+file(GLOB IMGUI_SOURCES "vendor/ImGui/*.cpp" "vendor/ImGui/backends/imgui_impl_vulkan.cpp" "vendor/ImGui/backends/imgui_impl_sdl2.cpp")
+file(GLOB IMGUI_HEADERS "vendor/ImGui/*.h" "vendor/ImGui/backends/imgui_impl_vulkan.h" "vendor/ImGui/backends/imgui_impl_sdl2.h")
+add_library(imgui STATIC ${IMGUI_HEADERS} ${IMGUI_SOURCES})
+target_include_directories(imgui PUBLIC vendor/ImGui vendor/ImGui/backends)
+target_link_libraries(imgui PUBLIC Vulkan::Vulkan SDL2::SDL2)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC Hurno imgui)
 
 # TODO Detect build type
 if(true)
@@ -111,8 +122,7 @@ elseif (APPLE)
     target_link_libraries(${PROJECT_NAME} PRIVATE SDL2 vulkan)
     target_include_directories(${PROJECT_NAME} PRIVATE vendor/SDL/include "/Users/caltax/VulkanSDK/1.3.243.0/macOS/include")
 
-    target_link_directories(${PROJECT_NAME} PRIVATE
-                "/Users/caltax/VulkanSDK/1.3.243.0/macOS/lib")
+    target_link_directories(${PROJECT_NAME} PRIVATE "/Users/caltax/VulkanSDK/1.3.243.0/macOS/lib")
     set(YRENDERERTYPE "VULKAN")
 endif()
 
@@ -153,6 +163,9 @@ if (YRENDERERTYPE STREQUAL "VULKAN")
 
         src/Renderer/Vulkan/VulkanRenderer.h
         src/Renderer/Vulkan/VulkanRenderer.cpp
+
+        src/ImGui/Vulkan/ImGuiVulkan.h
+        src/ImGui/Vulkan/ImGuiVulkan.cpp
     )
 endif()
 

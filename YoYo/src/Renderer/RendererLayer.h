@@ -8,13 +8,15 @@
 
 namespace yoyo
 {
+    class Application;
     class YAPI RendererLayer : public Layer
     {
     public:
-        RendererLayer();
+        RendererLayer(Application* app);
         virtual ~RendererLayer();
 
         void SendRenderPacket(RenderPacket* packet);
+        void* NativeRenderer();
 
         virtual void OnAttach() override;
         virtual void OnDetatch() override;
@@ -28,5 +30,7 @@ namespace yoyo
     private:
         Ref<RenderScene> m_scene;
         Ref<Renderer> m_renderer;
+
+        Application* m_app;
     };
 }

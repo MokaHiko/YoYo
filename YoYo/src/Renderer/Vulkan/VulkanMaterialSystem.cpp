@@ -166,14 +166,14 @@ namespace yoyo
 
         builder.viewport.x = 0;
         builder.viewport.y = 0;
-        builder.viewport.width = 720;
-        builder.viewport.height = 480;
+        builder.viewport.width = 1920;
+        builder.viewport.height = 1080;
 
         builder.viewport.minDepth = 0;
         builder.viewport.maxDepth = 1.0f;
 
         builder.scissor = {};
-        builder.scissor.extent = {720, 480};
+        builder.scissor.extent = {1920, 1080};
         builder.scissor.offset = {0,0};
 
         // TODO: Cache Shader passes (pipelines)

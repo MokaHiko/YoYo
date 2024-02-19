@@ -13,6 +13,8 @@
 
 #include "Events/ApplicationEvent.h"
 
+#include "ImGui/ImGuiLayer.h"
+
 namespace yoyo
 {
     Application::Application(const ApplicationSettings& settings)
@@ -31,8 +33,11 @@ namespace yoyo
         // Subscribe to application events
         EventManager::Instance().Subscribe(ApplicationCloseEvent::s_event_type, [&](Ref<Event> event) {return OnClose();});
 
+        // Debug Layers
+        PushLayer(Y_NEW ImGuiLayer(this));
+
         // Default layers
-        PushLayer(Y_NEW RendererLayer());
+        PushLayer(Y_NEW RendererLayer(this));
         PushLayer(Y_NEW RuntimeResourceLayer());
         PushLayer(Y_NEW InputLayer());
 
@@ -44,6 +49,11 @@ namespace yoyo
         for (Layer* layer : m_layers)
         {
             layer->OnDisable();
+        }
+
+        for (Layer* layer : m_layers)
+        {
+            layer->OnDetatch();
         }
 
         Platform::Shutdown();

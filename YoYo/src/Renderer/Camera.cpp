@@ -15,7 +15,7 @@ namespace yoyo
 		pitch = start_pitch;
 
 		m_up = up;
-		m_aspect_ratio = 720.0f / 480.0f;
+		m_aspect_ratio = 1920 / 1080.0f;
 		m_fov = 90.0f;
 
 		UpdateCameraVectors();

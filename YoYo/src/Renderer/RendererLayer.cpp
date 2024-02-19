@@ -9,11 +9,16 @@
 
 #include "Math/MatrixTransform.h"
 
+
+#include "Core/Application.h"
+#include "ImGui/ImGuiLayer.h"
+
 namespace yoyo
 {
-    RendererLayer::RendererLayer()
+    RendererLayer::RendererLayer(Application* app)
         : m_renderer(nullptr)
     {
+        m_app = app;
     }
 
     RendererLayer::~RendererLayer()
@@ -56,6 +61,11 @@ namespace yoyo
 
 	}
 
+	void* RendererLayer::NativeRenderer()
+	{
+		return (void*)m_renderer.get();
+	}
+
     void RendererLayer::OnAttach()
     {
         static const char* renderer_type_strings[]
@@ -69,8 +79,8 @@ namespace yoyo
         m_renderer = CreateRenderer();
 
         // Renderer settings
-        m_renderer->Settings().width = 720;
-        m_renderer->Settings().height = 480;
+        m_renderer->Settings().width = 1920;
+        m_renderer->Settings().height = 1080;
 
         YINFO("Renderer Type: %s", renderer_type_strings[(int)m_renderer->Type()]);
     }
@@ -92,7 +102,16 @@ namespace yoyo
 
     void RendererLayer::OnUpdate(float dt)
     {
+        static ImGuiLayer* imgui_layer = m_app->FindLayer<ImGuiLayer>();
+
         m_renderer->BeginFrame(m_scene);
+        void* ctx = m_renderer->RenderContext();
+
+        m_renderer->BeginBlitPass();
+        imgui_layer->OnMainPassBegin(ctx);
+
+        imgui_layer->OnMainPassEnd(ctx);
+        m_renderer->EndBlitPass();
 
         m_renderer->EndFrame();
     }

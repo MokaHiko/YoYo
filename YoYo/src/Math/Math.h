@@ -14,6 +14,8 @@ namespace yoyo
     YAPI float DegToRad(float deg);
     YAPI float RadToDeg(float rad);
 
+    YAPI const float Lerp(float a, float b, float t);
+
     YAPI const float Length(const Vec3& v1);
     YAPI const Vec3 Normalize(const Vec3& v1);
 

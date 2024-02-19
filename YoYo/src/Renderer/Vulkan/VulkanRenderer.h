@@ -32,10 +32,16 @@ namespace yoyo
         VulkanRenderer();
         virtual ~VulkanRenderer();
 
+        virtual void* RenderContext() override;
+
         virtual void Init() override;
         virtual void Shutdown() override;
 
         virtual bool BeginFrame(const Ref<RenderScene> scene) override;
+
+        virtual void BeginBlitPass() override;
+        virtual void EndBlitPass() override;
+
         virtual void EndFrame() override;
 
         const VkDevice Device() const { return m_device; }
@@ -48,6 +54,8 @@ namespace yoyo
 
         Ref<DescriptorAllocator> DescAllocator() { return m_descriptor_allocator; }
         Ref<DescriptorLayoutCache> DescLayoutCache() { return m_descriptor_layout_cache; }
+
+        VkRenderPass SwapChainRenderPass() {return m_swapchain_render_pass;}
     private:
         void InitVulkan();
         void InitSwapchain();
@@ -125,6 +133,8 @@ namespace yoyo
         AllocatedBuffer<ObjectData> m_object_data_buffer;
 
         void InitSceneResources();
+
+        VulkanRenderContext m_render_context;
     private:
         std::vector<VulkanFrameContext> m_frame_context;
 
@@ -136,6 +146,7 @@ namespace yoyo
         VulkanQueues m_queues;
 
         VkInstance m_instance;
+        VkDebugUtilsMessengerEXT m_debug_messenger;
         VkSurfaceKHR m_surface;
 
         VkSwapchainKHR m_swapchain;

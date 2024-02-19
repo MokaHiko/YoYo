@@ -17,6 +17,8 @@
 #include "Events/ApplicationEvent.h"
 #include "Input/InputEvent.h"
 
+#include <imgui_impl_sdl2.h>
+
 #pragma comment(lib, "rpcrt4.lib") 
 
 namespace yoyo
@@ -39,8 +41,8 @@ namespace yoyo
         window = SDL_CreateWindow(app_name.c_str(),
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
-            720,
-            480,
+            width,
+            height,
             SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
         if (!window)
         {
@@ -51,11 +53,18 @@ namespace yoyo
         return true;
     }
 
+    void* Platform::NativeAppWindow()
+    {
+        YASSERT(window != nullptr, "Platform Init Not called before requesting native window instance");
+        return window;
+    }
+
     void Platform::PumpMessages()
     {
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
+            ImGui_ImplSDL2_ProcessEvent(&event);
             switch (event.type)
             {
             case(SDL_QUIT):

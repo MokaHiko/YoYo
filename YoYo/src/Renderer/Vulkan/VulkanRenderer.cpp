@@ -23,6 +23,11 @@ namespace yoyo
 
     VulkanRenderer::~VulkanRenderer() {}
 
+	void* VulkanRenderer::RenderContext()
+	{
+		return &m_render_context;
+	}
+
     void VulkanRenderer::Init()
     {
         m_frame_count = 0;
@@ -104,13 +109,23 @@ namespace yoyo
 
     void VulkanRenderer::Shutdown()
     {
+        vkDeviceWaitIdle(Device()); 
+
+        m_deletion_queue.Flush();
+
         m_descriptor_allocator->CleanUp();
         m_descriptor_layout_cache->Clear();
 
         m_material_system->Shutdown();
+
         VulkanResourceManager::Shutdown();
 
-        m_deletion_queue.Flush();
+        vkDestroyDevice(m_device, nullptr);
+        vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+
+        //vkDestroyDebugUtilsMessengerEXT(m_de)
+        vkb::destroy_debug_utils_messenger(m_instance, m_debug_messenger, nullptr);
+        vkDestroyInstance(m_instance, nullptr); 
     }
 
     bool VulkanRenderer::BeginFrame(const Ref<RenderScene> scene)
@@ -179,6 +194,10 @@ namespace yoyo
 
         VkCommandBufferBeginInfo cmd_begin_info = vkinit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
         VkCommandBuffer cmd = m_frame_context[m_frame_count].command_buffer;
+
+        // Update render context
+        m_render_context.cmd = cmd;
+
         VK_CHECK(vkResetCommandBuffer(cmd, 0));
         VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
 
@@ -198,9 +217,6 @@ namespace yoyo
             VkRenderPassBeginInfo shadow_pass_begin = vkinit::RenderPassBeginInfo(m_shadow_frame_buffer, m_shadow_render_pass, rect, clear_values, 1);
             vkCmdBeginRenderPass(cmd, &shadow_pass_begin, VK_SUBPASS_CONTENTS_INLINE);
 
-            VulkanRenderContext ctx = {};
-            ctx.cmd = cmd;
-
             for(Ref<MeshPassObject> obj : scene->shadow_pass->renderables)
             {
                 // Bind material forward pipeline
@@ -211,7 +227,7 @@ namespace yoyo
                 vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, 0, 1, &m_shadow_pass_ds, 0, &dynamic_offset);
 
                 // Bind mesh
-                obj->mesh->Bind(&ctx);
+                obj->mesh->Bind(&m_render_context);
 
                 // Draw every object w mesh and material
                 if (!obj->mesh->indices.empty())
@@ -262,9 +278,6 @@ namespace yoyo
             VkRenderPassBeginInfo forward_pass_begin = vkinit::RenderPassBeginInfo(m_forward_frame_buffer, m_forward_pass, rect, clear_values, 2);
             vkCmdBeginRenderPass(cmd, &forward_pass_begin, VK_SUBPASS_CONTENTS_INLINE);
 
-            VulkanRenderContext ctx = {};
-            ctx.cmd = cmd;
-
             // ... draw forward for each mesh passes
 
             // TODO: Build renderable batches and draw indirect
@@ -287,10 +300,10 @@ namespace yoyo
                 }
 
                 // Bind material descriptors 
-                obj->material->Bind(&ctx, MeshPassType::Forward);
+                obj->material->Bind(&m_render_context, MeshPassType::Forward);
 
                 // Bind mesh
-                obj->mesh->Bind(&ctx);
+                obj->mesh->Bind(&m_render_context);
 
                 // Draw every object with material
                 if (!obj->mesh->indices.empty())
@@ -310,8 +323,8 @@ namespace yoyo
         return true;
     }
 
-    void VulkanRenderer::EndFrame()
-    {
+	void VulkanRenderer::BeginBlitPass()
+	{
         // Blit offscreen target to swapchain
         VkCommandBuffer cmd = m_frame_context[m_frame_count].command_buffer;
 
@@ -344,15 +357,13 @@ namespace yoyo
 
         VkRenderPassBeginInfo renderpass_begin_info = vkinit::RenderPassBeginInfo(m_swapchain_framebuffers[m_swapchain_index], m_swapchain_render_pass, rect, &clear_value, 1);
         vkCmdBeginRenderPass(cmd, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blit_pipeline);
 
         uint32_t dynamic_offset = 0;
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blit_pipeline_layout, 0, 1, &m_blit_output_texture_ds, 0, &dynamic_offset);
 
-        VulkanRenderContext ctx = {};
-        ctx.cmd = cmd;
-
-        m_screen_quad->Bind(&ctx);
+        m_screen_quad->Bind(&m_render_context);
         if (!m_screen_quad->indices.empty())
         {
             vkCmdDrawIndexed(cmd, m_screen_quad->indices.size(), 1, 0, 0, 0);
@@ -361,8 +372,18 @@ namespace yoyo
         {
             vkCmdDraw(cmd, m_screen_quad->vertices.size(), 1, 0, 0);
         }
+	}
+
+	void VulkanRenderer::EndBlitPass()
+	{
+        // Blit offscreen target to swapchain
+        VkCommandBuffer cmd = m_frame_context[m_frame_count].command_buffer;
 
         vkCmdEndRenderPass(cmd);
+	}
+
+    void VulkanRenderer::EndFrame()
+    {
 
         VK_CHECK(vkEndCommandBuffer(m_frame_context[m_frame_count].command_buffer));
         VkSubmitInfo submit = {};
@@ -408,7 +429,8 @@ namespace yoyo
             YERROR("Failed to create Vulkan instance. Error: ", inst_ret.error().message().c_str());
             return;
         }
-        vkb::Instance vkb_inst = inst_ret.value();
+        vkb::Instance vkb_inst = inst_ret.value(); 
+        m_debug_messenger = vkb_inst.debug_messenger;
         m_instance = vkb_inst.instance;
 
         Platform::CreateSurface(&m_instance, &m_surface);
@@ -491,13 +513,6 @@ namespace yoyo
             m_queues.compute.queue = compute_queue_ret.value();
             m_queues.compute.index = vkb_device.get_queue_index(vkb::QueueType::compute).value();
         }
-
-        m_deletion_queue.Push([&]()
-            {
-                vkDestroyDevice(m_device, nullptr);
-                vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
-
-                vkDestroyInstance(m_instance, nullptr); });
     }
 
     void VulkanRenderer::InitSwapchain()
@@ -553,7 +568,7 @@ namespace yoyo
                 vkDestroyCommandPool(m_device, ctx.compute_command_pool, nullptr);
                 vkDestroyCommandPool(m_device, ctx.command_pool, nullptr);
             }
-            });
+        });
     }
 
     void VulkanRenderer::InitSyncStructures()
@@ -732,7 +747,7 @@ namespace yoyo
         {
             framebuffer_info.pAttachments = &m_swapchain_image_views[i];
             VK_CHECK(vkCreateFramebuffer(m_device, &framebuffer_info, nullptr, &m_swapchain_framebuffers[i]));
-            m_deletion_queue.Push([&]()
+            m_deletion_queue.Push([=]()
                 { vkDestroyFramebuffer(m_device, m_swapchain_framebuffers[i], nullptr); });
         }
     }
