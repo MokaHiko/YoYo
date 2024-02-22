@@ -16,5 +16,5 @@ void DestructableComponent::OnStart()
 void DestructableComponent::OnUpdate(float dt) 
 {
 	auto& transform = GetComponent<TransformComponent>();
-	transform.rotation += yoyo::Normalize(transform.rotation) *dt;
+	transform.rotation += yoyo::Normalize(transform.rotation) * dt;
 }

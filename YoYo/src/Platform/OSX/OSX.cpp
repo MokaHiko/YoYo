@@ -61,11 +61,6 @@ namespace yoyo
         }
     }
 
-    void Platform::Assert(bool value, const char *msg)
-    {
-        assert(value && msg);
-    }
-
     void Platform::CreateSurface(void *context, void *surface)
     {
         YASSERT(window != nullptr, "Cannot Create Surface before SDL initialization");

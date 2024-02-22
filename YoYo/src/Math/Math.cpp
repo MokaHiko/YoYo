@@ -1,5 +1,6 @@
 #include "Math.h"
 
+#include "Core/Assert.h"
 #include "Core/Log.h"
 
 #include <math.h>
@@ -123,7 +124,7 @@ namespace yoyo
     const Vec3 Normalize(const Vec3& v1)
     {
         float l = Length(v1);
-        YASSERT(l <= 0, "Cannot normalize a vector with 0 length");
+        YASSERT(l >= 0, "Cannot normalize a vector with 0 length");
         return v1 / l;
     }
 

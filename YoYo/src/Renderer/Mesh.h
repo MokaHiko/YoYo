@@ -45,7 +45,7 @@ namespace yoyo
     {
     public:
         Mesh() = default;
-        ~Mesh() = default;
+        virtual ~Mesh() = default;
 
         virtual void Bind(void* render_context) = 0;
         virtual void Unbind() = 0;

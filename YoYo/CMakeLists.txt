@@ -22,14 +22,16 @@ add_library(YoYo SHARED
     src/Math/Random.h
     src/Math/Random.cpp
 
-    src/Core/Layer.h
-    src/Core/Layer.cpp
+    src/Core/Assert.h
+    src/Core/Assert.cpp
     src/Core/Memory.h
     src/Core/Memory.cpp
     src/Core/Time.h
     src/Core/Time.cpp
     src/Core/Log.h
     src/Core/Log.cpp
+    src/Core/Layer.h
+    src/Core/Layer.cpp
     src/Core/Application.h
     src/Core/Application.cpp
 
@@ -65,6 +67,9 @@ add_library(YoYo SHARED
     src/Renderer/Texture.cpp
     src/Renderer/RendererLayer.h
     src/Renderer/RendererLayer.cpp
+
+    src/Renderer/Model.h
+    src/Renderer/Model.cpp
 
     src/Renderer/Camera.h
     src/Renderer/Camera.cpp

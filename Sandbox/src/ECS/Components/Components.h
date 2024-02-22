@@ -2,17 +2,32 @@
 
 #include <Math/Math.h>
 
+#include "ECS/Entity.h"
+
 struct TransformComponent
 {
-    yoyo::Vec3 position{ 0.0f, 0.0f, 0.0f };
-    yoyo::Vec3 scale = { 1.0f, 1.0f, 1.0f };
-    yoyo::Vec3 rotation = { 0.0f, 0.0f, 0.0f };
+public:
+    static const int MAX_CHILDREN = 100;
 
-    yoyo::Quat quat_rotation;
+    yoyo::Vec3 position{ 0.0f , 0.0f, 0.0f};
+    yoyo::Vec3 rotation{ 0.0f , 0.0f, 0.0f};
+    yoyo::Vec3 scale{ 1.0f , 1.0f, 1.0f};
+
+    yoyo::Mat4x4 model_matrix{ 1.0f };
+
+    Entity self = {};
+    Entity parent = {};
+    std::array<Entity, MAX_CHILDREN> children = {};
+    uint32_t children_count = 0;
+public:
+    void AddChild(Entity e);
+    void RemoveChild(Entity e);
 
     void UpdateModelMatrix();
-
-    yoyo::Mat4x4 model_matrix;
+    yoyo::Mat4x4 LocalModelMatrix() const;
+private:
+    friend class SceneGraph;
+    bool dirty_flag = false;
 };
 
 struct TagComponent

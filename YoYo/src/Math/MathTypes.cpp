@@ -10,6 +10,42 @@ namespace yoyo
         return *this;
     }
 
+	Vec3& Vec3::operator+=(float scalar)
+	{
+        this->x += scalar;
+        this->y += scalar;
+        this->z += scalar;
+
+        return *this;
+	}
+
+	Vec3& Vec3::operator-=(float scalar)
+	{
+        this->x -= scalar;
+        this->y -= scalar;
+        this->z -= scalar;
+
+        return *this;
+	}
+
+	Vec3& Vec3::operator*=(float scalar)
+	{
+        this->x *= scalar;
+        this->y *= scalar;
+        this->z *= scalar;
+
+        return *this;
+	}
+
+	Vec3& Vec3::operator/=(float scalar)
+	{
+        this->x /= scalar;
+        this->y /= scalar;
+        this->z /= scalar;
+
+        return *this;
+	}
+
     Vec3 &Vec3::operator*=(const Vec3 &other)
     {
         this->x *= other.x;

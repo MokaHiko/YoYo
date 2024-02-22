@@ -19,6 +19,9 @@ add_executable(${PROJECT_NAME}
 	src/Scripts/NativeScript.h
 	src/Scripts/NativeScript.cpp
 
+	src/SceneGraph/SceneGraph.h
+	src/SceneGraph/SceneGraph.cpp
+
 	src/Sandbox.cpp
 
 	src/Scripts/CameraController.h
@@ -26,6 +29,12 @@ add_executable(${PROJECT_NAME}
 
 	src/Scripts/Destructable.h
 	src/Scripts/Destructable.cpp
+
+	src/Scripts/Sun.h
+	src/Scripts/Sun.cpp
+
+	src/Scripts/Villager.h
+	src/Scripts/Villager.cpp
 )
 add_subdirectory(vendor/entt)
 target_link_libraries(${PROJECT_NAME} YoYo EnTT)

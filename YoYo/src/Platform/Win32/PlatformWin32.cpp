@@ -10,6 +10,7 @@
 #include <SDL.h>
 #include <SDL_vulkan.h>
 
+#include "Core/Assert.h"
 #include "Core/Log.h"
 #include "Core/Memory.h"
 
@@ -91,11 +92,6 @@ namespace yoyo
             }break;
             }
         }
-    }
-
-    void Platform::Assert(bool value, const char* msg)
-    {
-        assert(value && msg);
     }
 
     void Platform::ConsoleWrite(const char* message, uint8_t color)

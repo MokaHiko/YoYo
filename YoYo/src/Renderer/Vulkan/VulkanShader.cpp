@@ -1,5 +1,6 @@
 #include "VulkanShader.h"
 
+#include "Core/Assert.h"
 #include "Core/Log.h"
 #include <spirv_reflect.h>
 

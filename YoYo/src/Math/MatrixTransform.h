@@ -26,4 +26,8 @@ namespace yoyo
     YAPI Mat4x4 RotateEulerMat4x4(const Vec3& angles);
 
     YAPI Mat4x4 TransposeMat4x4(Mat4x4& matrix);
+
+    YAPI Vec3 PositionFromMat4x4(const Mat4x4& matrix);
+
+    YAPI Vec3 ScaleFromMat4x4(const Mat4x4& matrix);
 }

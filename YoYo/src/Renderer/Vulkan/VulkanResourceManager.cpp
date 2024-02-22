@@ -1,5 +1,7 @@
 #include "VulkanResourceManager.h"
 
+#include "Core/Assert.h"
+
 #include "Platform/Platform.h"
 
 #include "VulkanTexture.h"
@@ -85,6 +87,8 @@ namespace yoyo
 	{
 		mesh->vertex_buffer = CreateBuffer<Vertex>(mesh->vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
+		YASSERT(mesh->vertices.size() * sizeof(Vertex) <= MAX_MESH_VERTICES * sizeof(Vertex), "Mesh exceeds max vertices!");
+
 		void* data;
 		MapMemory(m_mesh_staging_buffer.allocation, &data);
 		memcpy(data, mesh->vertices.data(), mesh->vertices.size() * sizeof(Vertex));
@@ -97,7 +101,7 @@ namespace yoyo
 			region.size = mesh->vertices.size() * sizeof(Vertex);
 
 			vkCmdCopyBuffer(cmd, m_mesh_staging_buffer.buffer, mesh->vertex_buffer.buffer, 1, &region);
-			});
+		});
 
 		if (!mesh->indices.empty())
 		{
@@ -115,7 +119,7 @@ namespace yoyo
 				region.size = mesh->indices.size() * sizeof(uint32_t);
 
 				vkCmdCopyBuffer(cmd, m_mesh_staging_buffer.buffer, mesh->index_buffer.buffer, 1, &region);
-				});
+			});
 		}
 
 		return true;
@@ -194,6 +198,7 @@ namespace yoyo
 		VkImageViewCreateInfo image_view_info = vkinit::ImageViewCreateInfo(texture->allocated_image.image, ConvertTextureFormat(texture->format), VK_IMAGE_ASPECT_COLOR_BIT);
 		VK_CHECK(vkCreateImageView(m_device, &image_view_info, nullptr, &texture->image_view));
 
+		// Clean up
 		vmaDestroyBuffer(m_allocator, staging_buffer.buffer, staging_buffer.allocation);
 		m_deletion_queue->Push([=](){
 				vkDestroyImageView(m_device, texture->image_view, nullptr);

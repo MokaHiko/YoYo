@@ -16,6 +16,8 @@ namespace yoyo {
 
     class Texture;
 
+    class Model;
+
     class YAPI ResourceManager
     {
     public:
@@ -45,6 +47,8 @@ namespace yoyo {
         std::unordered_map<ResourceId, Ref<Texture>> m_texture_cache;
         std::unordered_map<ResourceId, Ref<Shader>> m_shader_cache;
         std::unordered_map<ResourceId, Ref<Material>> m_material_cache;
+
+        std::unordered_map<ResourceId, Ref<Model>> m_model_cache;
     };
 
     class Event;

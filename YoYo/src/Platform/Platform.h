@@ -22,8 +22,6 @@ namespace yoyo {
 
         void Shutdown();
 
-        void Assert(bool value, const char* msg);
-
         bool FileRead(const char *path, char **buffer, size_t* size);
 
         YAPI uint64_t GenerateUUIDV4();

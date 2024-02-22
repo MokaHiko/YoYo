@@ -162,4 +162,21 @@ namespace yoyo
 
         return out_matrix;
     }
+	YAPI Vec3 PositionFromMat4x4(const Mat4x4& matrix)
+    {
+        Vec3 pos = {};
+        pos.x = matrix.data[12];
+        pos.y = matrix.data[13];
+        pos.z = matrix.data[14];
+        return pos;
+    }
+	YAPI Vec3 ScaleFromMat4x4(const Mat4x4& matrix)
+    {
+        Vec3 scale = {};
+        scale.x = matrix.data[0];
+        scale.y = matrix.data[5];
+        scale.z = matrix.data[10];
+        return scale;
+    }
+
 }

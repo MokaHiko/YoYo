@@ -535,14 +535,14 @@ namespace yoyo
         // Swap chain image views are created
         m_swapchain_image_views = vkb_swapchain.get_image_views().value();
 
-        m_deletion_queue.Push([=]()
+        m_deletion_queue.Push([=](){
+            for (auto image_view : m_swapchain_image_views)
             {
-                for (auto image_view : m_swapchain_image_views)
-                {
-                    vkDestroyImageView(m_device, image_view, nullptr);
-                }
+                vkDestroyImageView(m_device, image_view, nullptr);
+            }
 
-                vkDestroySwapchainKHR(m_device, m_swapchain, nullptr); });
+            vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+        });
     }
 
     void VulkanRenderer::InitCommands()
@@ -835,7 +835,7 @@ namespace yoyo
 
         m_deletion_queue.Push([=]() {
             vkDestroyImageView(m_device, m_shadow_pass_depth_texture_view, nullptr);
-            });
+        });
     }
 
     void VulkanRenderer::InitShadowPassFramebufffer()
@@ -998,8 +998,8 @@ namespace yoyo
         VK_CHECK(vkCreateImageView(m_device, &depth_info, nullptr, &m_forward_pass_depth_texture_view));
 
         m_deletion_queue.Push([=]() {
-            vkDestroyImageView(m_device, m_forward_pass_color_texture_view, nullptr);
             vkDestroyImageView(m_device, m_forward_pass_depth_texture_view, nullptr);
+            vkDestroyImageView(m_device, m_forward_pass_color_texture_view, nullptr);
         });
     }
 };

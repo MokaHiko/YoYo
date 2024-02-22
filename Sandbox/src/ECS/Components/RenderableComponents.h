@@ -4,6 +4,7 @@
 
 #include <Renderer/Material.h>
 #include <Renderer/Mesh.h>
+#include <Renderer/Model.h>
 #include <Renderer/RenderScene.h>
 
 struct DirectionalLightComponent
@@ -41,4 +42,9 @@ public:
 struct NewMeshComponent
 {
     float time_stamp;
+};
+
+struct ModelRendererComponent
+{
+
 };

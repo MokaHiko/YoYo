@@ -11,6 +11,8 @@ public:
     Scene();
     ~Scene();
 
+    Entity Root();
+
     template <typename T, typename... Args>
     T& AddComponent(entt::entity id, Args &&...args)
     {
@@ -55,7 +57,11 @@ public:
     // Create and returns entity
     Entity Instantiate(const std::string& name = "", const yoyo::Vec3& position = {}, bool* serialize = nullptr);
 
+    // Queues an entity for destruction
+    void QueueDestroy(Entity e);
+
     entt::registry& Registry();
 private:
+    Entity m_root;
     entt::registry m_registry;
 };
