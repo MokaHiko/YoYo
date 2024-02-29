@@ -1,26 +1,28 @@
 #pragma once
 
-#include "ECS/Scene.h"
 #include "ECS/Components/Components.h"
+#include "ECS/System.h"
 
 // Updates transforms and relative transform components of the scene hierarchy
-class SceneGraph
+class SceneGraph : System<TransformComponent>
 {
 public:
-    SceneGraph(Scene* scene);
-    virtual ~SceneGraph();
+    SceneGraph(Scene* scene)
+        :System<TransformComponent>(scene)
+    {
+    }
 
-    void Init();
-    void Shutdown();
+    virtual ~SceneGraph() = default;
 
-    void Update(TransformComponent& root, float dt);
+    virtual void Init() override;
+    virtual void Shutdown() override;
+    virtual void Update(float dt) override;
+
+    virtual void OnComponentCreated(Entity e, TransformComponent& transform) override;
+    virtual void OnComponentDestroyed(Entity e, TransformComponent& transform) override;
 private:
-    void OnTransformCreated(entt::basic_registry<entt::entity>&, entt::entity entity);
-    void OnTransformDestroyed(entt::basic_registry<entt::entity>&, entt::entity entity);
-
     // Models are hierarchies of meshes
     void OnModelRendererCreated(entt::basic_registry<entt::entity>&, entt::entity entity);
-    void RecursiveUpdate(TransformComponent& node);
 
-    Scene* m_scene = nullptr;
+    void RecursiveUpdate(TransformComponent& node);
 };

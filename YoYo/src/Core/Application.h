@@ -32,6 +32,8 @@ namespace yoyo
         void PushLayer(Layer* layer);
         void PopLayer(Layer* layer);
 
+        LayerStack& Layers() {return m_layers;} // Returns the layers of the application
+
         ApplicationSettings& Settings();
 
         bool OnWindowResize(float x, float y, float width, float height);

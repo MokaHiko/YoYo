@@ -27,6 +27,8 @@ namespace yoyo
 
     YAPI Mat4x4 TransposeMat4x4(Mat4x4& matrix);
 
+    YAPI Mat4x4 QuatToMat4x4(const Quat& q);
+
     YAPI Vec3 PositionFromMat4x4(const Mat4x4& matrix);
 
     YAPI Vec3 ScaleFromMat4x4(const Mat4x4& matrix);

@@ -83,11 +83,7 @@ namespace yoyo
         operator Vec3() const { return {x,y,z}; }
     };
 
-    struct YAPI Quat
-    {
-    private:
-        Vec4 m_quat;
-    };
+    using Quat = Vec4;
 
     /*
         By Default the YoYo math library assumes column major.

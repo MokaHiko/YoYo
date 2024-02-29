@@ -15,6 +15,11 @@ namespace yoyo
         Moltenvk,
     };
 
+    struct RendererProfile
+    {
+        uint32_t draw_calls = 0;
+    };
+
     struct YAPI RendererSettings
     {
         RendererType type;
@@ -74,6 +79,11 @@ namespace yoyo
             m_diry_flags = true;
             return m_settings;
         }
+
+        RendererProfile& Profile()
+        {
+            return m_profile;
+        }
     public:
         virtual void Init() {};
         virtual void Shutdown() {};
@@ -88,6 +98,7 @@ namespace yoyo
 
         virtual void EndFrame() = 0;
     private:
+        RendererProfile m_profile;
         RendererSettings m_settings;
         bool m_diry_flags;
     };

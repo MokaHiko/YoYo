@@ -69,7 +69,7 @@ namespace yoyo
 
         while (m_running)
         {
-            Timer profiler_time([&](const Timer& timer) {
+            ScopedTimer profiler_time([&](const ScopedTimer& timer) {
                 Time::SetDeltaTime(timer.delta);
             });
 

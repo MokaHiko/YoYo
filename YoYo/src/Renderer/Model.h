@@ -10,21 +10,19 @@
 
 namespace yoyo
 {
-   class YAPI Model
+   class YAPI Model : public Resource
     {
     public:
+        RESOURCE_TYPE(Model)
+
         Model() = default;
         ~Model() = default;
 
-        static Ref<Model> LoadFromAsset(const char* asset_path);
-
+        static Ref<Model> LoadFromAsset(const char* asset_path, const std::string& name = "");
         static Ref<Model> Create(const std::string& name = "");
-        const ResourceId& ID() const { return m_id; }
 
         std::vector<Ref<Mesh>> meshes;
         std::vector<Mat4x4> model_matrices;
-    protected:
-        ResourceId m_id;
     };
 
 }

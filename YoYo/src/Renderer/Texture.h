@@ -29,9 +29,11 @@ namespace yoyo
     inline TextureDirtyFlags& operator^= (TextureDirtyFlags& a, TextureDirtyFlags b) { return (TextureDirtyFlags&)((int&)a ^= (int)b); }
 
     // The base texture class 
-    class YAPI Texture
+    class YAPI Texture : public Resource
     {
     public:
+        RESOURCE_TYPE(Texture)
+
         Texture() = default;
         ~Texture() = default;
 
@@ -43,7 +45,6 @@ namespace yoyo
         float width;
         float height;
 
-        const ResourceId& ID() const { return m_id; }
         const TextureDirtyFlags& DirtyFlags() {return m_dirty;}
 
         TextureFormat format;
@@ -52,7 +53,6 @@ namespace yoyo
         friend class ResourceManager;
 
         bool m_live;
-        ResourceId m_id;
         TextureDirtyFlags m_dirty;
     };
 }

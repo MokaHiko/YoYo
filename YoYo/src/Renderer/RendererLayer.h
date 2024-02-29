@@ -26,8 +26,11 @@ namespace yoyo
 
         virtual void OnUpdate(float dt) override;
 
+        virtual void OnDebugRender() override;
+
         LayerType(RendererLayer)
     private:
+        float m_dt;
         Ref<RenderScene> m_scene;
         Ref<Renderer> m_renderer;
 

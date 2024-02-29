@@ -8,7 +8,7 @@ namespace yoyo
 	Ref<Texture> Texture::Create(const std::string& name)
 	{
 		Ref<VulkanTexture> texture = CreateRef<VulkanTexture>();
-		texture->m_id = name;
+		texture->name = name;
 		texture->m_dirty |= TextureDirtyFlags::Unuploaded;
 
 		EventManager::Instance().Dispatch(CreateRef<TextureCreatedEvent>(texture));

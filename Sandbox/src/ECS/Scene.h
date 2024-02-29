@@ -62,6 +62,8 @@ public:
 
     entt::registry& Registry();
 private:
+    std::vector<entt::id_type> m_destruction_queue;
+
     Entity m_root;
     entt::registry m_registry;
 };

@@ -15,11 +15,12 @@ void SunComponent::OnStart() {}
 
 void SunComponent::OnUpdate(float dt) 
 {
+	return;
 	auto& transform = GetComponent<TransformComponent>();
 
 	// TODO: Define in sandbox scene
 	static float time = 0.0f;
-	static float day_duration = 30.0f;
+	static float day_duration = 5.0f;
 
 	static const float start_position = transform.position.x;
 	static const float end_position = transform.position.x + (m_movement_speed * day_duration);

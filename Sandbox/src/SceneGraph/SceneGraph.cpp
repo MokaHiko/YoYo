@@ -5,17 +5,8 @@
 #include "Core/Application.h"
 #include "ECS/Entity.h "
 
-SceneGraph::SceneGraph(Scene* scene)
-	:m_scene(scene)
-{
-}
-
-SceneGraph::~SceneGraph() {}
-
 void SceneGraph::Init() 
 {
-	m_scene->Registry().on_construct<TransformComponent>().connect<&SceneGraph::OnTransformCreated>(this);
-	m_scene->Registry().on_destroy<TransformComponent>().connect<&SceneGraph::OnTransformDestroyed>(this);
 }
 
 void SceneGraph::Shutdown() 
@@ -23,26 +14,20 @@ void SceneGraph::Shutdown()
 	// Unsubscribe
 }
 
-void SceneGraph::Update(TransformComponent& root, float dt)
+void SceneGraph::Update(float dt)
 {
+	TransformComponent& root = GetScene()->Root().GetComponent<TransformComponent>();
 	RecursiveUpdate(root);
 }
 
-void SceneGraph::OnTransformCreated(entt::basic_registry<entt::entity>&, entt::entity entity)
+void SceneGraph::OnComponentCreated(Entity e, TransformComponent& transform)
 {
-	Entity e(entity, m_scene);
-
-	// Assign self to transform
-	TransformComponent& transform = e.GetComponent<TransformComponent>();
+	// Define self
 	transform.self = e;
 }
 
-void SceneGraph::OnTransformDestroyed(entt::basic_registry<entt::entity>&, entt::entity entity)
+void SceneGraph::OnComponentDestroyed(Entity e, TransformComponent& transform)
 {
-	Entity e(entity, m_scene);
-
-	TransformComponent& transform = e.GetComponent<TransformComponent>();
-
 	if(transform.parent)
 	{
 		transform.parent.GetComponent<TransformComponent>().RemoveChild(e);
@@ -51,7 +36,7 @@ void SceneGraph::OnTransformDestroyed(entt::basic_registry<entt::entity>&, entt:
 	// Destroy children
 	for (uint32_t i = 0; i < transform.children_count; i++)
 	{
-		m_scene->QueueDestroy(transform.children[i]);
+		GetScene()->QueueDestroy(transform.children[i]);
 	}
 }
 

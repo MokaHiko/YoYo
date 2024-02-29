@@ -128,9 +128,6 @@ namespace yoyo
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		static bool show_demo_window = true;
-		ImGui::ShowDemoWindow(&show_demo_window);
-
 		//ImGuizmo::BeginFrame();
 	}
 

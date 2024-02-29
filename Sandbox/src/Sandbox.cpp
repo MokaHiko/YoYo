@@ -4,6 +4,7 @@
 
 #include <Math/Math.h>
 #include <Math/MatrixTransform.h>
+#include <Math/Quaternion.h>
 #include <Math/Random.h>
 
 #include <Input/Input.h>
@@ -21,8 +22,11 @@
 #include "Scripts/Destructable.h"
 #include "Scripts/Sun.h"
 #include "Scripts/Villager.h"
+#include "Scripts/DemoModel.h"
 
 #include "SceneGraph/SceneGraph.h"
+
+#include "Physics/Physics3D.h"
 
 class GameLayer : public yoyo::Layer
 {
@@ -37,66 +41,34 @@ public:
         // Init systems
         m_scene = Y_NEW Scene();
 
-        m_scene->Registry().on_construct<CameraComponent>().connect<&GameLayer::OnCameraComponentCreated>(this);
-        m_scene->Registry().on_destroy<CameraComponent>().connect<&GameLayer::OnCameraComponentDestroyed>(this);
+        // TODO: Place in each system
+        {
+            m_scene->Registry().on_construct<CameraComponent>().connect<&GameLayer::OnCameraComponentCreated>(this);
+            m_scene->Registry().on_destroy<CameraComponent>().connect<&GameLayer::OnCameraComponentDestroyed>(this);
 
-        m_scene->Registry().on_construct<DirectionalLightComponent>().connect<&GameLayer::OnDirectionalLightComponentCreated>(this);
-        m_scene->Registry().on_destroy<DirectionalLightComponent>().connect<&GameLayer::OnDirectionalLightComponentDestroyed>(this);
+            m_scene->Registry().on_construct<DirectionalLightComponent>().connect<&GameLayer::OnDirectionalLightComponentCreated>(this);
+            m_scene->Registry().on_destroy<DirectionalLightComponent>().connect<&GameLayer::OnDirectionalLightComponentDestroyed>(this);
 
-        m_scene->Registry().on_construct<MeshRendererComponent>().connect<&GameLayer::OnMeshRendererComponentCreated>(this);
-        m_scene->Registry().on_destroy<MeshRendererComponent>().connect<&GameLayer::OnMeshRendererComponentDestroyed>(this);
+            m_scene->Registry().on_construct<MeshRendererComponent>().connect<&GameLayer::OnMeshRendererComponentCreated>(this);
+            m_scene->Registry().on_destroy<MeshRendererComponent>().connect<&GameLayer::OnMeshRendererComponentDestroyed>(this);
 
-        m_scene_graph = CreateRef<SceneGraph>(m_scene);
-        m_scene_graph->Init();
+            m_scene_graph = CreateRef<SceneGraph>(m_scene);
+            m_scene_graph->Init();
 
-        auto camera = m_scene->Instantiate("camera", { 0.0f, 0.0f, 20.0f });
-        camera.AddComponent<CameraComponent>();
-        camera.AddComponent<CameraControllerComponent>(camera);
+            m_physics_world = CreateRef<psx::PhysicsWorld>(m_scene);
+            m_physics_world->Init();
+        }
 
         m_renderer_layer = m_app.FindLayer<yoyo::RendererLayer>();
         m_rp = Y_NEW yoyo::RenderPacket;
 
-        auto cube = yoyo::Mesh::Create("cube");
-        cube->vertices = {
-        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.625,  0.50}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.875,  0.50}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.625,  0.25}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.875,  0.50}},
-        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.875,  0.25}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  1.00,  0.00},  {0.625,  0.25}},
-        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.375,  0.25}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.625,  0.25}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.375,  0.00}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.625,  0.25}},
-        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.625,  0.00}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00,  1.00},  {0.375,  0.00}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.375,  1.00}},
-        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.625,  1.00}},
-        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.375,  0.75}},
-        {{-1.00,  1.00,  1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.625,  1.00}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.625,  0.75}},
-        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00}, {-1.00,  0.00,  0.00},  {0.375,  0.75}},
-        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.125,  0.50}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.375,  0.50}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.125,  0.25}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.375,  0.50}},
-        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.375,  0.25}},
-        {{-1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {0.00, -1.00,  0.00},  {0.125,  0.25}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.375,  0.50}},
-        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.625,  0.50}},
-        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.375,  0.25}},
-        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.625,  0.50}},
-        {{ 1.00,  1.00,  1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.625,  0.25}},
-        {{ 1.00, -1.00,  1.00}, {1.00, 1.00, 1.00},  {1.00,  0.00,  0.00},  {0.375,  0.25}},
-        {{-1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.375,  0.75}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.625,  0.75}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.375,  0.50}},
-        {{-1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.625,  0.75}},
-        {{ 1.00,  1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.625,  0.50}},
-        {{ 1.00, -1.00, -1.00}, {1.00, 1.00, 1.00},  {0.00,  0.00, -1.00},  {0.375,  0.50}},
-        };
+        yoyo::Model::LoadFromAsset("assets/models/cube.yo");
 
         // Set up scene
+        auto camera = m_scene->Instantiate("camera", { 0.0f, 5.0f, 20.0f });
+        camera.AddComponent<CameraComponent>();
+        camera.AddComponent<CameraControllerComponent>(camera);
+
         Ref<yoyo::Shader> default_lit = yoyo::ResourceManager::Instance().Load<yoyo::Shader>("lit_shader");
         {
             Ref<yoyo::Material> light_material = yoyo::Material::Create(default_lit, "light_material");
@@ -109,21 +81,24 @@ public:
             light_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 0.0f, 1.0f });
             light_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
 
-            auto light = m_scene->Instantiate("light", { -100.0f, 25.0f, 50.0f });
+            Entity light = m_scene->Instantiate("light", { 100.0f, 60.0f, 5.0f });
+            TransformComponent& transform = light.GetComponent<TransformComponent>();
 
             Ref<yoyo::DirectionalLight> dir_light = light.AddComponent<DirectionalLightComponent>().dir_light;
             dir_light->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-            dir_light->direction = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f } * -1.0f;
+            dir_light->direction = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f } *-1.0f;
 
             auto& mesh_renderer = light.AddComponent<MeshRendererComponent>();
-            mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::Mesh>("cube");
+            mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::Mesh>("cubeCube0");
             mesh_renderer.material = light_material;
 
             light.AddComponent<SunComponent>(light);
         }
 
+
+        Ref<yoyo::Shader> default_lit_instanced = yoyo::ResourceManager::Instance().Load<yoyo::Shader>("lit_instanced_shader");
         {
-            Ref<yoyo::Material> crate_material = yoyo::Material::Create(default_lit, "crate_material");
+            Ref<yoyo::Material> crate_material = yoyo::Material::Create(default_lit_instanced, "crate_material");
             crate_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/container2.yo"));
             crate_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
             crate_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
@@ -131,9 +106,9 @@ public:
 
             yoyo::PRNGenerator<float> angle_generator(0.0f, 360.0f);
             yoyo::PRNGenerator<float> pos_generator(-10.0f, 10.0f);
-            yoyo::PRNGenerator<float> height_generator(2.0f, 5.0f);
+            yoyo::PRNGenerator<float> height_generator(2.0f, 15.0f);
 
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 0; i++)
             {
                 auto crate = m_scene->Instantiate("crate", { pos_generator.Next(), height_generator.Next(), pos_generator.Next() });
 
@@ -141,35 +116,51 @@ public:
                 transform.rotation = { angle_generator.Next(), angle_generator.Next(), angle_generator.Next() };
 
                 auto& mesh_renderer = crate.AddComponent<MeshRendererComponent>();
-                mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::Mesh>("cube");
+                mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::Mesh>("cubeCube0");
                 mesh_renderer.material = crate_material;
 
                 crate.AddComponent<DestructableComponent>(crate);
+                crate.AddComponent<psx::RigidBodyComponent>();
             }
         }
 
+        // Load claptraps
         {
-            // Load model
-            auto digger = m_scene->Instantiate("digger");
-            TransformComponent& model_transform = digger.GetComponent<TransformComponent>();
+            auto claptrap_model = yoyo::Model::LoadFromAsset("assets/models/claptrap.yo");
+            auto claptrap_material = yoyo::Material::Create(default_lit_instanced, "claptrap_material");
+            claptrap_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/Claptrap_blender_fix_Claptrap_BaseColor.yo"));
+            claptrap_material->SetTexture(yoyo::MaterialTextureType::SpecularMap, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/Claptrap_blender_fix_Claptrap_Roughness.yo"));
 
-            Ref<yoyo::Model> digger_model = yoyo::Model::LoadFromAsset("assets/models/character-digger.yo");
-            for (int i = 0; i < digger_model->meshes.size(); i++)
+            claptrap_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+            claptrap_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+            claptrap_material->SetVec4("specular_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+
+            yoyo::PRNGenerator<float> angle_generator(0.0f, 360.0f);
+            yoyo::PRNGenerator<float> pos_generator(-10.0f, 10.0f);
+            yoyo::PRNGenerator<float> height_generator(2.0f, 15.0f);
+
+            for (int i = 0; i < 100; i++)
             {
-                Entity mesh = m_scene->Instantiate("digger_mesh" + std::to_string(i));
-                TransformComponent& transform = mesh.GetComponent<TransformComponent>();
-                transform.position = yoyo::PositionFromMat4x4(digger_model->model_matrices[i]);
-                transform.scale = yoyo::ScaleFromMat4x4(digger_model->model_matrices[i] );
+                auto claptrap = m_scene->Instantiate("1claptrap" + std::to_string(i), {pos_generator.Next(), height_generator.Next(), pos_generator.Next()});
+                TransformComponent& model_transform = claptrap.GetComponent<TransformComponent>();
+                
+                for (int j = 0; j < claptrap_model->meshes.size(); j++)
+                {
+                    Entity mesh = m_scene->Instantiate("claptrap" + std::to_string(j + i));
+                    TransformComponent& transform = mesh.GetComponent<TransformComponent>();
 
-                auto& mesh_renderer = mesh.AddComponent<MeshRendererComponent>();
-                mesh_renderer.mesh = digger_model->meshes[i];
-                mesh_renderer.material = yoyo::ResourceManager::Instance().Load<yoyo::Material>("colormap");
+                    auto& mesh_renderer = mesh.AddComponent<MeshRendererComponent>();
+                    mesh_renderer.mesh = claptrap_model->meshes[j];
+                    mesh_renderer.material = claptrap_material;
 
-                model_transform.AddChild(mesh);
+                    model_transform.AddChild(mesh);
+                }
+                model_transform.scale *= 0.1f;
+                model_transform.quat_rotation = yoyo::QuatFromAxisAngle({ 1.0f, 0.0f, 0.0f }, yoyo::DegToRad(-90.0f)) *
+                                                yoyo::QuatFromAxisAngle({ 0.0f, 0.0f, 1.0f }, yoyo::DegToRad(90.0f));
+
+                claptrap.AddComponent<psx::RigidBodyComponent>();
             }
-
-            digger.AddComponent<VillagerComponent>(digger);
-            digger.GetComponent<TransformComponent>().scale *= 0.25f;
         }
 
         {
@@ -180,16 +171,17 @@ public:
             green_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
 
             auto plane = m_scene->Instantiate("plane", { 0.0f, -1.0f, 0.0f });
-            plane.GetComponent<TransformComponent>().scale = { 100.0f, 1.0f, 100.0f };
+            plane.GetComponent<TransformComponent>().scale = { 1000.0f, 1.0f, 1000.0f };
             auto& mesh_renderer = plane.AddComponent<MeshRendererComponent>();
-            mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::Mesh>("cube");
+            mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::Mesh>("cubeCube0");
             mesh_renderer.material = green_material;
         }
-    };
+    }
 
     virtual void OnDisable() override
     {
         // Shutdown Systems
+        m_physics_world->Shutdown();
         m_scene_graph->Shutdown();
 
         // Clean up handles
@@ -199,9 +191,11 @@ public:
 
     virtual void OnUpdate(float dt) override
     {
+        // Physics System
+        m_physics_world->Update(dt);
+
         // Scene Graph
-        TransformComponent& root = m_scene->Root().GetComponent<TransformComponent>();
-        m_scene_graph->Update(root, dt);
+        m_scene_graph->Update(dt);
 
         for (auto& id : m_scene->Registry().view<TransformComponent, MeshRendererComponent>())
         {
@@ -212,8 +206,6 @@ public:
             auto& mesh_renderer = e.GetComponent<MeshRendererComponent>();
             mesh_renderer.mesh_object->model_matrix = transform.model_matrix;
         }
-
-        // Physics System
 
         // Scripting System
         {
@@ -250,7 +242,16 @@ public:
                 auto& villager = e.GetComponent<VillagerComponent>();
 
                 // Update Render Scene
-                 villager.OnUpdate(dt);
+                villager.OnUpdate(dt);
+            }
+
+            for (auto& id : m_scene->Registry().view<TransformComponent, DemoModelComponent>())
+            {
+                Entity e{ id, m_scene };
+                auto& demo = e.GetComponent<DemoModelComponent>();
+
+                // Update Render Scene
+                demo.OnUpdate(dt);
             }
         }
 
@@ -285,7 +286,7 @@ public:
 
             yoyo::Mat4x4 proj = yoyo::OrthographicProjectionMat4x4(-half_width, half_width, -half_height, half_height, -1000, 1000);
             proj[5] *= -1.0f;
-            dir_light->view_proj = proj * yoyo::LookAtMat4x4(transform.position, dir_light->direction, { 0.0f, 1.0f, 0.0f });
+            dir_light->view_proj = proj * yoyo::LookAtMat4x4(transform.position, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
         }
 
         // Rendering system (send render packets)
@@ -326,15 +327,13 @@ public:
 
                 TransformComponent& transform = e.GetComponent<TransformComponent>();
 
-                const auto& mesh_renderer = e.GetComponent<MeshRendererComponent>();
+                MeshRendererComponent& mesh_renderer = e.GetComponent<MeshRendererComponent>();
                 mesh_renderer.mesh_object->mesh = mesh_renderer.mesh;
                 mesh_renderer.mesh_object->material = mesh_renderer.material;
                 mesh_renderer.mesh_object->model_matrix = transform.model_matrix;
-                mesh_renderer.mesh_object->id = (uint32_t)id;
 
                 // Update Render Packet
                 m_rp->new_objects.emplace_back(mesh_renderer.mesh_object);
-
                 e.RemoveComponent<NewMeshComponent>();
             }
 
@@ -384,7 +383,10 @@ public:
 
     LayerType(GameLayer)
 private:
+    // Systems
     Ref<SceneGraph> m_scene_graph;
+    Ref<psx::PhysicsWorld> m_physics_world;
+
     Scene* m_scene;
 
     yoyo::RenderPacket* m_rp;

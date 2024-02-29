@@ -41,9 +41,10 @@ namespace yoyo
     inline MeshDirtyFlags& operator&= (MeshDirtyFlags& a, MeshDirtyFlags b) { return (MeshDirtyFlags&)((int&)a &= (int)b); }
     inline MeshDirtyFlags& operator^= (MeshDirtyFlags& a, MeshDirtyFlags b) { return (MeshDirtyFlags&)((int&)a ^= (int)b); }
 
-    class YAPI Mesh
+    class YAPI Mesh : public Resource
     {
     public:
+        RESOURCE_TYPE(Mesh)
         Mesh() = default;
         virtual ~Mesh() = default;
 
@@ -58,11 +59,23 @@ namespace yoyo
         void RecalculateNormals(); // Recalculates normals of mesh
 
         static Ref<Mesh> Create(const std::string& name = "");
-
-        const ResourceId& ID() const { return m_id; }
         MeshDirtyFlags DirtyFlags() { return m_dirty; }
     protected:
         MeshDirtyFlags m_dirty;
-        ResourceId m_id;
     };
 }
+
+template<>
+struct std::hash<yoyo::Mesh>
+{
+    std::size_t operator()(const yoyo::Mesh& mesh) const noexcept
+    {
+        // Compute individual hash values for first, second and third
+        // http://stackoverflow.com/a/1646913/126995
+
+        std::size_t res = mesh.vertices.size() + mesh.indices.size();
+        res = res * 31 + hash<string>()(mesh.name);
+
+        return res;
+    }
+};

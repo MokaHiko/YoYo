@@ -8,23 +8,17 @@ namespace yoyo
 	template<>
 	YAPI Ref<Material> ResourceManager::Load<Material>(const std::string& path)
 	{
-		ResourceId id = FileNameFromFullPath(path);
+		const std::string name = FileNameFromFullPath(path);
 
-		auto material_it = m_material_cache.find(id);
-		if(material_it != m_material_cache.end())
+		auto& material_cache = Cache<Material>();
+		auto material_it = std::find_if(material_cache.begin(), material_cache.end(), [&](const auto& it){
+			return it.second->name == name;
+		});
+		
+		if(material_it != material_cache.end())
 		{
 			return material_it->second;
 		}
-
-		// TODO: Impl load from file
-		// auto& material = Material::LoadFromAsset(path.c_str());
-		// if(!material)
-		// {
-		// 	return nullptr;
-		// }
-
-		// m_material_cache[material->m_id] = material;
-		// return material;
 
 		return nullptr;
 	}
@@ -33,27 +27,6 @@ namespace yoyo
 	YAPI void ResourceManager::Free<Material>(Ref<Material> resource)
 	{
 	}
-
-    bool ResourceManager::OnMaterialCreated(Ref<Material> material)
-    {
-        // Check if shader already cached
-        if (material->ID().empty())
-        {
-            // TODO: Generate string uuid
-        }
-        else
-        {
-            auto material_it = m_material_cache.find(material->ID());
-            if (material_it != m_material_cache.end())
-            {
-                return true;
-            }
-        }
-
-        // TODO: Check if there is space in cache
-        m_material_cache[material->ID()] = material;
-        return false;
-    }
 
 	Material::Material()
 		:m_property_data(nullptr), m_property_size(0) {}
@@ -66,7 +39,17 @@ namespace yoyo
 		}
 	}
 
-	void Material::SetTexture(int index, Ref<Texture> texture)
+	const Ref<Texture> Material::GetTexture(int index) const
+	{
+		if(textures.size() <= index)
+		{
+			return nullptr;
+		}
+
+		return textures[index];
+	}
+
+void Material::SetTexture(int index, Ref<Texture> texture)
 	{
 		if (textures.size() <= index)
 		{
@@ -75,7 +58,7 @@ namespace yoyo
 
 		textures[index] = texture;
 
-		m_dirty |= MaterialDirtyFlags::TextureChange;
+		m_dirty |= MaterialDirtyFlags::Texture;
 	}
 
 	void Material::SetTexture(MaterialTextureType type, Ref<Texture> texture)
@@ -91,7 +74,7 @@ namespace yoyo
 		{
 			MaterialProperty& prop = it->second;
 			memcpy((char*)m_property_data + prop.offset, data, prop.size);
-			m_dirty |= MaterialDirtyFlags::PropertyChange;
+			m_dirty |= MaterialDirtyFlags::Property;
 		}
 		else
 		{

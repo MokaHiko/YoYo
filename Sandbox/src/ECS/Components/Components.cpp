@@ -74,7 +74,9 @@ void TransformComponent::UpdateModelMatrix()
 yoyo::Mat4x4 TransformComponent::LocalModelMatrix() const {
 
     // TODO: Matrix consecutive multiplication overload not working
-    yoyo::Mat4x4 local_model_matrix = yoyo::TranslationMat4x4(position) * yoyo::RotateEulerMat4x4(rotation) * yoyo::ScaleMat4x4(scale);
+    //yoyo::Mat4x4 local_model_matrix = yoyo::TranslationMat4x4(position) * yoyo::RotateEulerMat4x4(rotation) * yoyo::ScaleMat4x4(scale);
+    yoyo::Mat4x4 local_model_matrix = yoyo::TranslationMat4x4(position) * yoyo::TransposeMat4x4(yoyo::QuatToMat4x4(quat_rotation)) * yoyo::ScaleMat4x4(scale);
+
 
     // TODO: switch to quaternions
     //local_model_matrix = glm::rotate(local_model_matrix, glm::radians(rotation.x), glm::vec3(1.0, 0.0, 0.0));

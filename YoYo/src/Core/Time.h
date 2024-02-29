@@ -1,8 +1,10 @@
 #pragma once
 
+#include "Defines.h"
+
 namespace yoyo
 {
-    class Time
+    class YAPI Time
     {
     public:
         static double DeltaTime()
@@ -21,16 +23,16 @@ namespace yoyo
     };
 
     // A timer that takes in a function to be called when out object is out of scope
-    class Timer
+    class YAPI ScopedTimer
     {
     public:
-        Timer(std::function<void(const Timer&)> finished_callback = nullptr);
-        ~Timer();
+        ScopedTimer(std::function<void(const ScopedTimer&)> finished_callback = nullptr);
+        ~ScopedTimer();
 
         // Delta time in seconds
         double delta = 0;
     private:
-        std::function<void(const Timer&)> m_callback;
+        std::function<void(const ScopedTimer&)> m_callback;
         unsigned int m_then, m_now;
     };
 };

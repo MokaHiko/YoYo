@@ -3,20 +3,11 @@
 #include "Defines.h"
 #include "Core/Memory.h"
 #include "Core/Layer.h"
+#include "Core/Log.h"
 
 #include "Resource.h"
 
 namespace yoyo {
-    class Mesh;
-    class MeshCreatedEvent;
-
-    class Material;
-
-    class Shader;
-
-    class Texture;
-
-    class Model;
 
     class YAPI ResourceManager
     {
@@ -33,22 +24,48 @@ namespace yoyo {
         void Free(Ref<T> resource);
 
         void Update();
-    public:
-        // Callbacks
-        bool OnMeshCreated(Ref<Mesh> mesh);
-        bool OnShaderCreated(Ref<Shader> shader);
-        bool OnTextureCreated(Ref<Texture> texture);
-        bool OnMaterialCreated(Ref<Material> material);
+
+        template<typename T>
+        bool OnResourceCreated(Ref<T> resource)
+        {
+            // Check if resource cached
+            auto& m_resource_cache = Cache<T>();
+            if (resource->Id() != INVALID_RESOURCE_ID)
+            {
+                auto resource_it = std::find_if(Cache<T>().begin(), Cache<T>().end(), [&](const auto& it) {return resource == it.second; });
+                if (resource_it != m_resource_cache.end())
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                resource->m_id = Platform::GenerateUUIDV4();
+            }
+
+            YINFO("Cached %s: %s", T::TypeName().c_str(), resource->name.c_str());
+            Cache<T>()[resource->Id()] = resource;
+            return false;
+        };
+
+        template<typename T>
+        std::unordered_map<ResourceId, Ref<T>>& Cache()
+        {
+            using ResourceCache = std::unordered_map<ResourceId, Ref<T>>;
+            static ResourceCache* cache = nullptr;
+
+            if(!cache)
+            {
+                cache = new ResourceCache;
+                YINFO("Resource Cache %s[%lu] Generated", T::s_resource_type_name.c_str(), T::s_resource_type);
+            }
+
+            return *cache;
+        }
+
     private:
         ResourceManager();
         ~ResourceManager();
-
-        std::unordered_map<ResourceId, Ref<Mesh>> m_mesh_cache;
-        std::unordered_map<ResourceId, Ref<Texture>> m_texture_cache;
-        std::unordered_map<ResourceId, Ref<Shader>> m_shader_cache;
-        std::unordered_map<ResourceId, Ref<Material>> m_material_cache;
-
-        std::unordered_map<ResourceId, Ref<Model>> m_model_cache;
     };
 
     class Event;
@@ -67,6 +84,8 @@ namespace yoyo {
 
         virtual void OnEnable() override;
         virtual void OnDisable() override;
+
+        virtual void OnDebugRender() override;
 
         LayerType(RuntimeResourceLayer)
     };

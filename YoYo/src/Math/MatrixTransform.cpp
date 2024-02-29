@@ -1,5 +1,7 @@
 #include "MatrixTransform.h"
 
+#include "Quaternion.h"
+
 namespace yoyo
 {
     Mat4x4 OrthographicProjectionMat4x4(float left, float right, float bottom, float top, float near, float far)
@@ -162,6 +164,30 @@ namespace yoyo
 
         return out_matrix;
     }
+
+	YAPI Mat4x4 QuatToMat4x4(const Quat& q)
+    {
+        Mat4x4 out_matrix = {};
+
+        // https://stackoverflow.com/questions/1556260/convert-quaternion-rotation-to-rotation-matrix
+
+        Quat n = NormalizeQuat(q);
+
+        out_matrix.data[0] = 1.0f - 2.0f * n.y * n.y - 2.0f * n.z * n.z;
+        out_matrix.data[1] = 2.0f * n.x * n.y - 2.0f * n.z * n.w;
+        out_matrix.data[2] = 2.0f * n.x * n.z + 2.0f * n.y * n.w;
+
+        out_matrix.data[4] = 2.0f * n.x * n.y + 2.0f * n.z * n.w;
+        out_matrix.data[5] = 1.0f - 2.0f * n.x * n.x - 2.0f * n.z * n.z;
+        out_matrix.data[6] = 2.0f * n.y * n.z - 2.0f * n.x * n.w;
+
+        out_matrix.data[8] = 2.0f * n.x * n.z - 2.0f * n.y * n.w;
+        out_matrix.data[9] = 2.0f * n.y * n.z + 2.0f * n.x * n.w;
+        out_matrix.data[10] = 1.0f - 2.0f * n.x * n.x - 2.0f * n.y * n.y;
+
+        return out_matrix;
+    }
+
 	YAPI Vec3 PositionFromMat4x4(const Mat4x4& matrix)
     {
         Vec3 pos = {};

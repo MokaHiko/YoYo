@@ -8,9 +8,11 @@ namespace yoyo
     Ref<Material> Material::Create(Ref<Shader> shader, const std::string& name)
     {
         Ref<VulkanMaterial> material = CreateRef<VulkanMaterial>();
-        material->m_id = name;
-        material->m_dirty = MaterialDirtyFlags::Clean;
+        material->name = name;
         material->shader = shader;
+        material->render_mode = MaterialRenderMode::Opaque;
+        material->instanced = shader->instanced;
+        material->m_dirty = MaterialDirtyFlags::Clean;
 
         EventManager::Instance().Dispatch(CreateRef<MaterialCreatedEvent>(material));
         return material;
@@ -29,7 +31,7 @@ namespace yoyo
         const VulkanRenderContext* ctx = static_cast<VulkanRenderContext*>(render_context);
 
         // Bind main texture
-        vkCmdBindDescriptorSets(ctx->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->shader_passes[mesh_pass_type]->layout, MATERIAL_MAIN_TEXTURE_DESCRIPTOR_SET_INDEX, 1, &descriptors[mesh_pass_type][MATERIAL_MAIN_TEXTURE_DESCRIPTOR_SET_INDEX].set, 0, nullptr);
+        vkCmdBindDescriptorSets(ctx->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->shader_passes[mesh_pass_type]->layout, MATERIAL_TEXTURE_SET_INDEX, 1, &descriptors[mesh_pass_type][MATERIAL_TEXTURE_SET_INDEX].set, 0, nullptr);
 
         // Bind material descriptor properties (floats, textures, etc)
         vkCmdBindDescriptorSets(ctx->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->shader_passes[mesh_pass_type]->layout, MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX, 1, &descriptors[mesh_pass_type][MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX].set, 0, nullptr);

@@ -71,7 +71,7 @@ namespace yoyo
     Ref<Mesh> Mesh::Create(const std::string& name)
     {
         Ref<VulkanMesh> mesh = CreateRef<VulkanMesh>();
-        mesh->m_id = name;
+        mesh->name = name;
         mesh->m_dirty = MeshDirtyFlags::Unuploaded;
 
         EventManager::Instance().Dispatch(CreateRef<MeshCreatedEvent>(mesh));

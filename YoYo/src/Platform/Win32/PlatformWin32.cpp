@@ -54,6 +54,12 @@ namespace yoyo
         return true;
     }
 
+    void Platform::SetAppName(const std::string& name)
+    {
+        YASSERT(window, "Cannot set name of uninitialized application!");
+        SDL_SetWindowTitle(window, name.c_str());
+    }
+
     void* Platform::NativeAppWindow()
     {
         YASSERT(window != nullptr, "Platform Init Not called before requesting native window instance");

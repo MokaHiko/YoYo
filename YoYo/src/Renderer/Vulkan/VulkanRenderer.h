@@ -26,6 +26,12 @@ namespace yoyo
     const int OBJECT_DATA_SET_INDEX = 0;
     const int OBJECT_DATA_SET_BINDING = 5;
 
+    const int INSTANCED_OBJECT_DATA_SET_INDEX = 3;
+    const int INSTANCED_OBJECT_DATA_SET_BINDING = 0;
+
+    const int SHADOW_PASS_INSTANCED_OBJECT_DATA_SET_INDEX = 1;
+    const int SHADOW_PASS_INSTANCED_OBJECT_DATA_SET_BINDING = 0;
+
     class VulkanRenderer : public Renderer
     {
     public:
@@ -111,6 +117,11 @@ namespace yoyo
             Mat4x4 model_matrix;
         };
 
+        struct InstancedData
+        {
+            RenderSceneId id;
+        };
+
         void InitForwardPass();
         void InitForwardPassAttachments();
         void InitForwardPassFramebufffer();
@@ -131,6 +142,10 @@ namespace yoyo
         AllocatedBuffer<SceneData> m_scene_data_uniform_buffer;
         AllocatedBuffer<DirectionalLight> m_directional_lights_buffer;
         AllocatedBuffer<ObjectData> m_object_data_buffer;
+
+        AllocatedBuffer<InstancedData> m_instanced_data_buffer;
+        VkDescriptorSet m_instanced_ds;
+        VkDescriptorSetLayout m_instanced_ds_layout;
 
         void InitSceneResources();
 

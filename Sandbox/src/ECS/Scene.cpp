@@ -13,6 +13,7 @@ Scene::Scene()
 	TransformComponent& transform = m_root.AddComponent<TransformComponent>();
 	transform.position = {0.0f, 0.0f, 0.0f};
 	transform.UpdateModelMatrix();
+	transform.self = m_root;
 }
 
 Scene::~Scene()
@@ -46,7 +47,7 @@ Entity Scene::Instantiate(const std::string& name, const yoyo::Vec3& position, b
 
 void Scene::QueueDestroy(Entity e) 
 {
-
+	m_destruction_queue.push_back(e);
 }
 
 entt::registry &Scene::Registry() { return m_registry; }

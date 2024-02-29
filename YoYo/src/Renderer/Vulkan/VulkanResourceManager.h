@@ -6,7 +6,7 @@
 
 namespace yoyo
 {
-    const int MAX_MESH_VERTICES = 45000;
+    const int MAX_MESH_VERTICES = 100000;
 
     class VulkanMesh;
     class VulkanTexture;

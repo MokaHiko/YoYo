@@ -4,6 +4,10 @@
 
 #include "Renderer/Mesh.h"
 #include "Renderer/Texture.h"
+#include "Renderer/Shader.h"
+#include "Renderer/Material.h"
+
+#include <imgui.h>
 
 namespace yoyo
 {
@@ -38,8 +42,7 @@ namespace yoyo
 	void ResourceManager::Update()
 	{
 		// TODO: Move to dirty list
-
-		for (auto it : m_mesh_cache)
+		for (auto it : ResourceManager::Instance().Cache<Mesh>())
 		{
 			Ref<Mesh> mesh = it.second;
 
@@ -60,7 +63,7 @@ namespace yoyo
 			}
 		}
 
-		for (auto it : m_texture_cache)
+		for (auto it : ResourceManager::Instance().Cache<Texture>())
 		{
 			Ref<Texture> texture = it.second;
 
@@ -102,27 +105,41 @@ namespace yoyo
 
 		EventManager::Instance().Subscribe(MeshCreatedEvent::s_event_type, [](Ref<Event> event) {
 			const auto& mesh_created_event = std::static_pointer_cast<MeshCreatedEvent>(event);
-			return ResourceManager::Instance().OnMeshCreated(mesh_created_event->mesh);
+			return ResourceManager::Instance().OnResourceCreated<Mesh>(mesh_created_event->mesh);
 			});
 
 		EventManager::Instance().Subscribe(ShaderCreatedEvent::s_event_type, [](Ref<Event> event) {
 			const auto& shader_created_event = std::static_pointer_cast<ShaderCreatedEvent>(event);
-			return ResourceManager::Instance().OnShaderCreated(shader_created_event->shader);
+			return ResourceManager::Instance().OnResourceCreated<Shader>(shader_created_event->shader);
 			});
 
 		EventManager::Instance().Subscribe(TextureCreatedEvent::s_event_type, [](Ref<Event> event) {
 			const auto& texture_created_event = std::static_pointer_cast<TextureCreatedEvent>(event);
-			return ResourceManager::Instance().OnTextureCreated(texture_created_event->texture);
+			return ResourceManager::Instance().OnResourceCreated<Texture>(texture_created_event->texture);
 			});
 
 		EventManager::Instance().Subscribe(MaterialCreatedEvent::s_event_type, [](Ref<Event> event) {
 			const auto& material_created_event = std::static_pointer_cast<MaterialCreatedEvent>(event);
-			return ResourceManager::Instance().OnMaterialCreated(material_created_event->material);
+			return ResourceManager::Instance().OnResourceCreated<Material>(material_created_event->material);
 			});
+
 	}
 
 	void RuntimeResourceLayer::OnDisable()
 	{
 		ResourceManager::Instance().Shutdown();
+	}
+
+	void RuntimeResourceLayer::OnDebugRender()
+	{
+		ImGui::Begin("Resources");
+
+		ResourceManager& rm = ResourceManager::Instance();
+
+		ImGui::Text("Meshes: %d", rm.Cache<Mesh>().size());
+		ImGui::Text("Materials: %d", rm.Cache<Material>().size());
+		ImGui::Text("Textures: %d", rm.Cache<Texture>().size());
+
+		ImGui::End();
 	}
 }

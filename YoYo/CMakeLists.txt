@@ -17,6 +17,8 @@ add_library(YoYo SHARED
     src/Math/Math.cpp
     src/Math/MathTypes.h
     src/Math/MathTypes.cpp
+    src/Math/Quaternion.h
+    src/Math/Quaternion.cpp
     src/Math/MatrixTransform.h
     src/Math/MatrixTransform.cpp
     src/Math/Random.h
@@ -57,6 +59,8 @@ add_library(YoYo SHARED
 
     src/Renderer/Renderer.h
     src/Renderer/Renderer.cpp
+    src/Renderer/RenderPass.h
+    src/Renderer/RenderPass.cpp
     src/Renderer/Shader.h
     src/Renderer/Shader.cpp
     src/Renderer/Material.h

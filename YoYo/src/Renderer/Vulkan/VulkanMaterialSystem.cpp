@@ -12,6 +12,7 @@
 #include "VulkanTexture.h"
 
 #include "Resource/ResourceEvent.h"
+#include "Resource/ResourceManager.h"
 
 namespace yoyo
 {
@@ -75,7 +76,7 @@ namespace yoyo
 
         // TODO: Give default main texture value or send to untextured material
         VkDescriptorSet textures_set = {};
-        material->descriptors[MeshPassType::Forward][MATERIAL_MAIN_TEXTURE_DESCRIPTOR_SET_INDEX].set = textures_set;
+        material->descriptors[MeshPassType::Forward][MATERIAL_TEXTURE_SET_INDEX].set = textures_set;
 
         // TODO: move to shader pass loop
         {
@@ -134,7 +135,7 @@ namespace yoyo
         builder.tesselation_state = {};
 
         // Build descriptor set layouts
-        std::vector<VkDescriptorSetLayout> descriptor_layouts;
+        std::vector<VkDescriptorSetLayout> descriptor_layouts(effect->set_infos.size());
         for (VulkanDescriptorSetInformation& descriptor : effect->set_infos)
         {
             // Build descriptor set layouts
@@ -155,7 +156,7 @@ namespace yoyo
             }
 
             builder.Build(nullptr, &descriptor.descriptor_set_layout);
-            descriptor_layouts.push_back(descriptor.descriptor_set_layout);
+            descriptor_layouts[descriptor.index] = descriptor.descriptor_set_layout;
         }
 
         VkPipelineLayoutCreateInfo pipeline_layout_info = vkinit::PipelineLayoutCreateInfo();
@@ -188,23 +189,39 @@ namespace yoyo
 
     void VulkanMaterialSystem::UpdateMaterial(Ref<VulkanMaterial> material)
     {
-        if((material->DirtyFlags() & MaterialDirtyFlags::TextureChange) == MaterialDirtyFlags::TextureChange)
+        if((material->DirtyFlags() & MaterialDirtyFlags::Texture) == MaterialDirtyFlags::Texture)
         {
             VkDescriptorImageInfo main_texture = {};
             main_texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             main_texture.imageView = std::static_pointer_cast<VulkanTexture>(material->MainTexture())->image_view;
             main_texture.sampler = m_linear_sampler;
 
+            VkDescriptorImageInfo specular_texture = {};
+            if(material->GetTexture((int)MaterialTextureType::SpecularMap))
+            {
+                specular_texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                specular_texture.imageView = std::static_pointer_cast<VulkanTexture>(material->GetTexture((int)MaterialTextureType::SpecularMap))->image_view;
+                specular_texture.sampler = m_linear_sampler;
+            }
+            else
+            {
+                specular_texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                specular_texture.imageView = std::static_pointer_cast<VulkanTexture>(ResourceManager::Instance().Load<Texture>("assets/textures/white.yo"))->image_view;
+                specular_texture.sampler = m_linear_sampler;
+            }
+
             VkDescriptorSet textures_set = {};
             VkDescriptorSetLayout textures_set_layout = {};
 
             DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
-                .BindImage(0, &main_texture, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+                .BindImage(MATERIAL_MAIN_TEXTURE_DESCRIPTOR_SET_BINDING, &main_texture, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+                .BindImage(MATERIAL_SPECULAR_TEXTURE_DESCRIPTOR_SET_BINDING, &specular_texture, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
                 .Build(&textures_set, &textures_set_layout);
-            material->descriptors[MeshPassType::Forward][MATERIAL_MAIN_TEXTURE_DESCRIPTOR_SET_INDEX].set = textures_set;
+
+            material->descriptors[MeshPassType::Forward][MATERIAL_TEXTURE_SET_INDEX].set = textures_set;
         }
 
-        if((material->DirtyFlags() & MaterialDirtyFlags::PropertyChange) == MaterialDirtyFlags::PropertyChange)
+        if((material->DirtyFlags() & MaterialDirtyFlags::Property) == MaterialDirtyFlags::Property)
         {
             void* property_data;
             VulkanResourceManager::MapMemory(material->m_properties_buffer.allocation, &property_data);

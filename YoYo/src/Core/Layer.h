@@ -26,6 +26,8 @@ namespace yoyo
 
         virtual void OnUpdate(float dt) {};
 
+        virtual void OnDebugRender() {};
+
         void Enable();
         void Disable();
 

@@ -87,6 +87,10 @@ namespace yoyo
 	{
 		mesh->vertex_buffer = CreateBuffer<Vertex>(mesh->vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
+		if(mesh->vertices.size() * sizeof(Vertex) > MAX_MESH_VERTICES * sizeof(Vertex))
+		{
+			YINFO("Mesh vertices %d", mesh->vertices.size());
+		}
 		YASSERT(mesh->vertices.size() * sizeof(Vertex) <= MAX_MESH_VERTICES * sizeof(Vertex), "Mesh exceeds max vertices!");
 
 		void* data;

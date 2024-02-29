@@ -122,10 +122,11 @@ namespace yoyo
 	}
 
 
-    Ref<Shader> Shader::Create(const std::string& name)
+    Ref<Shader> Shader::Create(const std::string& name, bool instanced)
 	{
         Ref<VulkanShader> shader = CreateRef<VulkanShader>();
-        shader->m_id = name;
+        shader->name = name;
+		shader->instanced = instanced;
 
         EventManager::Instance().Dispatch(CreateRef<ShaderCreatedEvent>(shader));
         return shader;

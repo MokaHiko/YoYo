@@ -10,58 +10,36 @@ namespace yoyo
 	template<>
 	YAPI Ref<Texture> ResourceManager::Load<Texture>(const std::string& path)
 	{
-		ResourceId id = FileNameFromFullPath(path);
+		const std::string name = FileNameFromFullPath(path);
 
-		auto texture_it = m_texture_cache.find(id);
-		if(texture_it != m_texture_cache.end())
+		auto& texture_cache = Cache<Texture>();
+		auto texture_it = std::find_if(texture_cache.begin(), texture_cache.end(), [&](const auto& it) {
+			return it.second->name == name;
+		});
+
+		if (texture_it != texture_cache.end())
 		{
 			return texture_it->second;
 		}
 
 		auto texture = Texture::LoadFromAsset(path.c_str());
-		texture->m_id = id;
-		if(!texture)
+		texture->name = name;
+
+		if (!texture)
 		{
 			return nullptr;
 		}
 
-		m_texture_cache[texture->m_id] = texture;
+		texture_cache[texture->m_id] = texture;
 		return texture;
 	}
-
-	template<>
-	YAPI void ResourceManager::Free<Texture>(Ref<Texture> resource)
-	{
-
-	}
-
-    bool ResourceManager::OnTextureCreated(Ref<Texture> texture)
-    {
-        // TODO: Generate string uuid
-        if (texture->ID().empty())
-        {
-        }
-
-        // Check if shader already cached
-		auto texture_it = m_texture_cache.find(texture->ID());
-		if (texture_it != m_texture_cache.end())
-		{
-			return true;
-		}
-
-        // TODO: Check if there is space in cache
-
-		// Cache
-        m_texture_cache[texture->ID()] = texture;
-        return false;
-    }
 
 	Ref<Texture> Texture::LoadFromAsset(const char* asset_path)
 	{
 		hro::Texture hro_texture = {};
-		if(hro_texture.Load(asset_path))
+		if (hro_texture.Load(asset_path))
 		{
-			Ref<Texture> texture = Texture::Create();
+			Ref<Texture> texture = Texture::Create(FileNameFromFullPath(asset_path));
 			texture->width = hro_texture.Info().pixel_size[0];
 			texture->height = hro_texture.Info().pixel_size[1];
 			texture->format = (TextureFormat)((int)hro_texture.Info().format);
