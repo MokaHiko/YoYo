@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NativeScript.h"
+#include "ScriptableEntity.h"
 
 class DemoModelComponent : public ScriptableEntity
 {

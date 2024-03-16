@@ -1,15 +1,16 @@
 #include "SceneGraph.h"
 
+#include <imgui.h>
 #include "SceneGraph.h"
 
 #include "Core/Application.h"
 #include "ECS/Entity.h "
 
-void SceneGraph::Init() 
+void SceneGraph::Init()
 {
 }
 
-void SceneGraph::Shutdown() 
+void SceneGraph::Shutdown()
 {
 	// Unsubscribe
 }
@@ -28,7 +29,7 @@ void SceneGraph::OnComponentCreated(Entity e, TransformComponent& transform)
 
 void SceneGraph::OnComponentDestroyed(Entity e, TransformComponent& transform)
 {
-	if(transform.parent)
+	if (transform.parent)
 	{
 		transform.parent.GetComponent<TransformComponent>().RemoveChild(e);
 	}
@@ -42,7 +43,8 @@ void SceneGraph::OnComponentDestroyed(Entity e, TransformComponent& transform)
 
 void SceneGraph::RecursiveUpdate(TransformComponent& node)
 {
-	for(uint32_t i = 0; i < node.children_count; i++)
+	const std::string name = node.self.GetComponent<TagComponent>().tag;
+	for (uint32_t i = 0; i < node.children_count; i++)
 	{
 		TransformComponent& transform = node.children[i].GetComponent<TransformComponent>();
 
@@ -53,7 +55,7 @@ void SceneGraph::RecursiveUpdate(TransformComponent& node)
 	}
 }
 
-void SceneGraph::OnModelRendererCreated(entt::basic_registry<entt::entity> &, entt::entity entity) 
+void OnModelRendererCreated(entt::basic_registry<entt::entity>&, entt::entity entity)
 {
 	// Entity model_entity(entity, m_scene);
 	// Transform& model_transform = model_entity.GetComponent<Transform>();

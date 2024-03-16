@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NativeScript.h"
+#include "ScriptableEntity.h"
 
 class CameraControllerComponent : public ScriptableEntity
 {
@@ -12,6 +12,8 @@ public:
     virtual void OnStart() override;
 
     virtual void OnUpdate(float dt) override;
+
+    Entity follow = {};
 private:
     float m_movement_speed = 10.0f;
 };

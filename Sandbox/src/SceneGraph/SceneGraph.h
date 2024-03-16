@@ -4,7 +4,7 @@
 #include "ECS/System.h"
 
 // Updates transforms and relative transform components of the scene hierarchy
-class SceneGraph : System<TransformComponent>
+class SceneGraph : public System<TransformComponent>
 {
 public:
     SceneGraph(Scene* scene)
@@ -21,8 +21,5 @@ public:
     virtual void OnComponentCreated(Entity e, TransformComponent& transform) override;
     virtual void OnComponentDestroyed(Entity e, TransformComponent& transform) override;
 private:
-    // Models are hierarchies of meshes
-    void OnModelRendererCreated(entt::basic_registry<entt::entity>&, entt::entity entity);
-
     void RecursiveUpdate(TransformComponent& node);
 };

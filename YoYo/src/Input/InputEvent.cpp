@@ -10,4 +10,10 @@ namespace yoyo
 
 	KeyUpEvent::KeyUpEvent(KeyCode key_released)
 		:key(key_released) {}
+
+	MouseButtonUpEvent::MouseButtonUpEvent(int index)
+		:button(index) {}
+
+	MouseButtonDownEvent::MouseButtonDownEvent(int index)
+		:button(index) {}
 };

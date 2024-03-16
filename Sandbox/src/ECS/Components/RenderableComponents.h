@@ -32,6 +32,7 @@ struct NewCameraComponent
 
 struct MeshRendererComponent
 {
+    MeshRendererComponent(const std::string& mesh_name, const std::string& material_name);
     MeshRendererComponent();
     ~MeshRendererComponent();
 

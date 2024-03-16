@@ -26,7 +26,7 @@ namespace yoyo
 
         virtual void OnUpdate(float dt) override;
 
-        virtual void OnDebugRender() override;
+        virtual void OnImGuiRender() override;
 
         LayerType(RendererLayer)
     private:

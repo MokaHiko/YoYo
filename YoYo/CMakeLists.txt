@@ -97,11 +97,11 @@ add_subdirectory(vendor/Hurno)
 find_package(Vulkan REQUIRED)
 file(GLOB IMGUI_SOURCES "vendor/ImGui/*.cpp" "vendor/ImGui/backends/imgui_impl_vulkan.cpp" "vendor/ImGui/backends/imgui_impl_sdl2.cpp")
 file(GLOB IMGUI_HEADERS "vendor/ImGui/*.h" "vendor/ImGui/backends/imgui_impl_vulkan.h" "vendor/ImGui/backends/imgui_impl_sdl2.h")
-add_library(imgui STATIC ${IMGUI_HEADERS} ${IMGUI_SOURCES})
-target_include_directories(imgui PUBLIC vendor/ImGui vendor/ImGui/backends)
-target_link_libraries(imgui PUBLIC Vulkan::Vulkan SDL2::SDL2)
+add_library(ImGui SHARED ${IMGUI_HEADERS} ${IMGUI_SOURCES})
+target_include_directories(ImGui PUBLIC vendor/ImGui vendor/ImGui/backends)
+target_link_libraries(ImGui PUBLIC Vulkan::Vulkan SDL2::SDL2)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC Hurno imgui)
+target_link_libraries(${PROJECT_NAME} PUBLIC Hurno ImGui)
 
 # TODO Detect build type
 if(true)

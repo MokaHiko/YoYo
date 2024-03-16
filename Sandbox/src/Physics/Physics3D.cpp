@@ -2,15 +2,34 @@
 
 #include <Core/Log.h>
 #include <Core/Time.h>
+#include <Events/Event.h>
 
 #include "ECS/Components/Components.h"
+#include "PhysicsEvents.h"
+#include "Collider.h"
 
 namespace psx
 {
 	using namespace physx;
 
-	static PxReal stackZ = 10.0f;
+	static PxFilterFlags contactReportFilterShader(PxFilterObjectAttributes attributes0, PxFilterData filterData0, PxFilterObjectAttributes attributes1, PxFilterData filterData1, PxPairFlags& pairFlags, const void* constantBlock, PxU32 constantBlockSize)
+	{
+		PX_UNUSED(attributes0);
+		PX_UNUSED(attributes1);
+		PX_UNUSED(filterData0);
+		PX_UNUSED(filterData1);
+		PX_UNUSED(constantBlockSize);
+		PX_UNUSED(constantBlock);
 
+		// all initial and persisting reports for everything, with per-point data
+		pairFlags = PxPairFlag::eSOLVE_CONTACT | PxPairFlag::eDETECT_DISCRETE_CONTACT
+			| PxPairFlag::eNOTIFY_TOUCH_FOUND
+			| PxPairFlag::eNOTIFY_TOUCH_PERSISTS
+			| PxPairFlag::eNOTIFY_CONTACT_POINTS;
+		return PxFilterFlag::eDEFAULT;
+	}
+
+	static PxReal stackZ = 10.0f;
 	PxRigidDynamic* PhysicsWorld::CreateDynamic(const PxTransform& t, const PxGeometry& geometry, const PxVec3& velocity)
 	{
 		PxRigidDynamic* dynamic = PxCreateDynamic(*m_physics, t, geometry, *m_material, 10.0f);
@@ -37,6 +56,23 @@ namespace psx
 		shape->release();
 	}
 
+	void PhysicsWorld::AttachBoxShape(RigidBodyComponent& rb, const yoyo::Vec3& extents, PhysicsMaterial* material)
+	{
+		using namespace physx;
+
+		// TODO: Cache Shape: 
+		PxShape* shape = m_physics->createShape(PxBoxGeometry({ extents.x, extents.y, extents.z }), *m_material);
+
+		rb.actor->attachShape(*shape);
+
+		shape->release();
+	}
+
+	PhysicsWorld::PhysicsWorld(Scene* scene)
+		:System<RigidBodyComponent>(scene)
+	{
+	}
+
 	void PhysicsWorld::Init()
 	{
 		m_foundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_allocator, m_errorCallback);
@@ -56,8 +92,11 @@ namespace psx
 		scene_desc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
 		m_dispatcher = PxDefaultCpuDispatcherCreate(2);
 		scene_desc.cpuDispatcher = m_dispatcher;
-		scene_desc.filterShader = PxDefaultSimulationFilterShader;
+		scene_desc.filterShader = contactReportFilterShader;
 		m_scene = m_physics->createScene(scene_desc);
+
+		m_simulation_event_callback = Y_NEW SimulationEventCallback();
+		m_scene->setSimulationEventCallback(m_simulation_event_callback);
 
 		PxPvdSceneClient* pvd_client = m_scene->getScenePvdClient();
 		if (pvd_client)
@@ -68,9 +107,12 @@ namespace psx
 		}
 
 		m_material = m_physics->createMaterial(0.5f, 0.5f, 0.6f);
-
 		PxRigidStatic* groundPlane = PxCreatePlane(*m_physics, PxPlane(0, 1, 0, 0), *m_material);
 		m_scene->addActor(*groundPlane);
+
+		// Init subsystems
+		m_box_collider_system = CreateRef<BoxColliderSystem>(GetScene(), *this);
+		m_box_collider_system->Init();
 
 		// for (PxU32 i = 0;i < 5;i++)
 		// {
@@ -83,6 +125,8 @@ namespace psx
 
 	void PhysicsWorld::Shutdown()
 	{
+		m_box_collider_system->Shutdown();
+
 		PX_RELEASE(m_physics);
 		PX_RELEASE(m_dispatcher);
 		PX_RELEASE(m_physics);
@@ -101,7 +145,7 @@ namespace psx
 	{
 		{
 			yoyo::ScopedTimer profiler([&](const yoyo::ScopedTimer& timer) {
-					// YINFO("Physics time %.5fms", timer.delta * 1000.0f);
+				// YINFO("Physics time %.5fms", timer.delta * 1000.0f);
 			});
 
 			m_scene->simulate(1.0f / 60.0f);
@@ -114,7 +158,7 @@ namespace psx
 			{
 				Entity e(entity, GetScene());
 				TransformComponent& transform = e.GetComponent<TransformComponent>();
-				RigidBodyComponent& rb = e.GetComponent<RigidBodyComponent>();
+				const RigidBodyComponent& rb = e.GetComponent<RigidBodyComponent>();
 
 				PxTransform t = rb.actor->getGlobalPose();
 				transform.position = { t.p.x, t.p.y, t.p.z };
@@ -127,25 +171,16 @@ namespace psx
 	{
 		using namespace physx;
 
-		// TODO: Cache shapes
-		float half_extent = 1.0f;
-		PxShape* shape = m_physics->createShape(PxBoxGeometry(half_extent, half_extent, half_extent), *m_material);
-
 		const TransformComponent& transform = e.GetComponent<TransformComponent>();
 
-		PxQuat q = { 0, 0, 0, 1 };
-		q *= PxGetRotXQuat(yoyo::DegToRad(transform.rotation.x));
-		q *= PxGetRotYQuat(yoyo::DegToRad(transform.rotation.y));
-		q *= PxGetRotZQuat(yoyo::DegToRad(transform.rotation.z));
-
-		PxTransform t = {transform.position.x, transform.position.y, transform.position.z, q};
+		PxQuat q = { transform.quat_rotation.x, transform.quat_rotation.y, transform.quat_rotation.z, transform.quat_rotation.w };
+		PxTransform t = { transform.position.x, transform.position.y, transform.position.z, q };
 
 		rb.actor = m_physics->createRigidDynamic(t);
-		rb.actor->userData = (void*)(e.Id());
-		rb.actor->attachShape(*shape);
+		rb.actor->userData = (void*)(uint64_t)(e.Id());
 		m_scene->addActor(*rb.actor);
 
-		shape->release();
+		PxRigidBodyExt::updateMassAndInertia(*(rb.actor->is<PxRigidBody>()), 10.0f);
 	}
 
 	void PhysicsWorld::OnComponentDestroyed(Entity e, RigidBodyComponent& rb)
@@ -158,36 +193,78 @@ namespace psx
 		rb.actor->release();
 	}
 
-	void SimulationEventCallback::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs)
+	void SimulationEventCallback::onTrigger(physx::PxTriggerPair* pairs, physx::PxU32 count)
 	{
-		// // Retrieve the current poses and velocities of the two actors involved in the contact event.
-		// {
-		// 	const PxTransform body0PoseAtEndOfSimulateStep = pairHeader.actors[0]->getGlobalPose();
-		// 	const PxTransform body1PoseAtEndOfSimulateStep = pairHeader.actors[1]->getGlobalPose();
-
-		// 	const PxVec3 body0LinVelAtEndOfSimulateStep = pairHeader.actors[0]->is<PxRigidDynamic>() ? pairHeader.actors[0]->is<PxRigidDynamic>()->getLinearVelocity() : PxVec3(PxZero);
-		// 	const PxVec3 body1LinVelAtEndOfSimulateStep = pairHeader.actors[0]->is<PxRigidDynamic>() ? pairHeader.actors[1]->is<PxRigidDynamic>()->getLinearVelocity() : PxVec3(PxZero);
-
-		// 	const PxVec3 body0AngVelAtEndOfSimulateStep = pairHeader.actors[0]->is<PxRigidDynamic>() ? pairHeader.actors[0]->is<PxRigidDynamic>()->getAngularVelocity() : PxVec3(PxZero);
-		// 	const PxVec3 body1AngVelAtEndOfSimulateStep = pairHeader.actors[0]->is<PxRigidDynamic>() ? pairHeader.actors[1]->is<PxRigidDynamic>()->getAngularVelocity() : PxVec3(PxZero);
-		// }
-
-		// // Retrieve the poses and velocities of the two actors involved in the contact event as they were
-		// // when the contact event was detected.
-
-		// PxContactPairExtraDataIterator iter(pairHeader.extraDataStream, pairHeader.extraDataStreamSize);
-		// while (iter.nextItemSet())
-		// {
-		// 	const PxTransform body0PoseAtContactEvent = iter.eventPose->globalPose[0];
-		// 	const PxTransform body1PoseAtContactEvent = iter.eventPose->globalPose[1];
-
-		// 	const PxVec3 body0LinearVelocityAtContactEvent = iter.preSolverVelocity->linearVelocity[0]
-		// 		const PxVec3 body1LinearVelocityAtContactEvent = iter.preSolverVelocity->linearVelocity[1];
-
-		// 	const PxVec3 body0AngularVelocityAtContactEvent = iter.preSolverVelocity->angularVelocity[0]
-		// 		const PxVec3 body1AngularVelocityAtContactEvent = iter.preSolverVelocity->angularVelocity[1];
-		// }
+		YINFO("physics trigger event!");
 	}
 
+	void SimulationEventCallback::onContact(const physx::PxContactPairHeader& pairHeader, const physx::PxContactPair* pairs, physx::PxU32 nbPairs)
+	{
+		//PX_UNUSED((pairHeader));
+		const PxTransform body0PoseAtEndOfSimulateStep = pairHeader.actors[0]->is<PxRigidActor>()->getGlobalPose();
+		const PxTransform body1PoseAtEndOfSimulateStep = pairHeader.actors[1]->is<PxRigidActor>()->getGlobalPose();
 
+		uint32_t e1 = (uint32_t)pairHeader.actors[0]->userData;
+		uint32_t e2 = (uint32_t)pairHeader.actors[1]->userData;
+
+		Collision col {};
+		col.a = e1;
+		col.b = e2;
+
+		static std::vector<PxContactPairPoint> contactPoints;
+		for(PxU32 i=0;i<nbPairs;i++)
+		{
+			PxU32 contactCount = pairs[i].contactCount;
+			if(contactCount)
+			{
+				contactPoints.resize(contactCount);
+				pairs[i].extractContacts(&contactPoints[0], contactCount);
+
+				for(PxU32 j=0;j<contactCount;j++)
+				{
+					//gContactPositions.push_back(contactPoints[j].position);
+					//gContactImpulses.push_back(contactPoints[j].impulse);
+					col.collision_points.push_back({{contactPoints[j].position.x, contactPoints[j].position.y, contactPoints[j].position.z}, {contactPoints[j].normal.x, contactPoints[j].normal.y, contactPoints[j].normal.z}});
+				}
+			}
+		}
+
+		// TODO: Cache common physics events
+		 static Ref<CollisionEvent> col_event = CreateRef<CollisionEvent>(col);
+		 col_event->collision = col;
+		yoyo::EventManager::Instance().Dispatch(col_event);
+
+		//// Retrieve the current poses and velocities of the two actors involved in the contact event.
+		//{
+		//	const PxTransform body0PoseAtEndOfSimulateStep = pairHeader.actors[0]->is<PxRigidActor>()->getGlobalPose();
+		//	const PxTransform body1PoseAtEndOfSimulateStep = pairHeader.actors[1]->is<PxRigidActor>()->getGlobalPose();
+
+		//	const PxVec3 body0LinVelAtEndOfSimulateStep = pairHeader.actors[0]->is<PxRigidDynamic>() ? pairHeader.actors[0]->is<PxRigidDynamic>()->getLinearVelocity() : PxVec3(PxZero);
+		//	const PxVec3 body1LinVelAtEndOfSimulateStep = pairHeader.actors[0]->is<PxRigidDynamic>() ? pairHeader.actors[1]->is<PxRigidDynamic>()->getLinearVelocity() : PxVec3(PxZero);
+
+		//	const PxVec3 body0AngVelAtEndOfSimulateStep = pairHeader.actors[0]->is<PxRigidDynamic>() ? pairHeader.actors[0]->is<PxRigidDynamic>()->getAngularVelocity() : PxVec3(PxZero);
+		//	const PxVec3 body1AngVelAtEndOfSimulateStep = pairHeader.actors[0]->is<PxRigidDynamic>() ? pairHeader.actors[1]->is<PxRigidDynamic>()->getAngularVelocity() : PxVec3(PxZero);
+
+		//	auto e1 = (uint32_t)(pairHeader.actors[0]->userData);
+		//	auto e2 = (uint32_t)(pairHeader.actors[1]->userData);
+		//	YINFO("ASSSSS!");
+		//	YINFO("%d - %d collision", e1, e2);
+		//}
+
+		//// Retrieve the poses and velocities of the two actors involved in the contact event as they were
+		//// when the contact event was detected.
+
+		//PxContactPairExtraDataIterator iter(pairHeader.extraDataStream, pairHeader.extraDataStreamSize);
+		//while (iter.nextItemSet())
+		//{
+		//	const PxTransform body0PoseAtContactEvent = iter.eventPose->globalPose[0];
+		//	const PxTransform body1PoseAtContactEvent = iter.eventPose->globalPose[1];
+
+		//	const PxVec3 body0LinearVelocityAtContactEvent = iter.preSolverVelocity->linearVelocity[0];
+		//	const PxVec3 body1LinearVelocityAtContactEvent = iter.preSolverVelocity->linearVelocity[1];
+
+		//	const PxVec3 body0AngularVelocityAtContactEvent = iter.preSolverVelocity->angularVelocity[0];
+		//	const PxVec3 body1AngularVelocityAtContactEvent = iter.preSolverVelocity->angularVelocity[1];
+		//}
+	}
 }

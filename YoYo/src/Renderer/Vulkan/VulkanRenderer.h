@@ -97,7 +97,7 @@ namespace yoyo
 
         VkFramebuffer m_shadow_frame_buffer;
 
-        VkDescriptorSet m_shadow_pass_ds;
+        std::vector<VkDescriptorSet> m_shadow_pass_dsets;
         VkDescriptorSetLayout m_shadow_pass_ds_layout;
 
         // Forward Pass
@@ -134,17 +134,17 @@ namespace yoyo
 
         VkFramebuffer m_forward_frame_buffer;
         VkRenderPass m_forward_pass;
-
-        VkDescriptorSet m_forward_pass_ds;
-        VkDescriptorSetLayout m_forward_pass_ds_layout;
     private:
         // Scene Resources
         AllocatedBuffer<SceneData> m_scene_data_uniform_buffer;
         AllocatedBuffer<DirectionalLight> m_directional_lights_buffer;
-        AllocatedBuffer<ObjectData> m_object_data_buffer;
 
-        AllocatedBuffer<InstancedData> m_instanced_data_buffer;
-        VkDescriptorSet m_instanced_ds;
+        std::vector<AllocatedBuffer<ObjectData>> m_object_data_buffers;
+        std::vector<VkDescriptorSet> m_forward_pass_dsets;
+        VkDescriptorSetLayout m_forward_pass_ds_layout;
+
+        std::vector<AllocatedBuffer<InstancedData>> m_instanced_data_buffers;
+        std::vector<VkDescriptorSet> m_instanced_dsets;
         VkDescriptorSetLayout m_instanced_ds_layout;
 
         void InitSceneResources();

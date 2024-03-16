@@ -27,6 +27,8 @@ namespace yoyo
         virtual void OnEnable() override;
         virtual void OnDisable() override;
 
+        static ImGuiContext* GetContext();
+
         bool OnEvent(Ref<Event> event);
 
         LayerType(InputLayer)

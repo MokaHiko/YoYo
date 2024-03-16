@@ -1,9 +1,15 @@
 #include "Components.h"
 
+#include <Math/Quaternion.h>
 #include <Math/MatrixTransform.h>
 
 #include "Core/Assert.h"
 #include "ECS/EntityImpl.h"
+
+const yoyo::Vec3& TransformComponent::Forward() const
+{
+    return m_forward;
+}
 
 void TransformComponent::AddChild(Entity e)
 {
@@ -69,21 +75,27 @@ void TransformComponent::UpdateModelMatrix()
     {
         model_matrix = LocalModelMatrix();
     }
+
+    // TODO: Clamp
+    // Update euler angles
+    rotation = yoyo::EulerAnglesFromQuat(yoyo::NormalizeQuat(quat_rotation));
+    // if(rotation.x < 0)
+    // {
+    //     rotation.x = 180 - rotation.x;
+    // }
+    // if(rotation.y < 0)
+    // {
+    //     rotation.y = 180 - rotation.y;
+    // }
 }
 
-yoyo::Mat4x4 TransformComponent::LocalModelMatrix() const {
-
+yoyo::Mat4x4 TransformComponent::LocalModelMatrix() {
     // TODO: Matrix consecutive multiplication overload not working
-    //yoyo::Mat4x4 local_model_matrix = yoyo::TranslationMat4x4(position) * yoyo::RotateEulerMat4x4(rotation) * yoyo::ScaleMat4x4(scale);
-    yoyo::Mat4x4 local_model_matrix = yoyo::TranslationMat4x4(position) * yoyo::TransposeMat4x4(yoyo::QuatToMat4x4(quat_rotation)) * yoyo::ScaleMat4x4(scale);
 
+    yoyo::Mat4x4 rot = yoyo::TransposeMat4x4(yoyo::QuatToMat4x4(quat_rotation));
+    yoyo::Mat4x4 local_model_matrix = yoyo::TranslationMat4x4(position) * rot * yoyo::ScaleMat4x4(scale);
 
-    // TODO: switch to quaternions
-    //local_model_matrix = glm::rotate(local_model_matrix, glm::radians(rotation.x), glm::vec3(1.0, 0.0, 0.0));
-    //local_model_matrix = glm::rotate(local_model_matrix, glm::radians(rotation.y), glm::vec3(0.0, 1.0, 0.0));
-    //local_model_matrix = glm::rotate(local_model_matrix, glm::radians(rotation.z), glm::vec3(0.0, 0.0, 1.0));
-
-    //local_model_matrix = glm::scale(local_model_matrix, scale);
+    m_forward = yoyo::Normalize(rot * yoyo::Vec3{0.0f, 0.0f, 1.0f});
 
     return local_model_matrix;
 }

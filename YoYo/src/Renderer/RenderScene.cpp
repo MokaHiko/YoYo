@@ -1,5 +1,7 @@
 #include "RenderScene.h"
 
+#include <Core/Assert.h>
+
 #include "Renderer/Material.h"
 #include "Renderer/Mesh.h"
 
@@ -16,6 +18,8 @@ namespace yoyo
 
 	void RenderScene::AddMeshPassObject(Ref<MeshPassObject> obj)
 	{
+		YASSERT(obj->m_id == NULL_RENDER_SCENE_ID, "Mesh object already added!");
+
 		// Generate Render SceneId
 		obj->m_id = GenerateSceneId();
 

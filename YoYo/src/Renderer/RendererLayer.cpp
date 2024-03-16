@@ -492,7 +492,7 @@ namespace yoyo
 
         for (auto rit = m_app->Layers().rbegin(); rit != m_app->Layers().rend(); rit++)
         {
-            (*rit)->OnDebugRender();
+            (*rit)->OnImGuiRender();
         }
 
         imgui_layer->OnMainPassEnd(ctx);
@@ -500,7 +500,7 @@ namespace yoyo
 
         m_renderer->EndFrame();
     }
-	void RendererLayer::OnDebugRender()
+	void RendererLayer::OnImGuiRender()
 	{
 		ImGui::Begin("Renderer");
 

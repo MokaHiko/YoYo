@@ -28,7 +28,12 @@ namespace yoyo
         VkSamplerCreateInfo linear_sampler_info = vkinit::SamplerCreateInfo(VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
         vkCreateSampler(m_device, &linear_sampler_info, nullptr, &m_linear_sampler);
 
+        m_nearest_sampler = {};
+        VkSamplerCreateInfo nearest_sampler_info = vkinit::SamplerCreateInfo(VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+        vkCreateSampler(m_device, &nearest_sampler_info, nullptr, &m_nearest_sampler);
+
         m_deletion_queue->Push([=]() {
+            vkDestroySampler(m_device, m_nearest_sampler, nullptr);
             vkDestroySampler(m_device, m_linear_sampler, nullptr);
         });
 
@@ -194,7 +199,24 @@ namespace yoyo
             VkDescriptorImageInfo main_texture = {};
             main_texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             main_texture.imageView = std::static_pointer_cast<VulkanTexture>(material->MainTexture())->image_view;
-            main_texture.sampler = m_linear_sampler;
+
+            switch(material->MainTexture()->GetSamplerType())
+            {
+                case(TextureSamplerType::Linear):
+                {
+                    main_texture.sampler = m_linear_sampler;
+                }break;
+                case(TextureSamplerType::Nearest):
+                {
+                    main_texture.sampler = m_nearest_sampler;
+                }break;
+                default:
+                {
+                    YERROR("Uknown sampler type for texture %s!", material->MainTexture()->name.c_str());
+                    YERROR("Falling back to default linear sampler");
+                    main_texture.sampler = m_nearest_sampler;
+                }break;
+            }
 
             VkDescriptorImageInfo specular_texture = {};
             if(material->GetTexture((int)MaterialTextureType::SpecularMap))

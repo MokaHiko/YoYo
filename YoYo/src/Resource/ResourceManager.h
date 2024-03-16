@@ -85,7 +85,7 @@ namespace yoyo {
         virtual void OnEnable() override;
         virtual void OnDisable() override;
 
-        virtual void OnDebugRender() override;
+        virtual void OnImGuiRender() override;
 
         LayerType(RuntimeResourceLayer)
     };

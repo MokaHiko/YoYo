@@ -2,6 +2,7 @@
 #include "InputEvent.h"
 
 #include "Core/Log.h"
+#include "Core/Assert.h"
 
 namespace yoyo
 {
@@ -30,6 +31,14 @@ namespace yoyo
 		});
 
 		EventManager::Instance().Subscribe(KeyUpEvent::s_event_type, [&](Ref<Event> event){
+			return OnEvent(event);
+		});
+
+		EventManager::Instance().Subscribe(MouseButtonDownEvent::s_event_type, [&](Ref<Event> event){
+			return OnEvent(event);
+		});
+
+		EventManager::Instance().Subscribe(MouseButtonUpEvent::s_event_type, [&](Ref<Event> event){
 			return OnEvent(event);
 		});
 	}
@@ -65,6 +74,30 @@ namespace yoyo
 
 			return true;
 		}
+		else if (event->Type() == MouseButtonDownEvent::s_event_type)
+		{
+			Ref<MouseButtonDownEvent> mouse_button_down_event = std::static_pointer_cast<MouseButtonDownEvent>(event);
+			int mouse_button = mouse_button_down_event->button;
+
+			if (Input::MouseButtons[(int)mouse_button])
+			{
+				Input::LastMouseButtons[(int)mouse_button] = true;
+			}
+
+			Input::MouseButtons[(int)mouse_button] = true;
+			return true;
+		}
+		else if (event->Type() == MouseButtonUpEvent::s_event_type)
+		{
+			Ref<MouseButtonUpEvent> mouse_button_up_event = std::static_pointer_cast<MouseButtonUpEvent>(event);
+
+			int mouse_button = mouse_button_up_event->button;
+
+			Input::LastMouseButtons[mouse_button] = false;
+			Input::MouseButtons[mouse_button] = false;
+
+			return true;
+		}
 
 		return false;
 	}
@@ -77,6 +110,23 @@ namespace yoyo
 			Input::LastKeys[(int)(key)] = true;
 			return true;
 		}
+		return false;
+	}
+
+	bool Input::GetMouseButton(int index)
+	{
+		YASSERT(index > 0 && index < 4);
+		return Input::MouseButtons[index];
+	}
+
+	bool Input::GetMouseButtonDown(KeyCode key)
+	{
+		if(Input::MouseButtons[(int)key] && !(Input::LastMouseButtons[(int)(key)]))
+		{
+			Input::LastMouseButtons[(int)(key)] = true;
+			return true;
+		}
+
 		return false;
 	}
 

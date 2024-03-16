@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NativeScript.h"
+#include "ScriptableEntity.h"
 
 class DestructableComponent : public ScriptableEntity
 {
@@ -12,4 +12,6 @@ public:
     virtual void OnStart() override;
 
     virtual void OnUpdate(float dt) override;
+
+    virtual void OnCollisionEnter(const psx::Collision& col);
 };

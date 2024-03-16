@@ -92,6 +92,22 @@ namespace yoyo
                 EventManager::Instance().Dispatch(key_up_event);
             }break;
 
+            case(SDL_MOUSEBUTTONDOWN):
+            {
+                static Ref<MouseButtonDownEvent> mouse_up_event = CreateRef<MouseButtonDownEvent>((int)event.button.button);
+                mouse_up_event->button = (int)event.button.button;
+
+                EventManager::Instance().Dispatch(mouse_up_event);
+            }break;
+
+            case(SDL_MOUSEBUTTONUP):
+            {
+                static Ref<MouseButtonUpEvent> mouse_up_event = CreateRef<MouseButtonUpEvent>((int)event.button.button);
+                mouse_up_event->button = (int)event.button.button;
+
+                EventManager::Instance().Dispatch(mouse_up_event);
+            }break;
+
             default:
             {
 

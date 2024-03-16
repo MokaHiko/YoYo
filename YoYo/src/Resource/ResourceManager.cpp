@@ -130,7 +130,7 @@ namespace yoyo
 		ResourceManager::Instance().Shutdown();
 	}
 
-	void RuntimeResourceLayer::OnDebugRender()
+	void RuntimeResourceLayer::OnImGuiRender()
 	{
 		ImGui::Begin("Resources");
 

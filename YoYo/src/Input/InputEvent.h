@@ -26,4 +26,26 @@ namespace yoyo
 
         EVENT_TYPE(KeyUpEvent)
     };
+
+    class MouseButtonUpEvent: public Event
+    {
+    public:
+        MouseButtonUpEvent(int index);
+        virtual ~MouseButtonUpEvent() = default;
+
+        int button;
+
+        EVENT_TYPE(MouseButtonUpEvent)
+    };
+
+    class MouseButtonDownEvent: public Event
+    {
+    public:
+        MouseButtonDownEvent(int index);
+        virtual ~MouseButtonDownEvent() = default;
+
+        int button;
+
+        EVENT_TYPE(MouseButtonDownEvent)
+    };
 }

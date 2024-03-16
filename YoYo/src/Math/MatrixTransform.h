@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Math.h"
+#include "Quaternion.h"
 
 namespace yoyo
 {

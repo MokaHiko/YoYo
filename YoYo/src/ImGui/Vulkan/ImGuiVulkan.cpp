@@ -13,10 +13,12 @@
 #include "Renderer/RendererLayer.h"
 
 #include "Renderer/Vulkan/VulkanRenderer.h"
+#include "Core/Assert.h"
 
 namespace yoyo
 {
 	static VulkanRenderer* s_renderer;
+	static ImGuiContext* s_context;
 
 	void ImGuiLayer::OnAttach()
 	{
@@ -28,6 +30,12 @@ namespace yoyo
 		{
 			OnDisable();
 		}
+	}
+
+    ImGuiContext* ImGuiLayer::GetContext()
+	{
+		yoyo::Assert(s_context != nullptr, "ImGui context not created!");
+		return s_context;
 	}
 
 	void ImGuiLayer::OnEnable()
@@ -64,7 +72,7 @@ namespace yoyo
 		// 2: initialize imgui library
 
 		// this initializes the core structures of imgui
-		ImGui::CreateContext();
+		s_context = ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 		(void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;

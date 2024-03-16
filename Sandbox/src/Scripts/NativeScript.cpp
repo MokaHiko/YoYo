@@ -1,39 +1,152 @@
 #include "NativeScript.h"
 
-ScriptableEntity::ScriptableEntity(Entity e)
-	:m_entity(e) {}
+#include "ScriptEvents.h"
+#include "Physics/PhysicsEvents.h"
 
-ScriptableEntity::~ScriptableEntity()
+void ScriptingSystem::Init()
 {
+	yoyo::EventManager::Instance().Subscribe(ScriptCreatedEvent::s_event_type, [&](Ref<yoyo::Event> event) {
+		const Ref<ScriptCreatedEvent>& script_event = std::static_pointer_cast<ScriptCreatedEvent>(event);
+		OnScriptCreatedCallback(script_event->script);
+		return false;
+	});
 
+	yoyo::EventManager::Instance().Subscribe(psx::CollisionEvent::s_event_type, [&](Ref<yoyo::Event> event) {
+		const Ref<psx::CollisionEvent>& col_event = std::static_pointer_cast<psx::CollisionEvent>(event);
+		OnCollisionCallback(col_event->collision);
+		return false;
+	});
 }
 
-Entity ScriptableEntity::Instantiate(const std::string& name)
+void ScriptingSystem::Shutdown()
 {
-	auto e = m_entity.m_scene->Instantiate(name);
-	return e;
+	for (ScriptableEntity* script : m_script_cache)
+	{
+		delete script;
+	}
 }
 
-// void ScriptableEntity::StartProcess(Ref<Process> process)
-// {
-// 	if (!process)
-// 	{
-// 		return;
-// 	}
+void ScriptingSystem::Update(float dt)
+{
+	for (auto entity : GetScene()->Registry().view<TransformComponent, NativeScriptComponent>())
+	{
+		Entity e(entity, GetScene());
+		NativeScriptComponent& ns = e.GetComponent<NativeScriptComponent>();
 
-// 	if (process->IsAlive())
-// 	{
-// 		MRS_ERROR("Process already started!");
-// 	}
+		for (int i = 0; i < ns.m_scripts_count; i++)
+		{
+			if (!ns.m_scripts[i]->IsActive())
+			{
+				continue;
+			}
 
-// 	static ProcessLayer* process_layer = dynamic_cast<ProcessLayer*>(Application::Instance().FindLayer("ProcessLayer"));
+			if(!ns.m_scripts[i]->started)
+			{
+				ns.m_scripts[i]->OnStart();
+				ns.m_scripts[i]->started = true;
+			}
 
-// 	if (process_layer)
-// 	{
-// 		process_layer->AttachProcess(process);
-// 	}
-// 	else
-// 	{
-// 		MRS_ERROR("Process Layer not found!");
-// 	}
-// }
+			ns.m_scripts[i]->OnUpdate(dt);
+		}
+	}
+}
+
+void ScriptingSystem::OnComponentCreated(Entity e, NativeScriptComponent& native_script)
+{
+}
+
+void ScriptingSystem::OnComponentDestroyed(Entity e, NativeScriptComponent& native_script)
+{
+}
+
+void ScriptingSystem::OnScriptCreatedCallback(ScriptableEntity* script)
+{
+	if(!script->GameObject().HasComponent<NativeScriptComponent>())
+	{
+		auto& ns = script->GameObject().AddComponent<NativeScriptComponent>();
+		ns.AddScript(script);
+	}
+	else
+	{
+		NativeScriptComponent& ns = script->GameObject().GetComponent<NativeScriptComponent>();
+		ns.AddScript(script);
+	}
+}
+
+void ScriptingSystem::OnCollisionCallback(psx::Collision& col)
+{
+	Entity e1(col.a, GetScene());
+	Entity e2(col.b, GetScene());
+
+	if (e1.HasComponent<NativeScriptComponent>())
+	{
+		NativeScriptComponent& ns = e1.GetComponent<NativeScriptComponent>();
+
+		for (int i = 0; i < ns.m_scripts_count; i++)
+		{
+			if (!ns.m_scripts[i]->IsActive())
+			{
+				continue;
+			}
+
+			ns.m_scripts[i]->OnCollisionEnter(col);
+		}
+	}
+
+	if (e2.HasComponent<NativeScriptComponent>())
+	{
+		NativeScriptComponent& ns = e2.GetComponent<NativeScriptComponent>();
+		std::swap(col.a, col.b);
+
+		for (int i = 0; i < ns.m_scripts_count; i++)
+		{
+			if (!ns.m_scripts[i]->IsActive())
+			{
+				continue;
+			}
+
+			ns.m_scripts[i]->OnCollisionEnter(col);
+		}
+	}
+}
+
+NativeScriptComponent::NativeScriptComponent() {}
+
+void NativeScriptComponent::AddScript(ScriptableEntity* script)
+{
+	YASSERT(script != nullptr, "Cannot add invalid script!");
+	auto it = std::find(m_scripts.begin(), m_scripts.end(), script);
+
+	if (it != m_scripts.end())
+	{
+		YERROR("Entity already has script!");
+	}
+	else
+	{
+		YASSERT(m_insert_index < MAX_SCRIPTS, "Maximum scripts on entity reached!");
+		script->ToggleActive(true);
+
+		m_scripts[m_insert_index++] = script;
+		m_scripts_count++;
+	}
+}
+
+void NativeScriptComponent::RemoveScript(ScriptableEntity* script)
+{
+	//TODO: Add remove script flag
+	auto it = std::find(m_scripts.begin(), m_scripts.end(), script);
+
+	if (it != m_scripts.end())
+	{
+		int index = std::distance(m_scripts.begin(), it);
+
+		delete m_scripts[index];
+		m_scripts[index] = nullptr;
+	}
+
+	// TODO: Make sure scripts array is contiguos
+	if (--m_scripts_count)
+	{
+
+	}
+}

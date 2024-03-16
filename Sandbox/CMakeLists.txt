@@ -19,6 +19,10 @@ add_executable(${PROJECT_NAME}
 	src/ECS/Components/RenderableComponents.h
 	src/ECS/Components/RenderableComponents.cpp
 
+	src/Scripts/ScriptableEntity.h
+	src/Scripts/ScriptableEntity.cpp
+	src/Scripts/ScriptEvents.h
+	src/Scripts/ScriptEvents.cpp
 	src/Scripts/NativeScript.h
 	src/Scripts/NativeScript.cpp
 
@@ -27,9 +31,14 @@ add_executable(${PROJECT_NAME}
 
 	src/Physics/PhysicsTypes.h
 	src/Physics/PhysicsTypes.cpp
+	src/Physics/Collider.h
+	src/Physics/Collider.cpp
+	src/Physics/PhysicsEvents.h
+	src/Physics/PhysicsEvents.cpp
 	src/Physics/Physics3D.h
 	src/Physics/Physics3D.cpp
 
+	src/Sandbox.h
 	src/Sandbox.cpp
 
 	src/Scripts/CameraController.h
@@ -44,10 +53,31 @@ add_executable(${PROJECT_NAME}
 	src/Scripts/Sun.h
 	src/Scripts/Sun.cpp
 
+	src/Scripts/VillageManager.h
+	src/Scripts/VillageManager.cpp
 	src/Scripts/Villager.h
 	src/Scripts/Villager.cpp
 )
 add_subdirectory(vendor/entt)
+
+if(true)
+    add_compile_definitions(Y_DEBUG)
+	target_sources(${PROJECT_NAME} PUBLIC 
+		src/Editor/EditorLayer.h
+		src/Editor/EditorLayer.cpp
+		src/Editor/EditorEvents.h
+		src/Editor/EditorEvents.cpp
+
+		src/Editor/Panel/IPanel.h
+		src/Editor/Panel/IPanel.cpp
+
+		src/Editor/Panel/SceneHierarchyPanel.h
+		src/Editor/Panel/SceneHierarchyPanel.cpp
+
+		src/Editor/Panel/InspectorPanel.h
+		src/Editor/Panel/InspectorPanel.cpp
+	)
+endif()
 
 # TODO: Make PhysX library platfrom independent
 set(PHYSX_LIB_PATH "Z:/Dev/Libraries/PhysX/physx")
@@ -69,8 +99,8 @@ endif()
 target_include_directories(${PROJECT_NAME} PUBLIC src/  ${PHYSX_LIB_PATH}/include)
 target_link_libraries(${PROJECT_NAME} PUBLIC 
 	YoYo 
-	
 	EnTT
+	ImGui
 
 	PhysXExtensions_static_64
 	PhysXPvdSDK_static_64
@@ -85,7 +115,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 	PhysXCommon_64
 	PhysXFoundation_64
 )
-
 
 add_custom_target(copy_assets ALL
 	COMMAND ${CMAKE_COMMAND} -E copy_directory

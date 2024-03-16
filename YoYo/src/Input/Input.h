@@ -6,6 +6,11 @@
 
 namespace yoyo
 {
+    enum class MouseButton : uint8_t
+    {
+
+    };
+
     enum class KeyCode : uint16_t
     {
     Key_Uknown = 0,
@@ -94,6 +99,12 @@ namespace yoyo
 
         // Returns true during the frame the user starts pressing down the key
         static bool GetKeyDown(KeyCode key);
+
+        // Returns true key is currently pressed 
+        static bool GetMouseButton(int index);
+
+        // Returns true during the frame the user starts pressing down the key
+        static bool GetMouseButtonDown(KeyCode key);
     private:
         friend class InputLayer;
 

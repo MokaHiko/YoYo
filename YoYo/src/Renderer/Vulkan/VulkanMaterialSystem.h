@@ -35,6 +35,7 @@ namespace yoyo
 		Ref<DescriptorLayoutCache> m_descriptor_layout_cache;
     private:
         VkSampler m_linear_sampler;
+        VkSampler m_nearest_sampler;
 
         VkDevice m_device;
         VulkanDeletionQueue* m_deletion_queue;

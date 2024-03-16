@@ -1,33 +1,46 @@
 #pragma once
 
-#include "ECS/Entity.h"
-#include "ECS/EntityImpl.h"
-#include "ECS/Components/Components.h"
+#include "ECS/System.h"
+#include "ScriptableEntity.h"
 
-// Scriptable Entity is the base class that many Unity scripts derive from.
-// class Process;
-class ScriptableEntity
+static const int MAX_SCRIPTS = 10;
+
+class NativeScriptComponent
 {
 public:
-    ScriptableEntity(Entity e);
-    virtual ~ScriptableEntity();
+    NativeScriptComponent();
+    ~NativeScriptComponent() = default;
 
-    virtual void OnCreate() {}
-    virtual void OnStart() {}
-    virtual void OnUpdate(float dt) {}
-
-    virtual void OnCollisionEnter2D(Entity other) {}
-
-    // Gets reference to attached entity's component 
-    template <typename T>
-    T& GetComponent() { return m_entity.GetComponent<T>(); }
-
-    // Insantiates new entity
-    Entity Instantiate(const std::string& name = "");
-
-    // Queues attached entity for destruction
-    // void QueueDestroy() { m_entity.m_scene->QueueDestroy(m_entity);}
+    void AddScript(ScriptableEntity* script);
+    void RemoveScript(ScriptableEntity* script);
 private:
-    //void StartProcess(Ref<Process> process);
-    Entity m_entity = {};
+    friend class ScriptingSystem;
+    std::array<ScriptableEntity*, MAX_SCRIPTS> m_scripts = {};
+
+    int m_scripts_count = 0;
+    int m_insert_index = 0;
+};
+
+class PhysicsWorld;
+class ScriptingSystem : public System<NativeScriptComponent>
+{
+public:
+    ScriptingSystem(Scene* scene, PhysicsWorld* physics_world = nullptr /*If not passed physics event callbacks will not be called */)
+        :System<NativeScriptComponent>(scene), m_physics_world(physics_world){}
+    virtual ~ScriptingSystem() = default;
+
+    virtual void Init() override;
+    virtual void Shutdown() override;
+    virtual void Update(float dt) override;
+
+    virtual void OnComponentCreated(Entity e, NativeScriptComponent& native_script) override;
+    virtual void OnComponentDestroyed(Entity e, NativeScriptComponent& native_script) override;
+
+    void OnScriptCreatedCallback(ScriptableEntity* script);
+private:
+    void OnCollisionCallback(psx::Collision& col);
+private:
+    PhysicsWorld* m_physics_world;
+    // TODO: Script cache
+    std::vector<ScriptableEntity*> m_script_cache;
 };

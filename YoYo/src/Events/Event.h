@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Defines.h"
 #include "Core/Memory.h"
 #include "Platform/Platform.h"
 
@@ -8,7 +9,7 @@ namespace yoyo
     using EventType = uint32_t;
 
     // Base event class
-    class Event
+    class YAPI Event
     {
     public:
         Event() = default;
@@ -17,14 +18,14 @@ namespace yoyo
         virtual const EventType Type() const = 0; // Returns the unique id of the event
     };
 
-#define EVENT_TYPE(type)    const EventType Type() const override {return s_event_type;}\
-                            inline static const EventType s_event_type = Platform::GenerateUUIDV4();\
+#define EVENT_TYPE(type)    const yoyo::EventType Type() const override {return s_event_type;}\
+                            inline static const yoyo::EventType s_event_type = yoyo::Platform::GenerateUUIDV4();\
 
     // An event handler is a funciton that takes in an event and return whether or not an event has been handled
     using EventHandler = std::function<bool(Ref<Event> event)>;
 
     // Singleton event manager class
-    class EventManager
+    class YAPI EventManager
     {
     public:
         static EventManager& Instance()
@@ -47,6 +48,8 @@ namespace yoyo
 
         // TODO: Make thread safe event queue for dispatch
         // void QueueEvent(Ref<Event> event);
+
+        // TODO: Event cache for common events
     private:
         EventManager() = default;
         ~EventManager() = default;

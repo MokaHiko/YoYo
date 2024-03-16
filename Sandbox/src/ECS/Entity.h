@@ -8,6 +8,7 @@ class Entity
 {
 public:
     Entity(entt::entity id, Scene* scene);
+    Entity(uint32_t id, Scene* scene);
     Entity() = default;
 
     // Returns and adds component of type T
@@ -20,7 +21,7 @@ public:
 
     // Returns true if entity has component <T>
     template <typename T>
-    bool HasComponent();
+    bool HasComponent() const;
 
     // Returns component of type <T>
     template <typename T>

@@ -160,6 +160,9 @@ namespace yoyo
         vkWaitForFences(m_device, 1, &m_frame_context[m_frame_count].render_fence, VK_TRUE, 1000000000);
         vkResetFences(m_device, 1, &m_frame_context[m_frame_count].render_fence);
 
+        m_swapchain_index = -1;
+        VK_CHECK(vkAcquireNextImageKHR(m_device, m_swapchain, 1000000000, m_frame_context[m_frame_count].present_semaphore, VK_NULL_HANDLE, &m_swapchain_index));
+
         // Set up profiling
         Profile().draw_calls = 0;
 
@@ -207,24 +210,26 @@ namespace yoyo
         {
             // The mesh pass objects ID is used for the index into buffer
             char* data;
-            VulkanResourceManager::MapMemory(m_object_data_buffer.allocation, (void**)&data);
+            VulkanResourceManager::MapMemory(m_object_data_buffers[m_frame_count].allocation, (void**)&data);
             const size_t padded_object_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(ObjectData));
 
             for (const Ref<MeshPassObject>& renderable : scene->forward_pass->renderables)
             {
                 ObjectData obj_data = {};
                 obj_data.model_matrix = renderable->model_matrix;
-                memcpy(data + (renderable->Id() * padded_object_data_size), &obj_data, sizeof(ObjectData));
+
+                size_t offset = static_cast<size_t>(renderable->Id()) * padded_object_data_size;
+                memcpy(data + offset, &obj_data, sizeof(ObjectData));
             }
 
-            VulkanResourceManager::UnmapMemory(m_object_data_buffer.allocation);
+            VulkanResourceManager::UnmapMemory(m_object_data_buffers[m_frame_count].allocation);
         }
 
         // Update InstancedData
         {
             // TODO: Dirty Check
             char* data;
-            VulkanResourceManager::MapMemory(m_instanced_data_buffer.allocation, (void**)&data);
+            VulkanResourceManager::MapMemory(m_instanced_data_buffers[m_frame_count].allocation, (void**)&data);
             const size_t padded_instanced_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(InstancedData));
 
             int ctr = 0;
@@ -238,21 +243,19 @@ namespace yoyo
                 batch->instance_index = ctr;
                 for (const Ref<MeshPassObject>& renderable : batch->renderables)
                 {
-                    InstancedData instanced_data = { renderable->Id() };
+                    InstancedData instanced_data = {};
+                    instanced_data.id = renderable->Id();
                     memcpy(data + (ctr++ * padded_instanced_data_size), &instanced_data, sizeof(InstancedData));
                 }
             };
 
-            VulkanResourceManager::UnmapMemory(m_instanced_data_buffer.allocation);
+            VulkanResourceManager::UnmapMemory(m_instanced_data_buffers[m_frame_count].allocation);
         }
-
-        m_swapchain_index = -1;
-        VK_CHECK(vkAcquireNextImageKHR(m_device, m_swapchain, 1000000000, m_frame_context[m_frame_count].present_semaphore, VK_NULL_HANDLE, &m_swapchain_index));
 
         VkCommandBufferBeginInfo cmd_begin_info = vkinit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
         VkCommandBuffer cmd = m_frame_context[m_frame_count].command_buffer;
-        // Update render context
 
+        // Update render context
         m_render_context.cmd = cmd;
 
         VK_CHECK(vkResetCommandBuffer(cmd, 0));
@@ -281,7 +284,7 @@ namespace yoyo
                 vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->pipeline);
 
                 uint32_t dynamic_offset = 0;
-                vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, 0, 1, &m_shadow_pass_ds, 0, &dynamic_offset);
+                vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, 0, 1, &m_shadow_pass_dsets[m_frame_count], 0, &dynamic_offset);
 
                 // Bind mesh
                 batch->mesh->Bind(&m_render_context);
@@ -305,7 +308,7 @@ namespace yoyo
                 }
                 else
                 {
-                    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, SHADOW_PASS_INSTANCED_OBJECT_DATA_SET_INDEX, 1, &m_instanced_ds, 0, &dynamic_offset);
+                    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, SHADOW_PASS_INSTANCED_OBJECT_DATA_SET_INDEX, 1, &m_instanced_dsets[m_frame_count], 0, &dynamic_offset);
 
                     // Draw every object w mesh and material
                     if (!batch->mesh->indices.empty())
@@ -367,7 +370,7 @@ namespace yoyo
                 vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->pipeline);
 
                 const uint32_t dynamic_offset = 0;
-                vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, 0, 1, &m_forward_pass_ds, 0, &dynamic_offset);
+                vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, 0, 1, &m_forward_pass_dsets[m_frame_count], 0, &dynamic_offset);
 
                 if (batch->material->Dirty()) { m_material_system->UpdateMaterial(std::static_pointer_cast<VulkanMaterial>(batch->material)); }
                 batch->material->Bind(&m_render_context, MeshPassType::Forward);
@@ -391,7 +394,7 @@ namespace yoyo
                 }
                 else
                 {
-                    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, INSTANCED_OBJECT_DATA_SET_INDEX, 1, &m_instanced_ds, 0, &dynamic_offset);
+                    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, INSTANCED_OBJECT_DATA_SET_INDEX, 1, &m_instanced_dsets[m_frame_count], 0, &dynamic_offset);
 
                     if (!batch->mesh->indices.empty())
                     {
@@ -405,7 +408,6 @@ namespace yoyo
                     }
                 }
             }
-
             vkCmdEndRenderPass(cmd);
         }
 
@@ -892,27 +894,31 @@ namespace yoyo
             });
 
         // Scene resources descriptors
-        VkDescriptorBufferInfo scene_data_info = {};
-        scene_data_info.buffer = m_scene_data_uniform_buffer.buffer;
-        scene_data_info.offset = 0;
-        scene_data_info.range = sizeof(SceneData);
+        m_shadow_pass_dsets.resize(Settings().max_frames_in_flight);
+        for (int i = 0; i < Settings().max_frames_in_flight; i++)
+        {
+            VkDescriptorBufferInfo scene_data_info = {};
+            scene_data_info.buffer = m_scene_data_uniform_buffer.buffer;
+            scene_data_info.offset = 0;
+            scene_data_info.range = sizeof(SceneData);
 
-        VkDescriptorBufferInfo dir_light_data_info = {};
-        dir_light_data_info.buffer = m_directional_lights_buffer.buffer;
-        dir_light_data_info.offset = 0;
-        dir_light_data_info.range = VK_WHOLE_SIZE;
+            VkDescriptorBufferInfo dir_light_data_info = {};
+            dir_light_data_info.buffer = m_directional_lights_buffer.buffer;
+            dir_light_data_info.offset = 0;
+            dir_light_data_info.range = VK_WHOLE_SIZE;
 
-        VkDescriptorBufferInfo obj_data_info = {};
-        obj_data_info.buffer = m_object_data_buffer.buffer;
-        obj_data_info.offset = 0;
-        obj_data_info.range = VK_WHOLE_SIZE;
+            VkDescriptorBufferInfo obj_data_info = {};
+            obj_data_info.buffer = m_object_data_buffers[i].buffer;
+            obj_data_info.offset = 0;
+            obj_data_info.range = VK_WHOLE_SIZE;
 
-        DescriptorBuilder ds_builder = {};
-        ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
-            .BindBuffer(SCENE_DATA_DESCRIPTOR_SET_BINDING, &scene_data_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
-            .BindBuffer(DIRECTIONAL_LIGHTS_SET_BINDING, &dir_light_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
-            .BindBuffer(OBJECT_DATA_SET_BINDING, &obj_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
-            .Build(&m_shadow_pass_ds, &m_shadow_pass_ds_layout);
+            DescriptorBuilder ds_builder = {};
+            ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+                .BindBuffer(SCENE_DATA_DESCRIPTOR_SET_BINDING, &scene_data_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+                .BindBuffer(DIRECTIONAL_LIGHTS_SET_BINDING, &dir_light_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+                .BindBuffer(OBJECT_DATA_SET_BINDING, &obj_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+                .Build(&m_shadow_pass_dsets[i], &m_shadow_pass_ds_layout);
+        }
     }
 
     void VulkanRenderer::InitShadowPassAttachments()
@@ -1012,48 +1018,53 @@ namespace yoyo
                 vkDestroyRenderPass(m_device, m_forward_pass, nullptr);
             });
 
-        VkDescriptorBufferInfo scene_data_info = {};
-        scene_data_info.buffer = m_scene_data_uniform_buffer.buffer;
-        scene_data_info.offset = 0;
-        scene_data_info.range = sizeof(SceneData);
-
-        VkDescriptorBufferInfo dir_light_data_info = {};
-        dir_light_data_info.buffer = m_directional_lights_buffer.buffer;
-        dir_light_data_info.offset = 0;
-        dir_light_data_info.range = VK_WHOLE_SIZE;
-
-        VkDescriptorImageInfo shadow_map_info = {};
-        shadow_map_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        shadow_map_info.imageView = m_shadow_pass_depth_texture_view;
-        shadow_map_info.sampler = m_material_system->LinearSampler();
-
-        VkDescriptorBufferInfo obj_data_info = {};
-        obj_data_info.buffer = m_object_data_buffer.buffer;
-        obj_data_info.offset = 0;
-        obj_data_info.range = VK_WHOLE_SIZE;
-
-        VkDescriptorBufferInfo instanced_data_info = {};
-        instanced_data_info.buffer = m_instanced_data_buffer.buffer;
-        instanced_data_info.offset = 0;
-        instanced_data_info.range = VK_WHOLE_SIZE;
-
-        // TODO: Stop descriptors bindings bound to all stages used by descriptor
+        m_forward_pass_dsets.resize(Settings().max_frames_in_flight);
+        m_instanced_dsets.resize(Settings().max_frames_in_flight);
+        for (int i = 0; i < Settings().max_frames_in_flight; i++)
         {
-            DescriptorBuilder ds_builder = {};
-            ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
-                .BindBuffer(SCENE_DATA_DESCRIPTOR_SET_BINDING, &scene_data_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
-                .BindBuffer(DIRECTIONAL_LIGHTS_SET_BINDING, &dir_light_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
-                .BindImage(SHADOW_MAP_SET_BINDING, &shadow_map_info, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
-                .BindBuffer(OBJECT_DATA_SET_BINDING, &obj_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
-                .Build(&m_forward_pass_ds, &m_forward_pass_ds_layout);
-        }
+            VkDescriptorBufferInfo scene_data_info = {};
+            scene_data_info.buffer = m_scene_data_uniform_buffer.buffer;
+            scene_data_info.offset = 0;
+            scene_data_info.range = sizeof(SceneData);
 
-        // Create descriptor to hold RenderSceneIds for instanced drawing
-        {
-            DescriptorBuilder ds_builder = {};
-            ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
-                .BindBuffer(INSTANCED_OBJECT_DATA_SET_BINDING, &instanced_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
-                .Build(&m_instanced_ds, &m_instanced_ds_layout);
+            VkDescriptorBufferInfo dir_light_data_info = {};
+            dir_light_data_info.buffer = m_directional_lights_buffer.buffer;
+            dir_light_data_info.offset = 0;
+            dir_light_data_info.range = VK_WHOLE_SIZE;
+
+            VkDescriptorImageInfo shadow_map_info = {};
+            shadow_map_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            shadow_map_info.imageView = m_shadow_pass_depth_texture_view;
+            shadow_map_info.sampler = m_material_system->LinearSampler();
+
+            VkDescriptorBufferInfo obj_data_info = {};
+            obj_data_info.buffer = m_object_data_buffers[i].buffer;
+            obj_data_info.offset = 0;
+            obj_data_info.range = VK_WHOLE_SIZE;
+
+            VkDescriptorBufferInfo instanced_data_info = {};
+            instanced_data_info.buffer = m_instanced_data_buffers[i].buffer;
+            instanced_data_info.offset = 0;
+            instanced_data_info.range = VK_WHOLE_SIZE;
+
+            // TODO: Stop descriptors bindings bound to all stages used by descriptor
+            {
+                DescriptorBuilder ds_builder = {};
+                ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+                    .BindBuffer(SCENE_DATA_DESCRIPTOR_SET_BINDING, &scene_data_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+                    .BindBuffer(DIRECTIONAL_LIGHTS_SET_BINDING, &dir_light_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+                    .BindImage(SHADOW_MAP_SET_BINDING, &shadow_map_info, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+                    .BindBuffer(OBJECT_DATA_SET_BINDING, &obj_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+                    .Build(&m_forward_pass_dsets[i], &m_forward_pass_ds_layout);
+            }
+
+            // Create descriptor to hold RenderSceneIds for instanced drawing
+            {
+                DescriptorBuilder ds_builder = {};
+                ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+                    .BindBuffer(INSTANCED_OBJECT_DATA_SET_BINDING, &instanced_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+                    .Build(&m_instanced_dsets[i], &m_instanced_ds_layout);
+            }
         }
     }
 
@@ -1081,16 +1092,20 @@ namespace yoyo
     {
         // Scene resources
         size_t padded_scene_data_size = VulkanResourceManager::PadToUniformBufferSize(sizeof(SceneData));
-        m_scene_data_uniform_buffer = VulkanResourceManager::CreateBuffer<SceneData>(padded_scene_data_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-
         size_t padded_directional_light_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(DirectionalLight));
+        size_t padded_instanced_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(InstancedData));
+        size_t padded_object_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(ObjectData));
+
+        m_scene_data_uniform_buffer = VulkanResourceManager::CreateBuffer<SceneData>(padded_scene_data_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
         m_directional_lights_buffer = VulkanResourceManager::CreateBuffer<DirectionalLight>(padded_directional_light_size * MAX_DIR_LIGHTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
-        size_t padded_object_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(ObjectData));
-        m_object_data_buffer = VulkanResourceManager::CreateBuffer<ObjectData>(padded_object_data_size * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-
-        size_t padded_instanced_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(InstancedData));
-        m_instanced_data_buffer = VulkanResourceManager::CreateBuffer<InstancedData>(padded_instanced_data_size * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        m_object_data_buffers.resize(Settings().max_frames_in_flight);
+        m_instanced_data_buffers.resize(Settings().max_frames_in_flight);
+        for(int i = 0; i < Settings().max_frames_in_flight; i++)
+        {
+            m_object_data_buffers[i] = VulkanResourceManager::CreateBuffer<ObjectData>(padded_object_data_size * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+            m_instanced_data_buffers[i] = VulkanResourceManager::CreateBuffer<InstancedData>(padded_instanced_data_size * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        }
     }
 
     void VulkanRenderer::InitForwardPassAttachments()

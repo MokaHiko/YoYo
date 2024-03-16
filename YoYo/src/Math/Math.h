@@ -35,4 +35,6 @@ namespace yoyo
 
     YAPI const Mat4x4 operator*(const Mat4x4& v1, float scalar);
     YAPI const Mat4x4 operator*(const Mat4x4& m1, const Mat4x4& m2);
+
+    YAPI yoyo::Vec3 operator*( Mat4x4 m, yoyo::Vec3 v);
 }

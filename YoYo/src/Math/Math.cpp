@@ -82,6 +82,14 @@ namespace yoyo
         return { v1.x / scalar, v1.y / scalar, v1.z / scalar };
     }
 
+    YAPI yoyo::Vec3 operator*( Mat4x4 m, yoyo::Vec3 v)
+    {
+        return {
+            v.x * m.data[0] + v.y * m.data[4] + v.z * m.data[8] + m.data[12],
+            v.x * m.data[1] + v.y * m.data[5] + v.z * m.data[9] + m.data[13],
+            v.x * m.data[2] + v.y * m.data[6] + v.z * m.data[10] + m.data[14]};
+    }
+
     const Mat4x4 operator*(const Mat4x4& v1, float scalar)
     {
         Mat4x4 out = v1;

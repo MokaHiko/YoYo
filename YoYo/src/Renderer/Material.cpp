@@ -20,6 +20,9 @@ namespace yoyo
 			return material_it->second;
 		}
 
+        // TODO: Load from asset file
+        YTRACE("[Cache Miss][Material]: %s", name.c_str());
+
 		return nullptr;
 	}
 

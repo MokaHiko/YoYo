@@ -6,7 +6,13 @@
 
 namespace yoyo
 {
-    enum class TextureFormat : uint8_t
+    enum class TextureSamplerType
+    {
+        Linear,
+        Nearest,
+    };
+
+    enum class TextureFormat 
     {
         Unknown, 
         R8,
@@ -14,10 +20,11 @@ namespace yoyo
         RGBA8
     };
 
-    enum class TextureDirtyFlags
+    enum class TextureDirtyFlags : uint16_t
     {
         Clean = 0,
-        Unuploaded = 1 >> 0,
+        Unuploaded = 1 << 0,
+        SamplerType = 1 << 1,
     };
 
     inline TextureDirtyFlags operator~ (TextureDirtyFlags a) { return (TextureDirtyFlags)~(int)a; }
@@ -37,6 +44,9 @@ namespace yoyo
         Texture() = default;
         ~Texture() = default;
 
+        const TextureSamplerType GetSamplerType() const {return m_sampler_type;}
+        void SetSamplerType(TextureSamplerType type);
+
         virtual void UploadTextureData(bool free_host_memory = false) = 0;
 
         static Ref<Texture> Create(const std::string& name = "");
@@ -51,6 +61,7 @@ namespace yoyo
         std::vector<char> raw_data;
     protected:
         friend class ResourceManager;
+        TextureSamplerType m_sampler_type;
 
         bool m_live;
         TextureDirtyFlags m_dirty;

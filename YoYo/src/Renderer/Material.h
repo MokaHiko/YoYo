@@ -85,7 +85,6 @@ namespace yoyo
 
         static Ref<Material> Create(Ref<Shader> shader, const std::string& name = "");
         const bool Dirty() const { return m_dirty != MaterialDirtyFlags::Clean; }
-
     public:
         bool operator==(const Material& other) const
         {
@@ -99,6 +98,8 @@ namespace yoyo
 
         const void* PropertyData() const { return m_property_data; } // Raw ptr to material property buffer
         const uint64_t PropertyDataSize() const { return m_property_size; } // Size of PropertyData in bytes
+
+        const std::unordered_map<std::string, MaterialProperty>& GetProperties() const {return m_properties;}
     protected:
         // Properties
         uint64_t m_property_size;

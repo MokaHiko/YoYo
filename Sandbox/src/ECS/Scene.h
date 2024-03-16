@@ -27,7 +27,7 @@ public:
     template <typename T, typename... Args>
     bool RemoveComponent(entt::entity id, Args &&...args)
     {
-        if (HasComponent<T>(id))
+        if (!HasComponent<T>(id))
         {
             return false;
         }
@@ -52,6 +52,17 @@ public:
 
         YERROR("Entity has no such component!");
         throw std::runtime_error("Entity has no such component!");
+    }
+
+    template <typename T>
+    Entity FindEntityWithComponent()
+    {
+        for(auto entity : m_registry.view<T>())
+        {
+            return Entity(entity, this);
+        }
+
+        return {};
     }
 
     // Create and returns entity

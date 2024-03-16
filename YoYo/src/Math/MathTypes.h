@@ -83,8 +83,6 @@ namespace yoyo
         operator Vec3() const { return {x,y,z}; }
     };
 
-    using Quat = Vec4;
-
     /*
         By Default the YoYo math library assumes column major.
         Matrices by default are the identity matrix nxn.

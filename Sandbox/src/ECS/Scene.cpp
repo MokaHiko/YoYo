@@ -18,6 +18,7 @@ Scene::Scene()
 
 Scene::~Scene()
 {
+
 }
 
 Entity Scene::Root()

@@ -14,7 +14,7 @@ bool Entity::RemoveComponent(Args &&...args)
 }
 
 template <typename T>
-bool Entity::HasComponent()
+bool Entity::HasComponent() const
 {
 	return m_scene->HasComponent<T>(m_id);
 }

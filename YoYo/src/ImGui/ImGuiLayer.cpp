@@ -18,7 +18,7 @@ namespace yoyo
 	void ImGuiLayer::SetupImGuiStyle(bool bStyleDark_, float alpha_)
 	{
 		auto& io = ImGui::GetIO();
-		//io.FontDefault = io.Fonts->AddFontFromFileTTF("Assets/Fonts/VT323-Regular.ttf", 20.0f);
+		io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/VT323-Regular.ttf", 20.0f);
 
 		ImGuiStyle& style = ImGui::GetStyle();
 

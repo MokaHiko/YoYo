@@ -39,11 +39,11 @@ namespace yoyo
 		}break;
 		case(CameraType::Orthographic):
 		{
-			float width = 16;
-			float height = 9;
+			float width = 16 * 6.0f;
+			float height = 9 * 6.0f;
 
-			float half_width = static_cast<float>(width);
-			float half_height = static_cast<float>(height);
+			float half_width = static_cast<float>(width) / 2.0f;
+			float half_height = static_cast<float>(height) / 2.0f;
 			m_proj = OrthographicProjectionMat4x4(-half_width, half_width, -half_height, half_height, -1000, 1000);
 			m_proj[5] *= -1.0f;
 		}break;
@@ -51,6 +51,13 @@ namespace yoyo
 			break;
 		}
 
+		if (true)
+		{
+			if (pitch > 89.0f)
+				pitch = 89.0f;
+			if (pitch < -89.0f)
+				pitch = -89.0f;
+		}
 
 		// Calculate new front vector
 		Vec3 front = {};
