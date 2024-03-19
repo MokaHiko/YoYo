@@ -66,6 +66,14 @@ namespace yoyo
         VmaAllocation allocation;
     };
 
+    enum class VulkanBindingPropertType
+    {
+        Int32,
+        Float32,
+        Vec4,
+        Texture,
+    };
+
     struct VulkanBinding
     {
         std::string name;
@@ -75,6 +83,7 @@ namespace yoyo
         {
             uint64_t size;    // size of binding property member in bytes
             uint64_t offset;  // offset of binding property member in bytes
+            VulkanBindingPropertType type;
         };
 
         // Size of binding in bytes

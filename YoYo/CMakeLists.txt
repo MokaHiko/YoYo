@@ -101,7 +101,15 @@ add_library(ImGui SHARED ${IMGUI_HEADERS} ${IMGUI_SOURCES})
 target_include_directories(ImGui PUBLIC vendor/ImGui vendor/ImGui/backends)
 target_link_libraries(ImGui PUBLIC Vulkan::Vulkan SDL2::SDL2)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC Hurno ImGui)
+# imGuizmo Library
+add_library(ImGuizmo STATIC)
+target_include_directories(ImGuizmo PUBLIC vendor/ImGuizmo)
+file(GLOB IMGUIZMO_SOURCES "vendor/ImGuizmo/*.cpp")
+file(GLOB IMGUIZMO_HEADERS "vendor/ImGuizmo/*.h")
+target_sources(ImGuizmo PRIVATE ${IMGUIZMO_SOURCES} ${IMGUIZMO_HEADERS})
+target_link_libraries(ImGuizmo PRIVATE ImGui)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC Hurno ImGui ImGuizmo)
 
 # TODO Detect build type
 if(true)

@@ -37,8 +37,8 @@ void VillageManagerComponent::OnUpdate(float dt)
 		{
 			SpawnVillager();
 
-			//VillageItem item;
-			//SpawnItem(item);
+			VillageItem item;
+			SpawnItem(item);
 		}
 
 		m_timer = 0;
@@ -47,22 +47,23 @@ void VillageManagerComponent::OnUpdate(float dt)
 
 void VillageManagerComponent::SpawnVillager(const VillagerProps& props)
 {
-	static auto villager_model = yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/villager.yo");
+	//static auto villager_model = yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/villager.yo");
+	static auto villager_model = yoyo::ResourceManager::Instance().Load<yoyo::Model>("Z:/Assets/Convert/Hurno/Runners/Peasant1.yo");
 	static auto villager_material = yoyo::ResourceManager::Instance().Load<yoyo::Material>("colormap_material");
 
 	for (int i = 0; i < 1; i++)
 	{
 		auto villager = Instantiate("villager_" + std::to_string(i), { pos_generator.Next(), height_generator.Next(), pos_generator.Next() });
 		TransformComponent& model_transform = villager.GetComponent<TransformComponent>();
-		model_transform.scale *= 0.1f;
-		model_transform.quat_rotation = yoyo::QuatFromAxisAngle({0, 1, 0}, Y_PI);
+		//model_transform.quat_rotation = yoyo::QuatFromAxisAngle({0, 1, 0}, Y_PI);
 
 		for (int j = 0; j < villager_model->meshes.size(); j++)
 		{
 			Entity mesh = Instantiate(villager_model->meshes[j]->name);
 			TransformComponent& transform = mesh.GetComponent<TransformComponent>();
-			transform.position = yoyo::PositionFromMat4x4(villager_model->model_matrices[j]);
-			transform.scale = yoyo::ScaleFromMat4x4(villager_model->model_matrices[j]);
+			transform.scale *= 5.0f;
+			//transform.position = yoyo::PositionFromMat4x4(villager_model->model_matrices[j]);
+			//transform.scale = yoyo::ScaleFromMat4x4(villager_model->model_matrices[j]);
 
 			auto& mesh_renderer = mesh.AddComponent<MeshRendererComponent>();
 			mesh_renderer.mesh = villager_model->meshes[j];
@@ -105,8 +106,8 @@ void VillageManagerComponent::SpawnItem(const VillageItem& item)
 
 			model_transform.AddChild(mesh);
 		}
-		pine.AddComponent<psx::RigidBodyComponent>();
-		psx::BoxColliderComponent& box_collider = pine.AddComponent<psx::BoxColliderComponent>();
+		// pine.AddComponent<psx::RigidBodyComponent>();
+		// psx::BoxColliderComponent& box_collider = pine.AddComponent<psx::BoxColliderComponent>();
 
 		pine.AddComponent<DestructableComponent>(pine);
 	}

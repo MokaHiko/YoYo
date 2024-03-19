@@ -30,6 +30,9 @@ public:
     GameLayer(yoyo::Application& app);
     virtual ~GameLayer();
 
+    virtual void OnAttach() override;
+    virtual void OnDetatch() override;
+
     virtual void OnEnable() override;
     virtual void OnDisable() override;
 

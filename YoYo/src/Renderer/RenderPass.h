@@ -61,9 +61,8 @@ namespace yoyo
 	const RenderableBatchId GenerateBatchId(const Ref<Mesh>& mesh, const Ref<Material>& material);
 
     // A renderable batch is a grouping of renderable objects that share the same Mesh and Material.
-    class RenderableBatch
+    struct RenderableBatch
     {
-    public:
         RenderableBatch(Ref<Mesh> mesh, Ref<Material> material);
         virtual ~RenderableBatch() = default;
 

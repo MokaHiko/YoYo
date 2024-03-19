@@ -43,6 +43,9 @@ namespace yoyo
         virtual void Init() override;
         virtual void Shutdown() override;
 
+        virtual const uint32_t GetCurrentFrame() const override {return m_frame_count;}
+        virtual const Ref<Texture>&  GetViewPortTexture() const override {return m_viewport_texture;} // The render context of the current frame 
+
         virtual bool BeginFrame(const Ref<RenderScene> scene) override;
 
         virtual void BeginBlitPass() override;
@@ -77,6 +80,7 @@ namespace yoyo
 
         std::vector<VkFramebuffer> m_swapchain_framebuffers;
         VkRenderPass m_swapchain_render_pass;
+        Ref<Texture> m_viewport_texture;
 
         VkDescriptorSet m_blit_output_texture_ds;
         VkDescriptorSetLayout m_blit_pass_ds_layout;

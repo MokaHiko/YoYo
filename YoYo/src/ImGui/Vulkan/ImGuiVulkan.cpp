@@ -15,10 +15,15 @@
 #include "Renderer/Vulkan/VulkanRenderer.h"
 #include "Core/Assert.h"
 
+#include "Renderer/Vulkan/VulkanTexture.h"
+
 namespace yoyo
 {
 	static VulkanRenderer* s_renderer;
 	static ImGuiContext* s_context;
+
+	// Image descriptor sets for imgui panels
+	static std::unordered_map<uint64_t, VkDescriptorSet> s_image_dsets;
 
 	void ImGuiLayer::OnAttach()
 	{
@@ -26,13 +31,13 @@ namespace yoyo
 
 	void ImGuiLayer::OnDetatch()
 	{
-		if(IsEnabled())
+		if (IsEnabled())
 		{
 			OnDisable();
 		}
 	}
 
-    ImGuiContext* ImGuiLayer::GetContext()
+	ImGuiContext* ImGuiLayer::GetContext()
 	{
 		yoyo::Assert(s_context != nullptr, "ImGui context not created!");
 		return s_context;
@@ -101,18 +106,10 @@ namespace yoyo
 
 		SetupImGuiStyle(1, 1.0f);
 
-		// execute a gpu command to upload imgui font textures
-		// VulkanResourceManager::ImmediateSubmit([&](VkCommandBuffer cmd){ 
-		// 		ImGui_ImplVulkan_CreateFontsTexture(cmd); 
-		// });
-
-		// clear font textures from cpu data
-		// ImGui_ImplVulkan_DestroyFontUploadObjects();
-
 		// add the destroy the imgui created structures
 		s_renderer->DeletionQueue().Push([=]() {
 			vkDestroyDescriptorPool(s_renderer->Device(), imguiPool, nullptr);
-		});
+			});
 	}
 
 	void ImGuiLayer::OnDisable()
@@ -134,9 +131,9 @@ namespace yoyo
 		VkCommandBuffer cmd = static_cast<VulkanRenderContext*>(render_context)->cmd;
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
-		ImGui::NewFrame();
 
-		//ImGuizmo::BeginFrame();
+		ImGui::NewFrame();
+		ImGuizmo::BeginFrame();
 	}
 
 	void ImGuiLayer::OnMainPassEnd(void* render_context)
@@ -146,4 +143,23 @@ namespace yoyo
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 	}
+}
+
+void ImGui::Image(Ref<yoyo::Texture> texture, const ImVec2& image_size)
+{
+	uint64_t hash = std::hash<yoyo::Texture>()(*texture.get());
+	VkDescriptorSet ds = VK_NULL_HANDLE;
+
+	if(yoyo::s_image_dsets.find(hash) != yoyo::s_image_dsets.end())
+	{
+		ds = yoyo::s_image_dsets[hash];
+	}
+	else
+	{
+		Ref<yoyo::VulkanTexture> vulkan_texture = std::static_pointer_cast<yoyo::VulkanTexture>(texture);
+		yoyo::s_image_dsets[hash] = ImGui_ImplVulkan_AddTexture(vulkan_texture->sampler, vulkan_texture->image_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		ds = yoyo::s_image_dsets[hash];
+	}
+
+	ImGui::Image((ImTextureID)ds, image_size);
 }

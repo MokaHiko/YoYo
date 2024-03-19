@@ -72,6 +72,7 @@ namespace yoyo
                         MaterialProperty material_prop = {};
                         material_prop.size = binding_prop.size;
                         material_prop.offset = binding_prop.offset;
+                        material_prop.type = (MaterialPropertyType)binding_prop.type;
 
                         material->AddProperty(binding_prop_name, material_prop);
                     }
@@ -196,48 +197,33 @@ namespace yoyo
     {
         if((material->DirtyFlags() & MaterialDirtyFlags::Texture) == MaterialDirtyFlags::Texture)
         {
-            VkDescriptorImageInfo main_texture = {};
-            main_texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            main_texture.imageView = std::static_pointer_cast<VulkanTexture>(material->MainTexture())->image_view;
+            Ref<VulkanTexture> main_texture = std::static_pointer_cast<VulkanTexture>(material->MainTexture());
 
-            switch(material->MainTexture()->GetSamplerType())
-            {
-                case(TextureSamplerType::Linear):
-                {
-                    main_texture.sampler = m_linear_sampler;
-                }break;
-                case(TextureSamplerType::Nearest):
-                {
-                    main_texture.sampler = m_nearest_sampler;
-                }break;
-                default:
-                {
-                    YERROR("Uknown sampler type for texture %s!", material->MainTexture()->name.c_str());
-                    YERROR("Falling back to default linear sampler");
-                    main_texture.sampler = m_nearest_sampler;
-                }break;
-            }
+            VkDescriptorImageInfo main_texture_info = {};
+            main_texture_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            main_texture_info.imageView = main_texture->image_view;
+            main_texture_info.sampler = main_texture->sampler;
 
-            VkDescriptorImageInfo specular_texture = {};
+            VkDescriptorImageInfo specular_texture_info = {};
             if(material->GetTexture((int)MaterialTextureType::SpecularMap))
             {
-                specular_texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                specular_texture.imageView = std::static_pointer_cast<VulkanTexture>(material->GetTexture((int)MaterialTextureType::SpecularMap))->image_view;
-                specular_texture.sampler = m_linear_sampler;
+                specular_texture_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                specular_texture_info.imageView = std::static_pointer_cast<VulkanTexture>(material->GetTexture((int)MaterialTextureType::SpecularMap))->image_view;
+                specular_texture_info.sampler = m_linear_sampler;
             }
             else
             {
-                specular_texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                specular_texture.imageView = std::static_pointer_cast<VulkanTexture>(ResourceManager::Instance().Load<Texture>("assets/textures/white.yo"))->image_view;
-                specular_texture.sampler = m_linear_sampler;
+                specular_texture_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                specular_texture_info.imageView = std::static_pointer_cast<VulkanTexture>(ResourceManager::Instance().Load<Texture>("assets/textures/white.yo"))->image_view;
+                specular_texture_info.sampler = m_linear_sampler;
             }
 
             VkDescriptorSet textures_set = {};
             VkDescriptorSetLayout textures_set_layout = {};
 
             DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
-                .BindImage(MATERIAL_MAIN_TEXTURE_DESCRIPTOR_SET_BINDING, &main_texture, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-                .BindImage(MATERIAL_SPECULAR_TEXTURE_DESCRIPTOR_SET_BINDING, &specular_texture, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+                .BindImage(MATERIAL_MAIN_TEXTURE_DESCRIPTOR_SET_BINDING, &main_texture_info, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+                .BindImage(MATERIAL_SPECULAR_TEXTURE_DESCRIPTOR_SET_BINDING, &specular_texture_info, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
                 .Build(&textures_set, &textures_set_layout);
 
             material->descriptors[MeshPassType::Forward][MATERIAL_TEXTURE_SET_INDEX].set = textures_set;

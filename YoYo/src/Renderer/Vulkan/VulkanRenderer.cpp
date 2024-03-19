@@ -1124,6 +1124,13 @@ namespace yoyo
         VK_CHECK(vkCreateImageView(m_device, &color_info, nullptr, &m_forward_pass_color_texture_view));
         VK_CHECK(vkCreateImageView(m_device, &depth_info, nullptr, &m_forward_pass_depth_texture_view));
 
+        // Create textures for swapchain
+        Ref<VulkanTexture> viewport_texture = CreateRef<VulkanTexture>();
+        viewport_texture->allocated_image = m_forward_pass_color_texture;
+        viewport_texture->image_view = m_forward_pass_color_texture_view;
+        viewport_texture->sampler = m_material_system->LinearSampler();
+        m_viewport_texture = viewport_texture;
+
         m_deletion_queue.Push([=]() {
             vkDestroyImageView(m_device, m_forward_pass_depth_texture_view, nullptr);
             vkDestroyImageView(m_device, m_forward_pass_color_texture_view, nullptr);

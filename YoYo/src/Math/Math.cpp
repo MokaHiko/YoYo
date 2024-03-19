@@ -45,6 +45,15 @@ namespace yoyo
         return sum;
     }
 
+	YAPI const Vec2 operator-(const Vec2& v1, const Vec2& v2)
+	{
+        Vec2 dif = {};
+        dif.x = v1.x - v2.x;
+        dif.y = v1.y - v2.y;
+
+        return dif;
+	}
+
 	const Vec3 operator*(const Vec3& v1, float scalar)
 	{
         Vec3 out = {};

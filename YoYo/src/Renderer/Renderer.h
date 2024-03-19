@@ -63,7 +63,8 @@ namespace yoyo
     const int MAX_OBJECTS = 1000;
     const int MAX_DIR_LIGHTS = 2;
     const int MAX_POINT_LIGHTS = 100;
-
+    
+    class Texture;
     class YAPI Renderer
     {
     public:
@@ -88,6 +89,8 @@ namespace yoyo
         virtual void Init() {};
         virtual void Shutdown() {};
 
+        virtual const Ref<Texture>& GetViewPortTexture() const = 0; // The render context of the current frame 
+
         virtual void* RenderContext() = 0; // The render context of the current frame 
 
         virtual bool BeginFrame(Ref<RenderScene> scene) = 0;
@@ -97,6 +100,10 @@ namespace yoyo
         virtual void EndBlitPass() = 0;
 
         virtual void EndFrame() = 0;
+
+        // Returns the current frame being rendered
+        virtual const uint32_t GetCurrentFrame() const = 0;
+    protected:
     private:
         RendererProfile m_profile;
         RendererSettings m_settings;

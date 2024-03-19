@@ -40,6 +40,9 @@ namespace psx
 
 		// Locks an axis of rotation
 		void LockRotationAxis(const yoyo::Vec3& axis);
+
+		// Returns the mass in kg
+		float GetMass();
 	private:	
 		friend class PhysicsWorld;
 		physx::PxRigidActor* actor;

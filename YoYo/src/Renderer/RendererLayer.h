@@ -16,6 +16,8 @@ namespace yoyo
         virtual ~RendererLayer();
 
         void SendRenderPacket(RenderPacket* packet);
+
+        Ref<Renderer> GetRenderer() {return m_renderer;}
         void* NativeRenderer();
 
         virtual void OnAttach() override;

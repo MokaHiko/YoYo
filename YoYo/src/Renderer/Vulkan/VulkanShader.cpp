@@ -73,6 +73,7 @@ namespace yoyo
 							case(SpvOpTypeFloat):
 							{
 								binding_prop.size = type_desc.traits.numeric.scalar.width / 8;
+								binding_prop.type = VulkanBindingPropertType::Float32;
 							}break;
 
 							case(SpvOpTypeMatrix):
@@ -83,6 +84,9 @@ namespace yoyo
 							case(SpvOpTypeVector):
 							{
 								binding_prop.size = type_desc.traits.numeric.vector.component_count * (type_desc.traits.numeric.scalar.width / 8);
+
+								// TODO: Check if vec3 
+								binding_prop.type = VulkanBindingPropertType::Vec4;
 							}break;
 
 							case(SpvOpTypeSampler):

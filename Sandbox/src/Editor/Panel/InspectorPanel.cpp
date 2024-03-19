@@ -1,12 +1,13 @@
 #include "InspectorPanel.h"
 
 #include <Events/Event.h>
-#include <imgui.h>
+#include <ImGui/ImGuiLayer.h>
 
 #include "Editor/EditorEvents.h"
 #include "ECS/Components/Components.h"
 
 #include "ECS/Components/RenderableComponents.h"
+#include "Physics/PhysicsTypes.h"
 
 static void HelpMarker(const char* desc)
 {
@@ -26,7 +27,7 @@ InspectorPanel::InspectorPanel()
 		Ref<FocusEntityEvent> focused_event = std::static_pointer_cast<FocusEntityEvent>(event);
 		m_focused_entity = focused_event->entity;
 		return false;
-		});
+	});
 }
 
 InspectorPanel::~InspectorPanel()
@@ -62,7 +63,7 @@ void InspectorPanel::DrawComponents()
 		ImGui::TableNextRow();
 
 		ImGui::TableSetColumnIndex(0);
-		ImGui::Text("Position: ");
+		ImGui::Text("Position");
 
 		ImGui::TableSetColumnIndex(1);
 		ImGui::PushItemWidth(label_width * 3.0f);
@@ -72,7 +73,7 @@ void InspectorPanel::DrawComponents()
 		ImGui::TableNextRow();
 
 		ImGui::TableSetColumnIndex(0);
-		ImGui::Text("Rotation: ");
+		ImGui::Text("Rotation");
 
 		ImGui::TableSetColumnIndex(1);
 		ImGui::PushItemWidth(label_width * 3.0f);
@@ -82,7 +83,7 @@ void InspectorPanel::DrawComponents()
 		ImGui::TableNextRow();
 
 		ImGui::TableSetColumnIndex(0);
-		ImGui::Text("Scale: ");
+		ImGui::Text("Scale");
 
 		ImGui::TableSetColumnIndex(1);
 		ImGui::PushItemWidth(label_width * 3.0f);
@@ -116,6 +117,7 @@ void InspectorPanel::DrawComponents()
 				ImGui::EndChild();
 				ImGui::PopStyleVar();
 			}
+
 			ImGui::TreePop();
 		}
 
@@ -127,18 +129,70 @@ void InspectorPanel::DrawComponents()
 			ImGui::BeginChild("Details", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 300), ImGuiChildFlags_None, window_flags);
 			ImGui::Text("Id: %u", material->Id());
 
-			ImGui::DragFloat3("Color", material->color.elements);
+			const char* names[] = 
+			{
+				"Uknown",
+				"Opaque",
+				"Transparent"
+			};
+
+			ImGui::DragFloat3("Color", material->color.elements, 0.01f);
+
+			// Simple selection popup (if you want to show the current selection inside the Button itself,
+			// you may want to build a string using the "###" operator to preserve a constant ID with a variable label)
+			int& render_mode = (int&)material->render_mode;
+			if (ImGui::Button("Select RenderMode"))
+				ImGui::OpenPopup("my_select_popup");
+			ImGui::SameLine();
+			ImGui::TextUnformatted(render_mode == -1 ? "<None>" : names[render_mode]);
+			if (ImGui::BeginPopup("my_select_popup"))
+			{
+				ImGui::SeparatorText("Render Mode");
+				for (int i = 0; i < IM_ARRAYSIZE(names); i++)
+				{
+					if (ImGui::Selectable(names[i]))
+						render_mode = i;
+				}
+				ImGui::EndPopup();
+			}
 
 
 			ImGui::SeparatorText("Properties");
-			for(auto& it : material->GetProperties())
+			for (auto& it : material->GetProperties())
 			{
-				ImGui::Text("%s", it.first.c_str());
+				const yoyo::MaterialProperty& prop = it.second;
+				const std::string name = it.first.c_str();
+
+				switch (prop.type)
+				{
+				case(yoyo::MaterialPropertyType::Vec4):
+				{
+					if (ImGui::DragFloat4(name.c_str(), (float*)((char*)material->PropertyData() + prop.offset), 0.01f))
+					{
+						material->SetProperty(name.c_str(), (float*)((char*)material->PropertyData() + prop.offset));
+					}
+				}break;
+
+				case(yoyo::MaterialPropertyType::Float32):
+				{
+					if (ImGui::DragFloat(name.c_str(), (float*)((char*)material->PropertyData() + prop.offset), 0.1f))
+					{
+						material->SetProperty(name.c_str(), (float*)((char*)material->PropertyData() + prop.offset));
+					}
+				}break;
+
+				default:
+				{
+					ImGui::Text("%s [?] Uknown Property Type", name.c_str());
+				}break;
+				}
 			}
 
-			// bool receive_shadows; // Sets whether material receives shadows
-			// bool instanced; // Sets whether material uses instancing.
-			// MaterialRenderMode render_mode; // Render mode of material
+			bool recieve_shadows = material->receive_shadows;
+			if (ImGui::Checkbox("Recieve Shadows", &recieve_shadows))
+			{
+				material->receive_shadows = recieve_shadows;
+			}
 
 			const std::string shader_name = "Shader : " + mesh_renderer.material->shader->name;
 			if (ImGui::TreeNode(shader_name.c_str()))
@@ -155,11 +209,25 @@ void InspectorPanel::DrawComponents()
 				ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
 				ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
 				ImGui::BeginChild("Viewport", ImVec2(0, 150), ImGuiChildFlags_Border, window_flags);
-
+				ImGui::Image(material->MainTexture(), ImVec2{150,150});
 				ImGui::EndChild();
 				ImGui::PopStyleVar();
 			}
 			ImGui::TreePop();
 		}
 		}, false);
+
+	DrawComponentUI<psx::RigidBodyComponent>("RigidBody", m_focused_entity, [](psx::RigidBodyComponent& rb){
+	});
+	// class RigidBodyComponent
+	// {
+	// public:
+	// 	void AddForce(const yoyo::Vec3& force, ForceMode type);
+
+	// 	// Locks an axis of rotation
+	// 	void LockRotationAxis(const yoyo::Vec3& axis);
+	// private:	
+	// 	friend class PhysicsWorld;
+	// 	physx::PxRigidActor* actor;
+	// };
 }

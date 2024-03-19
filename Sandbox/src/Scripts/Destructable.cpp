@@ -22,11 +22,11 @@ static yoyo::PRNGenerator<float> random(-2, 2.0f);
 
 void DestructableComponent::OnUpdate(float dt) 
 {
-	if(yoyo::Input::GetKey(yoyo::KeyCode::Key_j))
-	{
-		psx::RigidBodyComponent& rb = GetComponent<psx::RigidBodyComponent>();
-		rb.AddForce({random.Next(), random.Next(), random.Next()}, psx::ForceMode::Impulse);
-	}
+	// if(yoyo::Input::GetKey(yoyo::KeyCode::Key_j))
+	// {
+	// 	psx::RigidBodyComponent& rb = GetComponent<psx::RigidBodyComponent>();
+	// 	rb.AddForce({random.Next(), random.Next(), random.Next()}, psx::ForceMode::Impulse);
+	// }
 }
 
 void DestructableComponent::OnCollisionEnter(const psx::Collision& col)

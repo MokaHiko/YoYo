@@ -71,6 +71,9 @@ if(true)
 		src/Editor/Panel/IPanel.h
 		src/Editor/Panel/IPanel.cpp
 
+		src/Editor/Panel/ViewportPanel.h
+		src/Editor/Panel/ViewportPanel.cpp
+
 		src/Editor/Panel/SceneHierarchyPanel.h
 		src/Editor/Panel/SceneHierarchyPanel.cpp
 

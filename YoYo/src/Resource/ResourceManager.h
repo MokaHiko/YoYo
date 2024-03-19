@@ -8,7 +8,7 @@
 #include "Resource.h"
 
 namespace yoyo {
-
+    // The application's main resource manager
     class YAPI ResourceManager
     {
     public:

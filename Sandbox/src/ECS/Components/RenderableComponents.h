@@ -23,6 +23,7 @@ struct NewDirectionalLightComponent
 struct CameraComponent
 {
     Ref<yoyo::Camera> camera;
+    bool active;
 };
 
 struct NewCameraComponent

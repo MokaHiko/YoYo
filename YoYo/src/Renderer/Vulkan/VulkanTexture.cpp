@@ -9,8 +9,13 @@ namespace yoyo
 	void Texture::SetSamplerType(TextureSamplerType type)
 	{
 		m_sampler_type = type;
+		m_dirty |= TextureDirtyFlags::SamplerType;
+	}
 
-		// TODO: Sampler Changed Event
+    void Texture::SetAddressMode(TextureAddressMode mode)
+	{
+		m_sampler_address_mode = mode;
+		m_dirty |= TextureDirtyFlags::AddressMode;
 	}
 
 	Ref<Texture> Texture::Create(const std::string& name)

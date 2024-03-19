@@ -49,7 +49,6 @@ layout(std140, set = 3, binding = 0) readonly buffer InstancedObjectData{
 
 void main()
 {
-  //uint object_data_index = ids[gl_BaseInstance + gl_InstanceIndex];
   uint object_data_index = ids[gl_InstanceIndex];
 	mat4 model_matrix = objects[object_data_index].model_matrix;
 

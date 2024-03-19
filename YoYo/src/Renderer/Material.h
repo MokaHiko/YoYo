@@ -61,7 +61,7 @@ namespace yoyo
     {
     public:
         RESOURCE_TYPE(Material)
-            Material();
+        Material();
         virtual ~Material();
 
         Ref<Shader> shader; // The shader used by the material.

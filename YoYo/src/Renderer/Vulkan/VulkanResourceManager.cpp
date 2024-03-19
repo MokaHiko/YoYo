@@ -202,9 +202,14 @@ namespace yoyo
 		VkImageViewCreateInfo image_view_info = vkinit::ImageViewCreateInfo(texture->allocated_image.image, ConvertTextureFormat(texture->format), VK_IMAGE_ASPECT_COLOR_BIT);
 		VK_CHECK(vkCreateImageView(m_device, &image_view_info, nullptr, &texture->image_view));
 
+		// Create Sampler
+		VkSamplerCreateInfo sampler_info = vkinit::SamplerCreateInfo((VkFilter)texture->GetSamplerType(), (VkSamplerAddressMode)texture->GetAddressMode());
+		VK_CHECK(vkCreateSampler(m_device, &sampler_info, nullptr, &texture->sampler));
+
 		// Clean up
 		vmaDestroyBuffer(m_allocator, staging_buffer.buffer, staging_buffer.allocation);
 		m_deletion_queue->Push([=](){
+				vkDestroySampler(m_device, texture->sampler, nullptr);
 				vkDestroyImageView(m_device, texture->image_view, nullptr);
 		});
 

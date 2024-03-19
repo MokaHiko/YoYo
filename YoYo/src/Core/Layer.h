@@ -18,10 +18,14 @@ namespace yoyo
         virtual const LayerID ID() const = 0;
         virtual const std::string& Name() const = 0;
 
+        // Called the moment the layer is pushed to the layer stack
         virtual void OnAttach() {};
+
         virtual void OnDetatch() {};
 
+        // Enable is called after all other layers have been attached
         virtual void OnEnable(){};
+
         virtual void OnDisable(){};
 
         virtual void OnUpdate(float dt) {};

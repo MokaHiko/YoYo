@@ -12,6 +12,7 @@ namespace yoyo
         material->shader = shader;
         material->render_mode = MaterialRenderMode::Opaque;
         material->instanced = shader->instanced;
+        material->receive_shadows = true;
         material->m_dirty = MaterialDirtyFlags::Clean;
 
         EventManager::Instance().Dispatch(CreateRef<MaterialCreatedEvent>(material));

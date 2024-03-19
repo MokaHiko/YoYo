@@ -1,11 +1,14 @@
 #pragma once
 
 #include <imgui.h>
+#include <ImGuizmo.h>
 
 #include "Defines.h"
 
 #include "Core/Memory.h"
 #include "Core/Layer.h"
+
+#include "Renderer/Texture.h"
 
 // TODO: Change to PlatformAppHandle
 struct SDL_Window;
@@ -41,4 +44,9 @@ namespace yoyo
         Application* m_app;
         SDL_Window* m_window;
     };
+}
+
+namespace ImGui
+{
+	void YAPI Image(Ref<yoyo::Texture> texture, const ImVec2& image_size);
 }

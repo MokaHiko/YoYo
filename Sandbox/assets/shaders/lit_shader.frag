@@ -59,7 +59,6 @@ void main() {
 
   // Shadow
   float shadow = (1 - CalculateShadows(v_position_light_space, normal, -dir_lights[0].direction.xyz));
-  shadow = 1.0f;
 
   frag_color = vec4(ambient, 0.0f) + (shadow * final_color); 
 }

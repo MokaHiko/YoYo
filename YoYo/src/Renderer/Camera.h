@@ -21,7 +21,7 @@ namespace yoyo
     class YAPI Camera
     {
     public:
-        Camera(const Vec3& start_position = { 0.0f }, const Vec3& up = { 0.0f, 1.0f, 0.0f }, float start_yaw = YAW, float start_pitch = PITCH);
+        Camera(const Vec3& start_position = { 0.0f }, const Vec3& up = { 0.0f, 1.0f, 0.0f }, float start_yaw = YAW, float start_pitch = PITCH, float aspect_ratio = 1920.0f/1080.0f, float fov = 90.0f);
         ~Camera();
 
         void UpdateCameraVectors();
@@ -34,6 +34,9 @@ namespace yoyo
         const Vec3& Right() const {return m_right;}
 
         void SetType(CameraType type);
+
+        void SetAspectRatio(float aspect_ratio) { m_aspect_ratio = aspect_ratio; }
+        void SetFov(float fov) { m_fov = fov; }
 
         float yaw;
         float pitch;

@@ -19,3 +19,6 @@
 [submodule "YoYo/vendor/ImGui"]
 	path = YoYo/vendor/ImGui
 	url = https://github.com/ocornut/imgui.git
+[submodule "YoYo/vendor/ImGuizmo"]
+	path = YoYo/vendor/ImGuizmo
+	url = https://github.com/CedricGuillemet/ImGuizmo.git

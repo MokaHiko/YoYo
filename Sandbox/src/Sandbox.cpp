@@ -30,34 +30,43 @@ GameLayer::GameLayer(yoyo::Application& app)
 
 GameLayer::~GameLayer() {}
 
-void GameLayer::OnEnable()
+void GameLayer::OnAttach()
 {
-    // Init systems
+    // Init scene
     m_scene = Y_NEW Scene();
 
-    // TODO: Place in each system
-    {
-        m_scene->Registry().on_construct<CameraComponent>().connect<&GameLayer::OnCameraComponentCreated>(this);
-        m_scene->Registry().on_destroy<CameraComponent>().connect<&GameLayer::OnCameraComponentDestroyed>(this);
+    // Init systems
+    m_scene_graph = CreateRef<SceneGraph>(m_scene);
+    m_physics_world = CreateRef<psx::PhysicsWorld>(m_scene);
+    m_scripting = CreateRef<ScriptingSystem>(m_scene);
 
-        m_scene->Registry().on_construct<DirectionalLightComponent>().connect<&GameLayer::OnDirectionalLightComponentCreated>(this);
-        m_scene->Registry().on_destroy<DirectionalLightComponent>().connect<&GameLayer::OnDirectionalLightComponentDestroyed>(this);
-
-        m_scene->Registry().on_construct<MeshRendererComponent>().connect<&GameLayer::OnMeshRendererComponentCreated>(this);
-        m_scene->Registry().on_destroy<MeshRendererComponent>().connect<&GameLayer::OnMeshRendererComponentDestroyed>(this);
-
-        m_scene_graph = CreateRef<SceneGraph>(m_scene);
-        m_scene_graph->Init();
-
-        m_physics_world = CreateRef<psx::PhysicsWorld>(m_scene);
-        m_physics_world->Init();
-
-        m_scripting = CreateRef<ScriptingSystem>(m_scene);
-        m_scripting->Init();
-    }
-
-    m_renderer_layer = m_app.FindLayer<yoyo::RendererLayer>();
+    // Init render packet
     m_rp = Y_NEW yoyo::RenderPacket;
+}
+
+void GameLayer::OnDetatch()
+{
+    // Clean up handles
+    delete m_rp;
+    delete m_scene;
+}
+
+void GameLayer::OnEnable()
+{
+    m_renderer_layer = m_app.FindLayer<yoyo::RendererLayer>();
+
+    m_scene->Registry().on_construct<CameraComponent>().connect<&GameLayer::OnCameraComponentCreated>(this);
+    m_scene->Registry().on_destroy<CameraComponent>().connect<&GameLayer::OnCameraComponentDestroyed>(this);
+
+    m_scene->Registry().on_construct<DirectionalLightComponent>().connect<&GameLayer::OnDirectionalLightComponentCreated>(this);
+    m_scene->Registry().on_destroy<DirectionalLightComponent>().connect<&GameLayer::OnDirectionalLightComponentDestroyed>(this);
+
+    m_scene->Registry().on_construct<MeshRendererComponent>().connect<&GameLayer::OnMeshRendererComponentCreated>(this);
+    m_scene->Registry().on_destroy<MeshRendererComponent>().connect<&GameLayer::OnMeshRendererComponentDestroyed>(this);
+
+    m_scene_graph->Init();
+    m_physics_world->Init();
+    m_scripting->Init();
 
     // Load assets
     Ref<yoyo::Shader> default_lit = yoyo::ResourceManager::Instance().Load<yoyo::Shader>("lit_shader");
@@ -198,14 +207,21 @@ void GameLayer::OnEnable()
 
 void GameLayer::OnDisable()
 {
+    m_renderer_layer = nullptr;
+
+    m_scene->Registry().on_construct<CameraComponent>().disconnect<&GameLayer::OnCameraComponentCreated>(this);
+    m_scene->Registry().on_destroy<CameraComponent>().disconnect<&GameLayer::OnCameraComponentDestroyed>(this);
+
+    m_scene->Registry().on_construct<DirectionalLightComponent>().disconnect<&GameLayer::OnDirectionalLightComponentCreated>(this);
+    m_scene->Registry().on_destroy<DirectionalLightComponent>().disconnect<&GameLayer::OnDirectionalLightComponentDestroyed>(this);
+
+    m_scene->Registry().on_construct<MeshRendererComponent>().disconnect<&GameLayer::OnMeshRendererComponentCreated>(this);
+    m_scene->Registry().on_destroy<MeshRendererComponent>().disconnect<&GameLayer::OnMeshRendererComponentDestroyed>(this);
+
     // Shutdown Systems
     m_scripting->Shutdown();
     m_physics_world->Shutdown();
     m_scene_graph->Shutdown();
-
-    // Clean up handles
-    delete m_rp;
-    delete m_scene;
 };
 
 void GameLayer::OnUpdate(float dt)

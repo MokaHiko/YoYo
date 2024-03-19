@@ -5,7 +5,7 @@
 
 namespace yoyo
 {
-	Camera::Camera(const Vec3& start_position, const Vec3& up, float start_yaw, float start_pitch)
+	Camera::Camera(const Vec3& start_position, const Vec3& up, float start_yaw, float start_pitch, float aspect_ratio, float fov)
 		: m_near(0.01f), m_far(1000.0f), m_type(CameraType::Perspective)
 	{
 		m_world_up = WORLD_UP;
@@ -15,8 +15,8 @@ namespace yoyo
 		pitch = start_pitch;
 
 		m_up = up;
-		m_aspect_ratio = 1920 / 1080.0f;
-		m_fov = 90.0f;
+		m_aspect_ratio = aspect_ratio;
+		m_fov = fov;
 
 		UpdateCameraVectors();
 
