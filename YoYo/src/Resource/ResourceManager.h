@@ -43,7 +43,6 @@ namespace yoyo {
                 resource->m_id = Platform::GenerateUUIDV4();
             }
 
-            YINFO("Cached %s: %s", T::TypeName().c_str(), resource->name.c_str());
             Cache<T>()[resource->Id()] = resource;
             return false;
         };

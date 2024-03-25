@@ -71,9 +71,13 @@ public:
     // Queues an entity for destruction
     void QueueDestroy(Entity e);
 
+    void FlushDestructionQueue();
+
+    void Destroy(Entity e);
+
     entt::registry& Registry();
 private:
-    std::vector<entt::id_type> m_destruction_queue;
+    std::vector<Entity> m_destruction_queue;
 
     Entity m_root;
     entt::registry m_registry;

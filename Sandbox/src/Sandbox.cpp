@@ -15,6 +15,7 @@
 #include <Resource/ResourceManager.h>
 
 #include <Renderer/RendererLayer.h>
+#include <Renderer/Texture.h>
 
 #include "Scripts/CameraController.h"
 #include "Scripts/Sun.h"
@@ -25,7 +26,7 @@
 
 #include "Editor/EditorLayer.h"
 
-GameLayer::GameLayer(yoyo::Application& app)
+GameLayer::GameLayer(yoyo::Application* app)
     :m_app(app) {}
 
 GameLayer::~GameLayer() {}
@@ -33,7 +34,7 @@ GameLayer::~GameLayer() {}
 void GameLayer::OnAttach()
 {
     // Init scene
-    m_scene = Y_NEW Scene();
+    m_scene = YNEW Scene();
 
     // Init systems
     m_scene_graph = CreateRef<SceneGraph>(m_scene);
@@ -41,19 +42,20 @@ void GameLayer::OnAttach()
     m_scripting = CreateRef<ScriptingSystem>(m_scene);
 
     // Init render packet
-    m_rp = Y_NEW yoyo::RenderPacket;
+    m_rp = YNEW yoyo::RenderPacket;
 }
 
 void GameLayer::OnDetatch()
 {
     // Clean up handles
-    delete m_rp;
-    delete m_scene;
+    YDELETE m_rp;
+    YDELETE m_scene;
 }
 
 void GameLayer::OnEnable()
 {
-    m_renderer_layer = m_app.FindLayer<yoyo::RendererLayer>();
+    YASSERT(m_app != nullptr, "Invalid application handle!");
+    m_renderer_layer = m_app->FindLayer<yoyo::RendererLayer>();
 
     m_scene->Registry().on_construct<CameraComponent>().connect<&GameLayer::OnCameraComponentCreated>(this);
     m_scene->Registry().on_destroy<CameraComponent>().connect<&GameLayer::OnCameraComponentDestroyed>(this);
@@ -71,6 +73,7 @@ void GameLayer::OnEnable()
     // Load assets
     Ref<yoyo::Shader> default_lit = yoyo::ResourceManager::Instance().Load<yoyo::Shader>("lit_shader");
     Ref<yoyo::Shader> default_lit_instanced = yoyo::ResourceManager::Instance().Load<yoyo::Shader>("lit_instanced_shader");
+    Ref<yoyo::Shader> skinned_lit = yoyo::ResourceManager::Instance().Load<yoyo::Shader>("skinned_lit_shader");
 
     Ref<yoyo::Material> default_material = yoyo::Material::Create(default_lit, "default_material");
     Ref<yoyo::Texture> default_texture = yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/prototype_512x512_white.yo");
@@ -88,18 +91,6 @@ void GameLayer::OnEnable()
 
     yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/plane.yo");
     Ref<yoyo::Model> cube_model = yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/cube.yo");
-    std::reverse(cube_model->meshes[0]->vertices.begin(), cube_model->meshes[0]->vertices.end());
-
-    // Claptrap model
-    {
-        auto claptrap_model = yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/claptrap.yo");
-        auto claptrap_material = yoyo::Material::Create(default_lit_instanced, "claptrap_material");
-
-        claptrap_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/Claptrap_blender_fix_Claptrap_BaseColor.yo"));
-        claptrap_material->SetTexture(yoyo::MaterialTextureType::SpecularMap, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/Claptrap_blender_fix_Claptrap_Roughness.yo"));
-        claptrap_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-        claptrap_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
-    }
 
     // Crate
     {
@@ -111,20 +102,31 @@ void GameLayer::OnEnable()
     }
 
     // Universal game material
-    Ref<yoyo::Material> colormap_material = yoyo::Material::Create(default_lit_instanced, "colormap_material");
-    colormap_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/colormap.yo"));
-    colormap_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-    colormap_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
-    colormap_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
-
-    // Trunk
     {
-        auto villager_model = yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/trunk.yo");
+		Ref<yoyo::Material> colormap_material = yoyo::Material::Create(default_lit_instanced, "colormap_material");
+		colormap_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/colormap.yo"));
+		colormap_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+		colormap_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+		colormap_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
     }
 
-    // Villager model
+    // Animated Universal
     {
-        auto villager_model = yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/villager.yo");
+		Ref<yoyo::Material> colormap_material = yoyo::Material::Create(skinned_lit, "skinned_colormap_material");
+		colormap_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/colormap.yo"));
+		colormap_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+		colormap_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+        colormap_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
+
+        Ref<yoyo::Shader> skinned_lit_debug = yoyo::ResourceManager::Instance().Load<yoyo::Shader>("skinned_lit_debug_shader");
+		Ref<yoyo::Material> color_map_skinned_material = yoyo::Material::Create(skinned_lit_debug, "skinned_colormap_debug_material");
+		color_map_skinned_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/colormap.yo"));
+		color_map_skinned_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+		color_map_skinned_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+        color_map_skinned_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
+
+        uint32_t index = 0;
+        color_map_skinned_material->SetProperty("focused_bone_index", &index);
     }
 
     // Lights
@@ -147,14 +149,14 @@ void GameLayer::OnEnable()
         dir_light->direction = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f } *-1.0f;
 
         auto& mesh_renderer = light.AddComponent<MeshRendererComponent>();
-        mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::Mesh>("cubeCube0");
+        mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::StaticMesh>("cubeCube");
         mesh_renderer.material = light_material;
 
         light.AddComponent<SunComponent>(light);
     }
 
     // Set up scene
-    auto camera = m_scene->Instantiate("camera", { 0.0f, 5.0f, 20.0f });
+    auto camera = m_scene->Instantiate("camera", { 0.0f, 25.0f, 20.0f });
     camera.AddComponent<CameraComponent>().camera->SetType(yoyo::CameraType::Orthographic);
     camera.AddComponent<CameraControllerComponent>(camera);
 
@@ -196,7 +198,7 @@ void GameLayer::OnEnable()
                 transform.quat_rotation = yoyo::QuatFromAxisAngle({ 1, 0, 0 }, yoyo::DegToRad(-90));
 
                 MeshRendererComponent& mesh_renderer = plane.AddComponent<MeshRendererComponent>();
-                mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::Mesh>("planePlane0");
+                mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::StaticMesh>("planePlane");
                 mesh_renderer.material = grid_material;
 
                 floor_transform.AddChild(plane);
@@ -271,7 +273,7 @@ void GameLayer::OnUpdate(float dt)
         // yoyo::Vec3 right = Normalize(Cross(front, { 0.0f, 1.0f, 0.0f }));
         // yoyo::Vec3 up = Normalize(Cross(right, front));
 
-        const yoyo::ApplicationSettings& settings = m_app.Settings();
+        const yoyo::ApplicationSettings& settings = m_app->Settings();
         float width = 16 * 4.0f;
         float height = 9 * 4.0f;
         float half_width = static_cast<float>(width);
@@ -338,6 +340,8 @@ void GameLayer::OnUpdate(float dt)
         m_rebuild_packet = false;
     }
     m_renderer_layer->SendRenderPacket(m_rp);
+
+    m_scene->FlushDestructionQueue();
 };
 
 void GameLayer::OnMeshRendererComponentCreated(entt::basic_registry<entt::entity>&, entt::entity entity)
@@ -351,14 +355,15 @@ void GameLayer::OnMeshRendererComponentCreated(entt::basic_registry<entt::entity
 
 void GameLayer::OnMeshRendererComponentDestroyed(entt::basic_registry<entt::entity>&, entt::entity entity)
 {
+
 }
 
 void GameLayer::OnCameraComponentCreated(entt::basic_registry<entt::entity>&, entt::entity entity)
 {
     Entity e(entity, m_scene);
     e.GetComponent<CameraComponent>().camera = CreateRef<yoyo::Camera>();
-
     e.AddComponent<NewCameraComponent>();
+
     m_rebuild_packet = true;
 }
 
@@ -385,8 +390,8 @@ public:
     Sandbox()
         : yoyo::Application({ "Sandbox", 0, 0, 1920, 1080 })
     {
-        PushLayer(Y_NEW EditorLayer(this));
-        PushLayer(Y_NEW GameLayer(*(yoyo::Application*)this));
+        PushLayer(YNEW EditorLayer(this));
+        PushLayer(YNEW GameLayer(this));
     }
 
     ~Sandbox()
@@ -396,5 +401,5 @@ public:
 
 yoyo::Application* CreateApplication()
 {
-    return Y_NEW Sandbox;
+    return YNEW Sandbox;
 };

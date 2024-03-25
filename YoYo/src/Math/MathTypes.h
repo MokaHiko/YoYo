@@ -20,7 +20,7 @@ namespace yoyo
             };
         };
 
-        Vec2 &operator*=(const Vec2 &other);
+        Vec2& operator*=(const Vec2& other);
     };
 
     union YAPI Vec3
@@ -43,14 +43,14 @@ namespace yoyo
             };
         };
 
-        Vec3 &operator+=(float scalar);
-        Vec3 &operator-=(float scalar);
-        Vec3 &operator*=(float scalar);
-        Vec3 &operator/=(float scalar);
+        Vec3& operator+=(float scalar);
+        Vec3& operator-=(float scalar);
+        Vec3& operator*=(float scalar);
+        Vec3& operator/=(float scalar);
 
-        Vec3 &operator+=(const Vec3 &other);
-        Vec3 &operator-=(const Vec3 &other);
-        Vec3 &operator*=(const Vec3 &other);
+        Vec3& operator+=(const Vec3& other);
+        Vec3& operator-=(const Vec3& other);
+        Vec3& operator*=(const Vec3& other);
     };
 
     union YAPI Vec4
@@ -80,7 +80,35 @@ namespace yoyo
             };
         };
 
-        operator Vec3() const { return {x,y,z}; }
+        operator Vec3() const { return { x,y,z }; }
+    };
+
+    union YAPI IVec4
+    {
+#ifdef YUSESIMD
+        // Use SIMD
+        alignas(16) _m128 data;
+#endif
+        alignas(16) int elements[4];
+        struct
+        {
+            union
+            {
+                int x, r, s;
+            };
+            union
+            {
+                int y, g, t;
+            };
+            union
+            {
+                int z, b, p;
+            };
+            union
+            {
+                int w, a, q;
+            };
+        };
     };
 
     /*
@@ -92,15 +120,16 @@ namespace yoyo
         Mat4x4();
         ~Mat4x4();
 
+        // Initializes all values of the matrix to val
         Mat4x4(float val);
 
         alignas(16) float data[16];
 #ifdef YUSESIMD
         alignas(16) Vec4 rows[4];
 #endif
-        Mat4x4 &operator*=(const Mat4x4 &other);
-        Mat4x4 &operator*=(float scalar);
-        float &operator[](int index);
+        Mat4x4& operator*=(const Mat4x4& other);
+        Mat4x4& operator*=(float scalar);
+        float& operator[](int index);
     };
 
 };

@@ -1,3 +1,8 @@
+# assets
+Sandbox/assets/**/*.obj
+Sandbox/assets/**/*.png
+Sandbox/assets/**/*.fbx
+
 #build
 [Bb]uild
 

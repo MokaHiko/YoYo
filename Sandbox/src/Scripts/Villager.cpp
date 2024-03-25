@@ -62,7 +62,7 @@ void VillagerComponent::BasicAttack()
 
 	float bullet_speed = 100.0f;
 	Entity bullet = Instantiate("bullet", transfrom.position + transfrom.Forward() * 2.0f);
-	MeshRendererComponent& mesh_renderer = bullet.AddComponent<MeshRendererComponent>("cubeCube0", "default_instanced_material");
+	MeshRendererComponent& mesh_renderer = bullet.AddComponent<MeshRendererComponent>("cubeCube", "default_instanced_material");
 
 	psx::RigidBodyComponent& rb = bullet.AddComponent<psx::RigidBodyComponent>();
 	psx::BoxColliderComponent& col = bullet.AddComponent<psx::BoxColliderComponent>();

@@ -1,16 +1,19 @@
 #pragma once
 
 #include "Defines.h"
+
+#include <Core/Log.h>
 #include <cassert>
 
-namespace yoyo
-{
-    YAPI void Assert(bool value, const char* message = "");
-};
-
 #ifdef Y_DEBUG
-#define YASSERT(value, ...) yoyo::Assert(value, ##__VA_ARGS__)
+#define YASSERT(value, ...)	if(!(value)){YERROR("Assertion Failed: %s", __VA_ARGS__);} \
+							assert(value)
 #else
 #define YASSERT(value, ...)
 #endif
+
+namespace yoyo
+{
+};
+
 

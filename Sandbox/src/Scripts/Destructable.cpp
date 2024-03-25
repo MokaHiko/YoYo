@@ -22,6 +22,14 @@ static yoyo::PRNGenerator<float> random(-2, 2.0f);
 
 void DestructableComponent::OnUpdate(float dt) 
 {
+	static float timer = 0.0f;
+	timer += dt;
+
+	if(timer > 2.0f)
+	{
+		QueueDestroy();
+	}
+
 	// if(yoyo::Input::GetKey(yoyo::KeyCode::Key_j))
 	// {
 	// 	psx::RigidBodyComponent& rb = GetComponent<psx::RigidBodyComponent>();

@@ -25,7 +25,7 @@ namespace yoyo
 
 		if (!resource_manager)
 		{
-			resource_manager = Y_NEW ResourceManager;
+			resource_manager = YNEW ResourceManager;
 		}
 
 		return *resource_manager;
@@ -42,10 +42,29 @@ namespace yoyo
 	void ResourceManager::Update()
 	{
 		// TODO: Move to dirty list
-		for (auto it : ResourceManager::Instance().Cache<Mesh>())
+		for (auto it : ResourceManager::Instance().Cache<StaticMesh>())
 		{
-			Ref<Mesh> mesh = it.second;
+			Ref<StaticMesh> mesh = it.second;
+			MeshDirtyFlags flags = mesh->DirtyFlags();
+			if (flags == MeshDirtyFlags::Clean)
+			{
+				continue;
+			}
 
+			if ((flags & MeshDirtyFlags::Unuploaded) == MeshDirtyFlags::Unuploaded)
+			{
+				mesh->UploadMeshData();
+			}
+
+			if ((flags & MeshDirtyFlags::VertexDataChange) == MeshDirtyFlags::VertexDataChange)
+			{
+				// TODO: Update vertex data in gpu
+			}
+		}
+
+		for (auto it : ResourceManager::Instance().Cache<SkinnedMesh>())
+		{
+			Ref<SkinnedMesh> mesh = it.second;
 			MeshDirtyFlags flags = mesh->DirtyFlags();
 			if (flags == MeshDirtyFlags::Clean)
 			{
@@ -86,7 +105,6 @@ namespace yoyo
 
 	void RuntimeResourceLayer::OnAttach()
 	{
-
 	}
 
 	void RuntimeResourceLayer::OnDetatch()
@@ -103,26 +121,32 @@ namespace yoyo
 	{
 		ResourceManager::Instance().Init();
 
-		EventManager::Instance().Subscribe(MeshCreatedEvent::s_event_type, [](Ref<Event> event) {
-			const auto& mesh_created_event = std::static_pointer_cast<MeshCreatedEvent>(event);
-			return ResourceManager::Instance().OnResourceCreated<Mesh>(mesh_created_event->mesh);
-			});
+		EventManager::Instance().Subscribe(MeshCreatedEvent<StaticMesh>::s_event_type, [](Ref<Event> event) {
+			const auto& mesh_created_event = std::static_pointer_cast<MeshCreatedEvent<StaticMesh>>(event);
+			Ref<StaticMesh> mesh = std::static_pointer_cast<StaticMesh>(mesh_created_event->mesh);
+			return ResourceManager::Instance().OnResourceCreated<StaticMesh>(mesh);
+		});
+
+		EventManager::Instance().Subscribe(MeshCreatedEvent<SkinnedMesh>::s_event_type, [](Ref<Event> event) {
+			const auto& mesh_created_event = std::static_pointer_cast<MeshCreatedEvent<SkinnedMesh>>(event);
+			Ref<SkinnedMesh> mesh = std::static_pointer_cast<SkinnedMesh>(mesh_created_event->mesh);
+			return ResourceManager::Instance().OnResourceCreated<SkinnedMesh>(mesh);
+		});
 
 		EventManager::Instance().Subscribe(ShaderCreatedEvent::s_event_type, [](Ref<Event> event) {
 			const auto& shader_created_event = std::static_pointer_cast<ShaderCreatedEvent>(event);
 			return ResourceManager::Instance().OnResourceCreated<Shader>(shader_created_event->shader);
-			});
+		});
 
 		EventManager::Instance().Subscribe(TextureCreatedEvent::s_event_type, [](Ref<Event> event) {
 			const auto& texture_created_event = std::static_pointer_cast<TextureCreatedEvent>(event);
 			return ResourceManager::Instance().OnResourceCreated<Texture>(texture_created_event->texture);
-			});
+		});
 
 		EventManager::Instance().Subscribe(MaterialCreatedEvent::s_event_type, [](Ref<Event> event) {
 			const auto& material_created_event = std::static_pointer_cast<MaterialCreatedEvent>(event);
 			return ResourceManager::Instance().OnResourceCreated<Material>(material_created_event->material);
-			});
-
+		});
 	}
 
 	void RuntimeResourceLayer::OnDisable()
@@ -136,9 +160,34 @@ namespace yoyo
 
 		ResourceManager& rm = ResourceManager::Instance();
 
-		ImGui::Text("Meshes: %d", rm.Cache<Mesh>().size());
-		ImGui::Text("Materials: %d", rm.Cache<Material>().size());
-		ImGui::Text("Textures: %d", rm.Cache<Texture>().size());
+		if (ImGui::TreeNode("Assets"))
+		{
+			// ImGui::Text("Meshes: %d", rm.Cache<Mesh>().size());
+			ImGui::Text("Materials: %d", rm.Cache<Material>().size());
+			ImGui::Text("Textures: %d", rm.Cache<Texture>().size());
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Memory Map"))
+		{
+			static std::array<uint64_t, (size_t)MemoryTag::MaximumValue> memory_map;
+			memset(memory_map.data(), 0, sizeof(uint64_t) * (size_t)MemoryTag::MaximumValue);
+
+			for (const auto& it : GetMemoryMap())
+			{
+				YASSERT(it.first, "Invalid memory in memory map!");
+
+				const MemoryAllocation& mem_alloc = it.second;
+				memory_map[(int)mem_alloc.tag] += mem_alloc.size;
+			}
+
+			for (int i = 0; i < memory_map.size(); i++)
+			{
+				ImGui::Text("[%s] : %.3lf kb", MemoryTagStrings[i], memory_map[i] / 1000.0f);
+			}
+
+			ImGui::TreePop();
+		}
 
 		ImGui::End();
 	}

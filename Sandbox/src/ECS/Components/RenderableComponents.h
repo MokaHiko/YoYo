@@ -37,7 +37,9 @@ struct MeshRendererComponent
     MeshRendererComponent();
     ~MeshRendererComponent();
 
-    Ref<yoyo::Mesh> mesh;
+    Ref<yoyo::IMesh> mesh;
+    yoyo::MeshType type = yoyo::MeshType::Static;
+
     Ref<yoyo::Material> material;
     Ref<yoyo::MeshPassObject> mesh_object;
 };

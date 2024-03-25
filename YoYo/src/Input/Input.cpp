@@ -115,7 +115,7 @@ namespace yoyo
 
 	bool Input::GetMouseButton(int index)
 	{
-		YASSERT(index > 0 && index < 4);
+		YASSERT(index >= 0 && index < 4);
 		return Input::MouseButtons[index];
 	}
 

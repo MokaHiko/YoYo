@@ -2,9 +2,6 @@
 
 namespace yoyo
 {
-	MeshCreatedEvent::MeshCreatedEvent(Ref<Mesh> new_mesh) 
-		:mesh(new_mesh){}
-
 	TextureCreatedEvent::TextureCreatedEvent(Ref<Texture> new_texture)
 		:texture(new_texture){}
 

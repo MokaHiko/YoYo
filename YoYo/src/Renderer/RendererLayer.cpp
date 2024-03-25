@@ -478,7 +478,7 @@ namespace yoyo
         static ImGuiLayer* imgui_layer = m_app->FindLayer<ImGuiLayer>();
 
         static bool open = true;
-        static ExampleAppConsole* console = Y_NEW ExampleAppConsole;
+        static ExampleAppConsole* console = YNEW ExampleAppConsole;
 
         m_dt = dt;
 

@@ -95,7 +95,7 @@ namespace psx
 		scene_desc.filterShader = contactReportFilterShader;
 		m_scene = m_physics->createScene(scene_desc);
 
-		m_simulation_event_callback = Y_NEW SimulationEventCallback();
+		m_simulation_event_callback = YNEW SimulationEventCallback();
 		m_scene->setSimulationEventCallback(m_simulation_event_callback);
 
 		PxPvdSceneClient* pvd_client = m_scene->getScenePvdClient();

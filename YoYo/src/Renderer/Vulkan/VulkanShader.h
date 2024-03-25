@@ -7,7 +7,7 @@
 
 namespace yoyo
 {
-    // Fills descriptor array from spriv code
+     // Fills descriptor array from spriv code
     void ParseDescriptorSetsFromSpirV(const void* spirv_code, size_t spirv_nbytes, VkShaderStageFlagBits stage, std::vector<VulkanDescriptorSetInformation>& set_infos);
 
     // Holds all the shader related state to build a render pipeline
@@ -19,10 +19,11 @@ namespace yoyo
         {
             Ref<VulkanShaderModule> module;
             VkShaderStageFlagBits stage;
+            std::vector<ShaderInput> inputs;
         };
 
+        VkPolygonMode polygon_mode = VK_POLYGON_MODE_FILL;
         std::vector<ShaderStage> stages;
-
         void PushShader(Ref<VulkanShaderModule> shader_module, VkShaderStageFlagBits stage);
     };
 

@@ -1,5 +1,6 @@
 #include "Layer.h"
 #include "Log.h"
+#include "Core/Memory.h"
 
 namespace yoyo
 {
@@ -10,7 +11,7 @@ namespace yoyo
     {
         for (Layer *layer : m_layers)
         {
-            delete layer;
+            YDELETE layer;
         }
     }
 

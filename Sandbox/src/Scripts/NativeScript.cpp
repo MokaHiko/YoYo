@@ -11,6 +11,12 @@ void ScriptingSystem::Init()
 		return false;
 	});
 
+	yoyo::EventManager::Instance().Subscribe(ScriptDestroyedEvent::s_event_type, [&](Ref<yoyo::Event> event) {
+		const Ref<ScriptDestroyedEvent>& script_event = std::static_pointer_cast<ScriptDestroyedEvent>(event);
+		OnScriptDestroyedCallback(script_event->script);
+		return false;
+	});
+
 	yoyo::EventManager::Instance().Subscribe(psx::CollisionEvent::s_event_type, [&](Ref<yoyo::Event> event) {
 		const Ref<psx::CollisionEvent>& col_event = std::static_pointer_cast<psx::CollisionEvent>(event);
 		OnCollisionCallback(col_event->collision);
@@ -22,7 +28,7 @@ void ScriptingSystem::Shutdown()
 {
 	for (ScriptableEntity* script : m_script_cache)
 	{
-		delete script;
+		YDELETE script;
 	}
 }
 
@@ -57,6 +63,10 @@ void ScriptingSystem::OnComponentCreated(Entity e, NativeScriptComponent& native
 
 void ScriptingSystem::OnComponentDestroyed(Entity e, NativeScriptComponent& native_script)
 {
+	for(int i = 0; i < native_script.m_scripts_count; i++)
+	{
+		native_script.RemoveScript(native_script.m_scripts[i]);
+	}
 }
 
 void ScriptingSystem::OnScriptCreatedCallback(ScriptableEntity* script)
@@ -70,6 +80,20 @@ void ScriptingSystem::OnScriptCreatedCallback(ScriptableEntity* script)
 	{
 		NativeScriptComponent& ns = script->GameObject().GetComponent<NativeScriptComponent>();
 		ns.AddScript(script);
+	}
+}
+
+void ScriptingSystem::OnScriptDestroyedCallback(ScriptableEntity* script)
+{
+	YASSERT(script && "attempting to destroy invalid script");
+
+	if(!script->GameObject().HasComponent<NativeScriptComponent>())
+	{
+		auto& ns = script->GameObject().AddComponent<NativeScriptComponent>();
+		ns.RemoveScript(script);
+
+		script->OnDestroy();
+		YDELETE script;
 	}
 }
 
@@ -136,17 +160,24 @@ void NativeScriptComponent::RemoveScript(ScriptableEntity* script)
 	//TODO: Add remove script flag
 	auto it = std::find(m_scripts.begin(), m_scripts.end(), script);
 
+	int index = -1;
 	if (it != m_scripts.end())
 	{
 		int index = std::distance(m_scripts.begin(), it);
-
-		delete m_scripts[index];
 		m_scripts[index] = nullptr;
 	}
 
-	// TODO: Make sure scripts array is contiguos
-	if (--m_scripts_count)
+	// Return if no script found
+	if(index < 0)
 	{
+		return;
+	}
 
+	// Make sure scripts array is contiguos
+	if(index != m_scripts.size() - 1)
+	{
+		m_scripts[index] = m_scripts.back();
+		m_scripts[m_scripts.size() - 1] = nullptr;
+		--m_scripts_count;
 	}
 }

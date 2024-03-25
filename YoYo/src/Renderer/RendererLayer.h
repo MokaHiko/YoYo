@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Defines.h"
+
 #include "Core/Layer.h"
 #include "Core/Memory.h"
 
+#include "Renderer/RenderScene.h"
 #include "Renderer.h"
-#include "Defines.h"
 
 namespace yoyo
 {

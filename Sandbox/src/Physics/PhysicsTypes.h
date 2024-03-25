@@ -42,7 +42,10 @@ namespace psx
 		void LockRotationAxis(const yoyo::Vec3& axis);
 
 		// Returns the mass in kg
-		float GetMass();
+		const float GetMass() const;
+
+		// Returns the mass in kg
+		void SetMass(float mass);
 	private:	
 		friend class PhysicsWorld;
 		physx::PxRigidActor* actor;

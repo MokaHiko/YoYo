@@ -9,6 +9,8 @@
 #include "ECS/Components/RenderableComponents.h"
 #include "Physics/PhysicsTypes.h"
 
+#include <Renderer/Shader.h>
+
 static void HelpMarker(const char* desc)
 {
 	ImGui::TextDisabled("(?)");
@@ -21,13 +23,31 @@ static void HelpMarker(const char* desc)
 	}
 }
 
+static void MatrixInput(const char* name, yoyo::Mat4x4& mat)
+{
+	if (ImGui::TreeNode(name))
+	{
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x / 4.0f);
+		for(int i = 0; i < 4; i++)
+		{
+			ImGui::DragFloat("##label", &mat.data[0 + i], 0.1f); ImGui::SameLine();
+			ImGui::DragFloat("##label", &mat.data[4 + i], 0.1f); ImGui::SameLine();
+			ImGui::DragFloat("##label", &mat.data[8 + i], 0.1f); ImGui::SameLine();
+			ImGui::DragFloat("##label", &mat.data[12 + i], 0.1f);
+		}
+		ImGui::PopItemWidth();
+
+		ImGui::TreePop();
+	}
+}
+
 InspectorPanel::InspectorPanel()
 {
 	yoyo::EventManager::Instance().Subscribe(FocusEntityEvent::s_event_type, [&](Ref<yoyo::Event> event) {
 		Ref<FocusEntityEvent> focused_event = std::static_pointer_cast<FocusEntityEvent>(event);
 		m_focused_entity = focused_event->entity;
 		return false;
-	});
+		});
 }
 
 InspectorPanel::~InspectorPanel()
@@ -91,6 +111,9 @@ void InspectorPanel::DrawComponents()
 		ImGui::PopItemWidth();
 
 		ImGui::EndTable();
+
+		MatrixInput("Model Matrix", transform.model_matrix);
+
 		}, true);
 
 	DrawComponentUI<MeshRendererComponent>("MeshRenderer", m_focused_entity, [](MeshRendererComponent& mesh_renderer) {
@@ -100,10 +123,41 @@ void InspectorPanel::DrawComponents()
 			ImGuiWindowFlags window_flags = ImGuiWindowFlags_HorizontalScrollbar;
 			ImGui::BeginChild("Details", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 150), ImGuiChildFlags_None, window_flags);
 			ImGui::Separator();
-			ImGui::Text("Name: %s", mesh_renderer.mesh->name.c_str());
-			ImGui::Text("Id: %u", mesh_renderer.mesh->Id());
-			ImGui::Text("Vertices: %d", mesh_renderer.mesh->vertices.size());
-			ImGui::Text("Indices: %d", mesh_renderer.mesh->indices.size());
+
+			switch (mesh_renderer.type)
+			{
+			case yoyo::MeshType::Static: {
+				Ref<yoyo::StaticMesh> mesh = std::static_pointer_cast<yoyo::StaticMesh>(mesh_renderer.mesh);
+				ImGui::Text("Name: %s", mesh->name.c_str());
+				ImGui::Text("Id: %u", mesh->Id());
+				ImGui::Text("Vertices: %d", mesh->vertices.size());
+				ImGui::Text("Indices: %d", mesh->indices.size());
+			}break;
+
+			case yoyo::MeshType::Skinned: {
+				Ref<yoyo::SkinnedMesh> mesh = std::static_pointer_cast<yoyo::SkinnedMesh>(mesh_renderer.mesh);
+				ImGui::Text("Name: %s", mesh->name.c_str());
+				ImGui::Text("Id: %u", mesh->Id());
+				ImGui::Text("Vertices: %d", mesh->vertices.size());
+				ImGui::Text("Indices: %d", mesh->indices.size());
+
+				if (ImGui::TreeNode("Bones"))
+				{
+					for (int i = 0; i < mesh->bones.size(); i++)
+					{
+						const std::string name = std::to_string(i);
+						MatrixInput(name.c_str(), mesh->bones[i]);
+					}
+					ImGui::TreePop();
+				}
+			}break;
+
+			default:
+				ImGui::Text("Uknown Mesh Type");
+				HelpMarker("This indicates an error in how the asset was loaded!");
+				break;
+			}
+
 			ImGui::EndChild();
 
 			ImGui::SameLine();
@@ -129,7 +183,7 @@ void InspectorPanel::DrawComponents()
 			ImGui::BeginChild("Details", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 300), ImGuiChildFlags_None, window_flags);
 			ImGui::Text("Id: %u", material->Id());
 
-			const char* names[] = 
+			const char* names[] =
 			{
 				"Uknown",
 				"Opaque",
@@ -181,6 +235,14 @@ void InspectorPanel::DrawComponents()
 					}
 				}break;
 
+				case(yoyo::MaterialPropertyType::Int32):
+				{
+					ImGui::InputInt(name.c_str(), (int32_t*)((char*)material->PropertyData() + prop.offset));
+					{
+						material->SetProperty(name.c_str(), (float*)((char*)material->PropertyData() + prop.offset));
+					}
+				}break;
+
 				default:
 				{
 					ImGui::Text("%s [?] Uknown Property Type", name.c_str());
@@ -209,7 +271,7 @@ void InspectorPanel::DrawComponents()
 				ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
 				ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
 				ImGui::BeginChild("Viewport", ImVec2(0, 150), ImGuiChildFlags_Border, window_flags);
-				ImGui::Image(material->MainTexture(), ImVec2{150,150});
+				ImGui::Image(material->MainTexture(), ImVec2{ 150,150 });
 				ImGui::EndChild();
 				ImGui::PopStyleVar();
 			}
@@ -217,8 +279,14 @@ void InspectorPanel::DrawComponents()
 		}
 		}, false);
 
-	DrawComponentUI<psx::RigidBodyComponent>("RigidBody", m_focused_entity, [](psx::RigidBodyComponent& rb){
-	});
+	DrawComponentUI<psx::RigidBodyComponent>("RigidBody", m_focused_entity, [](psx::RigidBodyComponent& rb) {
+		float mass = rb.GetMass();
+		if (ImGui::DragFloat("Mass", &mass, 1.0f))
+		{
+			rb.SetMass(mass);
+		}
+		});
+
 	// class RigidBodyComponent
 	// {
 	// public:

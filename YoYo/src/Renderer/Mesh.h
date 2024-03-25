@@ -2,17 +2,20 @@
 
 #include "Defines.h"
 
-#include "Core/Memory.h"
 #include "Math/Math.h"
+#include "Core/Memory.h"
 
 #include "Resource/Resource.h"
+#include "Renderer/RenderTypes.h"
 
 namespace yoyo
 {
-    enum class VertexFormat
+    enum class VertexInputRate
     {
-        P3c3n3u2,
-        P4c4n3u2,
+        Vertex = 0,
+        Instance = 1,
+
+        Maximum
     };
 
     struct YAPI Vertex
@@ -22,6 +25,29 @@ namespace yoyo
         Vec3 normal;
 
         Vec2 uv;
+    };
+
+    struct sample
+    {
+        int nums[4];
+    };
+
+    struct YAPI SkinnedVertex
+    {
+        Vec3 position = { 0.0f, 0.0f, 0.0f };
+        Vec3 color = { 0.0f, 0.0f, 0.0f };
+        Vec3 normal = { 0.0f, 0.0f, 0.0f };
+
+        Vec2 uv = { 0.0f, 0.0f};
+
+        int bone_ids[4] = { 0, 0, 0, 0 };
+        float bone_weights[4] = {0.0f, 1.0f, 0.0f, 0.0f};
+    };
+
+    enum class MeshType
+    {
+        Static,
+        Skinned
     };
 
     enum class MeshDirtyFlags
@@ -41,40 +67,102 @@ namespace yoyo
     inline MeshDirtyFlags& operator&= (MeshDirtyFlags& a, MeshDirtyFlags b) { return (MeshDirtyFlags&)((int&)a &= (int)b); }
     inline MeshDirtyFlags& operator^= (MeshDirtyFlags& a, MeshDirtyFlags b) { return (MeshDirtyFlags&)((int&)a ^= (int)b); }
 
-    class YAPI Mesh : public Resource
+    class IMesh
+    {
+    public:
+        virtual void Bind(void* render_context) = 0;
+        virtual void Unbind() {};
+
+        virtual void UploadMeshData(bool free_host_memory = false) = 0;
+        virtual uint64_t Hash() const = 0;
+
+        const virtual uint32_t GetIndexCount() const = 0;
+        const virtual uint32_t GetVertexCount() const = 0;
+
+        virtual void SetMeshType(MeshType type) = 0;
+        virtual const MeshType GetMeshType() const = 0;
+
+        virtual const uint64_t GetVertexSize() const = 0;
+        virtual const uint64_t GetIndexSize() const = 0;
+    };
+
+    template<typename VertexType, typename IndexType = uint32_t>
+    class Mesh : public IMesh, public Resource
     {
     public:
         RESOURCE_TYPE(Mesh)
-        Mesh() = default;
-        virtual ~Mesh() = default;
+            virtual ~Mesh() = default;
 
-        virtual void Bind(void* render_context) = 0;
-        virtual void Unbind() = 0;
+        const virtual uint32_t GetIndexCount() const override final { return indices.size(); }
+        const virtual uint32_t GetVertexCount() const override final { return vertices.size(); }
 
-        virtual void UploadMeshData(bool free_host_memory = false) = 0;
+        virtual void SetMeshType(MeshType type) override final { m_type = type; }
+        virtual const MeshType GetMeshType() const override final { return m_type; }
 
-        std::vector<Vertex> vertices;
-        std::vector<uint32_t> indices;
+        virtual const uint64_t GetVertexSize() const override final { return sizeof(VertexType); }
+        virtual const uint64_t GetIndexSize() const override final { return sizeof(IndexType); }
 
-        void RecalculateNormals(); // Recalculates normals of mesh
-
-        static Ref<Mesh> Create(const std::string& name = "");
+        virtual void RecalculateNormals() {}; // Recalculates normals of mesh
         MeshDirtyFlags DirtyFlags() { return m_dirty; }
+
+        std::vector<VertexType> vertices;
+        std::vector<IndexType> indices;
     protected:
         MeshDirtyFlags m_dirty;
+        MeshType m_type;
+    };
+
+    class YAPI StaticMesh : public Mesh<yoyo::Vertex, uint32_t>
+    {
+    public:
+        StaticMesh()
+        {
+            SetMeshType(MeshType::Static);
+        };
+        virtual ~StaticMesh() = default;
+
+        static Ref<StaticMesh> Create(const std::string& name = "");
+        virtual uint64_t Hash() const override;
+    };
+
+    class YAPI SkinnedMesh : public Mesh<yoyo::SkinnedVertex, uint32_t>
+    {
+    public:
+        SkinnedMesh()
+        {
+            SetMeshType(MeshType::Skinned);
+        };
+        virtual ~SkinnedMesh() = default;
+
+        static Ref<SkinnedMesh> Create(const std::string& name = "");
+        virtual uint64_t Hash() const override;
+
+        std::vector<Mat4x4> bones;
     };
 }
 
 template<>
-struct std::hash<yoyo::Mesh>
+struct std::hash<yoyo::StaticMesh>
 {
-    std::size_t operator()(const yoyo::Mesh& mesh) const noexcept
+    std::size_t operator()(const yoyo::StaticMesh& mesh) const noexcept
     {
-        // Compute individual hash values for first, second and third
         // http://stackoverflow.com/a/1646913/126995
-
         std::size_t res = mesh.vertices.size() + mesh.indices.size();
         res = res * 31 + hash<string>()(mesh.name);
+
+        return res;
+    }
+};
+
+template<>
+struct std::hash<yoyo::SkinnedMesh>
+{
+    std::size_t operator()(const yoyo::SkinnedMesh& mesh) const noexcept
+    {
+        // http://stackoverflow.com/a/1646913/126995
+        std::size_t res = mesh.vertices.size() + mesh.indices.size();
+        res = res * 31 + hash<string>()(mesh.name);
+        res = res * 31 + hash<uint64_t>()(mesh.bones.size());
 
         return res;
     }

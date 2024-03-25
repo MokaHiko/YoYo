@@ -16,7 +16,7 @@
 
 EditorLayer::EditorLayer(yoyo::Application* app)
 {
-	yoyo::Assert(app != nullptr, "Invalid application!");
+	YASSERT(app != nullptr, "Invalid application!");
 	m_app = app;
 }
 
@@ -24,7 +24,7 @@ EditorLayer::~EditorLayer() {}
 
 void EditorLayer::OnImGuiRender() 
 {
-	yoyo::Assert(m_scene != nullptr, "Invalid scene!");
+	YASSERT(m_scene != nullptr, "Invalid scene!");
 
 	if(yoyo::Input::GetKeyDown(yoyo::KeyCode::Key_backquote))
 	{
@@ -61,16 +61,16 @@ void EditorLayer::OnEnable()
 
 	// Get context from imgui layer
 	ImGuiContext* ctx = yoyo::ImGuiLayer::GetContext();
-	yoyo::Assert(ctx != nullptr, "Invalid ImGuiContext!");
+	YASSERT(ctx != nullptr, "Invalid ImGuiContext!");
     ImGui::SetCurrentContext(ctx);
 	ImGuizmo::SetImGuiContext(ctx);
 
 	GameLayer* game_layer = m_app->FindLayer<GameLayer>();
-	yoyo::Assert(game_layer != nullptr, "Invalid game_layer!");
+	YASSERT(game_layer != nullptr, "Invalid game_layer!");
 
 	// Get handle to scene
 	m_scene = game_layer->GetScene();
-	yoyo::Assert(m_scene != nullptr, "Invalid scene!");
+	YASSERT(m_scene != nullptr, "Invalid scene!");
 
 	m_hide = false;
 }

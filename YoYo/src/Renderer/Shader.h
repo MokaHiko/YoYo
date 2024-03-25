@@ -2,14 +2,22 @@
 
 #include "Defines.h"
 #include "Core/Memory.h"
-#include "Resource/Resource.h"
 
-#include "Renderer/RenderPass.h"
+#include "Resource/Resource.h"
+#include "RenderTypes.h"
 
 namespace yoyo
 {
     // TODO: Abstract to general ShaderPass
     struct VulkanShaderPass;
+
+    struct ShaderInput
+    {
+        std::string name;
+        Format format;
+        uint32_t offset = 0; // offset into input in bytes
+        uint32_t location = -1;
+    };
 
     class YAPI Shader : public Resource
     {
@@ -19,7 +27,7 @@ namespace yoyo
         std::unordered_map<MeshPassType, Ref<VulkanShaderPass>> shader_passes;
         static Ref<Shader> Create(const std::string& name = "", bool instanced = false);
 
-        bool instanced;
+        bool instanced = false;
     protected:
         Shader() = default;
         virtual ~Shader() = default;

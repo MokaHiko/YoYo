@@ -22,6 +22,6 @@ namespace yoyo
         friend class VulkanMaterialSystem;
 
         std::unordered_map<MeshPassType, std::unordered_map<uint32_t, VulkanDescriptorSet>> descriptors;
-        AllocatedBuffer<> m_properties_buffer; // The buffer that stores the public properties used by this material
+        AllocatedBuffer<> m_properties_buffer = {}; // The buffer that stores the public properties used by this material
     };
 }

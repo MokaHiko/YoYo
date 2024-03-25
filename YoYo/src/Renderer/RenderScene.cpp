@@ -1,7 +1,5 @@
 #include "RenderScene.h"
 
-#include <Core/Assert.h>
-
 #include "Renderer/Material.h"
 #include "Renderer/Mesh.h"
 
@@ -45,17 +43,17 @@ namespace yoyo
 
 	void RenderScene::BuildFlatBatches(const std::vector<Ref<MeshPassObject>>& objs)
 	{
-		for(auto& batch : forward_flat_batches)
+		for (auto& batch : forward_flat_batches)
 		{
 			batch->renderables.clear();
 		}
 
-		for (const Ref<MeshPassObject> obj : objs)
+		for (const auto& obj : objs)
 		{
 			RenderableBatchId id = GenerateBatchId(obj->mesh, obj->material);
-			auto it = std::find_if(forward_flat_batches.begin(), forward_flat_batches.end(), [&](const auto& b){
+			auto it = std::find_if(forward_flat_batches.begin(), forward_flat_batches.end(), [&](const auto& b) {
 				return id == b->id;
-			});
+				});
 
 			if (it != forward_flat_batches.end())
 			{

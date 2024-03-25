@@ -57,6 +57,8 @@ add_library(YoYo SHARED
     src/ImGui/ImGuiLayer.h
     src/ImGui/ImGuiLayer.cpp
 
+    src/Renderer/RenderTypes.h
+    src/Renderer/RenderTypes.cpp
     src/Renderer/Renderer.h
     src/Renderer/Renderer.cpp
     src/Renderer/RenderPass.h
@@ -118,6 +120,7 @@ endif()
 
 if(MSVC)
     add_compile_definitions(Y_COMPILER_MSVC)
+    set_property(TARGET HurnoConverter PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/Sandbox)
 endif()
 
 if (WIN32)

@@ -36,6 +36,40 @@ namespace psx
 		actor->is<PxRigidDynamic>()->setRigidDynamicLockFlags(flags);
 	}
 
+	const float RigidBodyComponent::GetMass() const
+	{
+		using namespace physx;
+
+		if (!actor)
+		{
+			return -1.0f;
+		}
+
+		if (float mass = actor->is<PxRigidDynamic>()->getMass())
+		{
+			return mass;
+		}
+		else
+		{
+			return -1.0f;
+		}
+	}
+
+	void RigidBodyComponent::SetMass(float mass)
+	{
+		using namespace physx;
+
+		if(!actor)
+		{
+			return;
+		}
+
+		if (PxRigidDynamic* rb_dynamic = actor->is<PxRigidDynamic>())
+		{
+			rb_dynamic->setMass(mass);
+		}
+	}
+
 	BoxColliderComponent::BoxColliderComponent()
 		:m_box(nullptr), m_extents(yoyo::Vec3{ 1.0f, 1.0f, 1.0f }) {}
 

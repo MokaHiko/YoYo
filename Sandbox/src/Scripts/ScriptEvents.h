@@ -13,3 +13,13 @@ public:
     ScriptableEntity* script;
     EVENT_TYPE(ScriptCreatedEvent)
 };
+
+class ScriptDestroyedEvent : public yoyo::Event
+{
+public:
+    ScriptDestroyedEvent(ScriptableEntity* scriptable);
+    virtual ~ScriptDestroyedEvent() = default;
+
+    ScriptableEntity* script;
+    EVENT_TYPE(ScriptDestroyedEvent)
+};

@@ -1,10 +1,15 @@
 #pragma once
 
 #include "Core/Memory.h"
-#include "Renderer/RenderPass.h"
+#include "Core/Assert.h"
 
+#include "Renderer/RenderPass.h"
 namespace yoyo
 {
+    class Camera;
+    class DirectionalLight;
+    class PointLight;
+
     // Render structure that is incrementally built and updated.
     class RenderScene
     {

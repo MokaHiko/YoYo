@@ -4,13 +4,16 @@
 #include "VulkanUtils.h"
 #include "VulkanStructures.h"
 
+#include "VulkanMesh.h"
+
 namespace yoyo
 {
     const int MAX_MESH_VERTICES = 100000;
 
-    class VulkanMesh;
     class VulkanTexture;
     class VulkanRenderer;
+
+    class VulkanStaticMesh;
 
     // Manages runtime vulkan resources
     class VulkanResourceManager
@@ -19,7 +22,51 @@ namespace yoyo
         static void Init(VulkanRenderer* renderer);
         static void Shutdown();
 
-        static bool UploadMesh(VulkanMesh* mesh);
+        template<typename MeshType>
+        static bool UploadMesh(MeshType* mesh)
+        {
+            YASSERT(mesh, "Invalid mesh!");
+            YASSERT(!mesh->vertices.empty(), "Empty mesh!");
+            YASSERT(mesh->vertices.size() * mesh->GetVertexSize() <= MAX_MESH_VERTICES * mesh->GetVertexSize(), "Mesh exceeds max vertex buffer size!");
+
+            mesh->vertex_buffer = CreateBuffer<>(mesh->vertices.size() * mesh->GetVertexSize(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+            void* data;
+            MapMemory(m_mesh_staging_buffer.allocation, &data);
+            memcpy(data, mesh->vertices.data(), mesh->vertices.size() * mesh->GetVertexSize());
+            UnmapMemory(m_mesh_staging_buffer.allocation);
+
+            ImmediateSubmit([&](VkCommandBuffer cmd) {
+                VkBufferCopy region = {};
+                region.dstOffset = 0;
+                region.srcOffset = 0;
+                region.size = mesh->vertices.size() * mesh->GetVertexSize();
+
+                vkCmdCopyBuffer(cmd, m_mesh_staging_buffer.buffer, mesh->vertex_buffer.buffer, 1, &region);
+            });
+
+            if (!mesh->indices.empty())
+            {
+                mesh->index_buffer = CreateBuffer<uint32_t>(mesh->indices.size() * mesh->GetIndexSize(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+                void* data;
+                vmaMapMemory(m_allocator, m_mesh_staging_buffer.allocation, &data);
+                memcpy(data, mesh->indices.data(), mesh->indices.size() * mesh->GetIndexSize());
+                vmaUnmapMemory(m_allocator, m_mesh_staging_buffer.allocation);
+
+                ImmediateSubmit([&](VkCommandBuffer cmd) {
+                    VkBufferCopy region = {};
+                    region.dstOffset = 0;
+                    region.srcOffset = 0;
+                    region.size = mesh->indices.size() * mesh->GetIndexSize();
+
+                    vkCmdCopyBuffer(cmd, m_mesh_staging_buffer.buffer, mesh->index_buffer.buffer, 1, &region);
+                });
+            }
+
+            return true;
+        }
+
         static bool UploadTexture(VulkanTexture* texture);
 
         static void MapMemory(VmaAllocation allocation, void** data);
@@ -45,22 +92,24 @@ namespace yoyo
             AllocatedBuffer<T> buffer;
             VK_CHECK(vmaCreateBuffer(m_allocator, &buffer_info, &alloc_info, &buffer.buffer, &buffer.allocation, nullptr));
 
-            if(manage_memory)
+            if (manage_memory)
             {
                 m_deletion_queue->Push([=]() {
-                        vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
-                });
+                    vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
+                    });
             }
 
             return buffer;
         }
 
-        static AllocatedImage CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool manage_memory = true /*If true memory will be managed by resource manager */ , bool mipmapped = false);
+        static AllocatedImage CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool manage_memory = true /*If true memory will be managed by resource manager */, bool mipmapped = false);
 
         static const size_t PadToUniformBufferSize(size_t original_size);
         static const size_t PadToStorageBufferSize(size_t original_size);
 
         static void ImmediateSubmit(std::function<void(VkCommandBuffer)>&& fn);
+
+        static DescriptorBuilder AllocateDescriptor();
     private:
         VulkanResourceManager() = default;
         ~VulkanResourceManager() {};
@@ -77,5 +126,7 @@ namespace yoyo
         inline static VulkanQueues* m_queues;
 
         inline static VmaAllocator m_allocator;
+        inline static Ref<DescriptorAllocator> m_descriptor_allocator;
+        inline static Ref<DescriptorLayoutCache> m_descriptor_layout_cache;
     };
 }

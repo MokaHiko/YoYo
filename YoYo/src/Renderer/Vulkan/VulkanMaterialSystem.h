@@ -6,13 +6,10 @@
 
 namespace yoyo
 {
-    class Material;
     class VulkanMaterial;
     class VulkanShaderEffect;
     class VulkanShaderPass;
     class VulkanRenderer;
-    class VulkanShader;
-    class VulkanResourceManager;
     class VulkanMaterialSystem
     {
     public:

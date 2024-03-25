@@ -1,16 +1,20 @@
 #include <VkBootstrap.h>
 
+#include "VulkanMaterialSystem.h"
 #include "VulkanRenderer.h"
 
 #include "Platform/Platform.h"
 #include "Core/Time.h"
 #include "Core/Log.h"
 
-#include "VulkanMesh.h"
-#include "VulkanTexture.h"
-
 #include "Renderer/Camera.h"
 #include "Renderer/Light.h"
+#include "Renderer/RenderScene.h"
+
+#include "VulkanResourceManager.h"
+#include "VulkanMesh.h"
+#include "VulkanTexture.h"
+#include "VulkanMaterial.h"
 
 namespace yoyo
 {
@@ -69,7 +73,7 @@ namespace yoyo
         InitBlitPipeline();
 
         // TODO: All uploads must be done immediately uppon creation and update
-        m_screen_quad = CreateRef<VulkanMesh>();
+        m_screen_quad = CreateRef<VulkanStaticMesh>();
         m_screen_quad->vertices =
         {
             {{-1.00, -1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.00,  0.00}},
@@ -92,6 +96,16 @@ namespace yoyo
         }
         auto lit_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_effect);
 
+        Ref<VulkanShaderEffect> skinned_lit_effect = CreateRef<VulkanShaderEffect>();
+        {
+            Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_skinned_shader.vert.spv");
+            skinned_lit_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+
+            Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.frag.spv");
+            skinned_lit_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+        }
+        auto skinned_lit_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, skinned_lit_effect);
+
         Ref<VulkanShaderEffect> lit_instanced_effect = CreateRef<VulkanShaderEffect>();
         {
             Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_instanced_shader.vert.spv");
@@ -102,16 +116,25 @@ namespace yoyo
         }
         auto lit_instanced_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_instanced_effect);
 
-        // Create or get shader pass from effect description
-        Ref<VulkanShaderEffect> shadow_lit_effect = CreateRef<VulkanShaderEffect>();
+        Ref<VulkanShaderEffect> offscreen_shadow_effect = CreateRef<VulkanShaderEffect>();
         {
             Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/offscreen_shadow_shader.vert.spv");
-            shadow_lit_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+            offscreen_shadow_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
 
             Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/offscreen_shadow_shader.frag.spv");
-            shadow_lit_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+            offscreen_shadow_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
         }
-        auto shadow_pass = m_material_system->CreateShaderPass(m_shadow_render_pass, shadow_lit_effect);
+        auto shadow_pass = m_material_system->CreateShaderPass(m_shadow_render_pass, offscreen_shadow_effect);
+
+        Ref<VulkanShaderEffect> offscreen_skinned_shadow_lit_effect = CreateRef<VulkanShaderEffect>();
+        {
+            Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/offscreen_skinned_shadow_shader.vert.spv");
+            offscreen_skinned_shadow_lit_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+
+            Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/offscreen_shadow_shader.frag.spv");
+            offscreen_skinned_shadow_lit_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+        }
+        auto offscreen_skinned_shadow_pass = m_material_system->CreateShaderPass(m_shadow_render_pass, offscreen_skinned_shadow_lit_effect);
 
         // Create or get shader pass from effect description
         Ref<VulkanShaderEffect> shadow_lit_instanced_effect = CreateRef<VulkanShaderEffect>();
@@ -129,9 +152,31 @@ namespace yoyo
         lit_shader->shader_passes[MeshPassType::Forward] = lit_shader_pass;
         lit_shader->shader_passes[MeshPassType::Shadow] = shadow_pass;
 
+        Ref<Shader> skinned_lit_shader = Shader::Create("skinned_lit_shader");
+        skinned_lit_shader->shader_passes[MeshPassType::Forward] = skinned_lit_shader_pass;
+        skinned_lit_shader->shader_passes[MeshPassType::Shadow] = offscreen_skinned_shadow_pass;
+
         Ref<Shader> lit_instanced_shader = Shader::Create("lit_instanced_shader", true);
         lit_instanced_shader->shader_passes[MeshPassType::Forward] = lit_instanced_shader_pass;
         lit_instanced_shader->shader_passes[MeshPassType::Shadow] = shadow_instanced_pass;
+
+#ifdef Y_DEBUG
+    Ref<VulkanShaderEffect> skinned_lit_debug_effect = CreateRef<VulkanShaderEffect>();
+    skinned_lit_debug_effect->polygon_mode = VK_POLYGON_MODE_LINE;
+    {
+        Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_skinned_debug_shader.vert.spv");
+        skinned_lit_debug_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+
+        Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_skinned_debug_shader.frag.spv");
+        skinned_lit_debug_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+    }
+    auto skinned_lit_debug_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, skinned_lit_debug_effect);
+
+    Ref<Shader> skinned_lit_debug_shader = Shader::Create("skinned_lit_debug_shader");
+    skinned_lit_debug_shader->shader_passes[MeshPassType::Forward] = skinned_lit_debug_shader_pass;
+    skinned_lit_debug_shader->shader_passes[MeshPassType::Shadow] = offscreen_skinned_shadow_pass;
+#endif
+
     }
 
     void VulkanRenderer::Shutdown()
@@ -233,7 +278,7 @@ namespace yoyo
             const size_t padded_instanced_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(InstancedData));
 
             int ctr = 0;
-            for (const Ref<RenderableBatch>& batch : scene->forward_flat_batches)
+            for (const auto& batch : scene->forward_flat_batches)
             {
                 if (!batch->material->instanced)
                 {
@@ -277,32 +322,39 @@ namespace yoyo
             VkRenderPassBeginInfo shadow_pass_begin = vkinit::RenderPassBeginInfo(m_shadow_frame_buffer, m_shadow_render_pass, rect, clear_values, 1);
             vkCmdBeginRenderPass(cmd, &shadow_pass_begin, VK_SUBPASS_CONTENTS_INLINE);
 
-            for (const Ref<RenderableBatch>& batch : scene->forward_flat_batches)
+            for (const auto& batch : scene->forward_flat_batches)
             {
-                // Bind material forward pipeline
+                // Bind material shadow pipeline
                 auto shader_pass = batch->material->shader->shader_passes[MeshPassType::Shadow];
                 vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->pipeline);
 
                 uint32_t dynamic_offset = 0;
                 vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, 0, 1, &m_shadow_pass_dsets[m_frame_count], 0, &dynamic_offset);
 
+                // Define render context
+                VulkanRenderContext render_context = {};
+                render_context.cmd = cmd;
+                render_context.pipeline_layout = shader_pass->layout;
+                render_context.mesh_pass_type = MeshPassType::Shadow;
+
                 // Bind mesh
-                batch->mesh->Bind(&m_render_context);
+                batch->mesh->Bind(&render_context);
 
                 if (!batch->material->instanced)
                 {
                     for (Ref<MeshPassObject> obj : batch->renderables)
                     {
                         // Draw every object w mesh and material
-                        if (!batch->mesh->indices.empty())
+                        int index_count = batch->mesh->GetIndexCount();
+                        if (index_count > 0)
                         {
                             Profile().draw_calls++;
-                            vkCmdDrawIndexed(cmd, obj->mesh->indices.size(), 1, 0, 0, obj->Id());
+                            vkCmdDrawIndexed(cmd, index_count, 1, 0, 0, obj->Id());
                         }
                         else
                         {
                             Profile().draw_calls++;
-                            vkCmdDraw(cmd, obj->mesh->vertices.size(), 1, 0, obj->Id());
+                            vkCmdDraw(cmd, batch->mesh->GetVertexCount(), 1, 0, obj->Id());
                         }
                     }
                 }
@@ -311,19 +363,19 @@ namespace yoyo
                     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, SHADOW_PASS_INSTANCED_OBJECT_DATA_SET_INDEX, 1, &m_instanced_dsets[m_frame_count], 0, &dynamic_offset);
 
                     // Draw every object w mesh and material
-                    if (!batch->mesh->indices.empty())
+                    int index_count = batch->mesh->GetIndexCount();
+                    if (index_count > 0)
                     {
                         Profile().draw_calls++;
-                        vkCmdDrawIndexed(cmd, batch->mesh->indices.size(), batch->renderables.size(), 0, 0, batch->instance_index);
+                        vkCmdDrawIndexed(cmd, index_count, batch->renderables.size(), 0, 0, batch->instance_index);
                     }
                     else
                     {
                         Profile().draw_calls++;
-                        vkCmdDraw(cmd, batch->mesh->vertices.size(), batch->renderables.size(), 0, batch->instance_index);
+                        vkCmdDraw(cmd, batch->mesh->GetVertexCount(), batch->renderables.size(), 0, batch->instance_index);
                     }
                 }
             }
-
             vkCmdEndRenderPass(cmd);
         }
 
@@ -363,32 +415,41 @@ namespace yoyo
             vkCmdBeginRenderPass(cmd, &forward_pass_begin, VK_SUBPASS_CONTENTS_INLINE);
 
             // Draw each forward pass by batch
-            for (const Ref<RenderableBatch>& batch : scene->forward_flat_batches)
+            for (const auto& batch : scene->forward_flat_batches)
             {
                 // Bind material forward pipeline
                 const auto shader_pass = batch->material->shader->shader_passes[MeshPassType::Forward];
                 vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->pipeline);
 
+                // Bind forward pass descriptors
                 const uint32_t dynamic_offset = 0;
                 vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, 0, 1, &m_forward_pass_dsets[m_frame_count], 0, &dynamic_offset);
 
+                // Define render context
+                VulkanRenderContext render_context = {};
+                render_context.cmd = cmd;
+                render_context.pipeline_layout = shader_pass->layout;
+                render_context.mesh_pass_type = MeshPassType::Forward;
+
+                // Bind batch material and mesh 
                 if (batch->material->Dirty()) { m_material_system->UpdateMaterial(std::static_pointer_cast<VulkanMaterial>(batch->material)); }
                 batch->material->Bind(&m_render_context, MeshPassType::Forward);
-                batch->mesh->Bind(&m_render_context);
+                batch->mesh->Bind(&render_context);
 
                 if (!batch->material->instanced)
                 {
                     for (const auto& obj : batch->renderables)
                     {
-                        if (!obj->mesh->indices.empty())
+                        int index_count = batch->mesh->GetIndexCount();
+                        if (index_count > 0)
                         {
                             Profile().draw_calls++;
-                            vkCmdDrawIndexed(cmd, obj->mesh->indices.size(), 1, 0, 0, obj->Id());
+                            vkCmdDrawIndexed(cmd, index_count, 1, 0, 0, obj->Id());
                         }
                         else
                         {
                             Profile().draw_calls++;
-                            vkCmdDraw(cmd, obj->mesh->vertices.size(), 1, 0, obj->Id());
+                            vkCmdDraw(cmd, obj->mesh->GetVertexCount(), 1, 0, obj->Id());
                         }
                     }
                 }
@@ -396,15 +457,16 @@ namespace yoyo
                 {
                     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader_pass->layout, INSTANCED_OBJECT_DATA_SET_INDEX, 1, &m_instanced_dsets[m_frame_count], 0, &dynamic_offset);
 
-                    if (!batch->mesh->indices.empty())
+                    int index_count = batch->mesh->GetIndexCount();
+                    if (index_count > 0)
                     {
                         Profile().draw_calls++;
-                        vkCmdDrawIndexed(cmd, batch->mesh->indices.size(), batch->renderables.size(), 0, 0, batch->instance_index);
+                        vkCmdDrawIndexed(cmd, index_count, batch->renderables.size(), 0, 0, batch->instance_index);
                     }
                     else
                     {
                         Profile().draw_calls++;
-                        vkCmdDraw(cmd, batch->mesh->vertices.size(), batch->renderables.size(), 0, batch->instance_index);
+                        vkCmdDraw(cmd, batch->mesh->GetVertexCount(), batch->renderables.size(), 0, batch->instance_index);
                     }
                 }
             }
@@ -707,6 +769,7 @@ namespace yoyo
         ParseDescriptorSetsFromSpirV(fragment_module->code.data(), fragment_module->code.size() * sizeof(uint32_t), VK_SHADER_STAGE_FRAGMENT_BIT, descriptors_info);
 
         PipelineBuilder builder = {};
+
         builder.shader_stages.push_back(vkinit::PipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertex_module->module));
         builder.shader_stages.push_back(vkinit::PipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragment_module->module));
 
@@ -1134,6 +1197,6 @@ namespace yoyo
         m_deletion_queue.Push([=]() {
             vkDestroyImageView(m_device, m_forward_pass_depth_texture_view, nullptr);
             vkDestroyImageView(m_device, m_forward_pass_color_texture_view, nullptr);
-            });
+        });
     }
 };

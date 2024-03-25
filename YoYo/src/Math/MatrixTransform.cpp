@@ -202,6 +202,7 @@ namespace yoyo
         scale.x = matrix.data[0];
         scale.y = matrix.data[5];
         scale.z = matrix.data[10];
+
         return scale;
     }
 

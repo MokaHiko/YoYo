@@ -6,11 +6,6 @@
 #include "VulkanStructures.h"
 #include "VulkanInitializers.h"
 #include "VulkanUtils.h"
-#include "VulkanMaterialSystem.h"
-
-#include "VulkanResourceManager.h"
-#include "VulkanMesh.h"
-#include "VulkanMaterial.h"
 
 namespace yoyo
 {
@@ -31,7 +26,10 @@ namespace yoyo
 
     const int SHADOW_PASS_INSTANCED_OBJECT_DATA_SET_INDEX = 1;
     const int SHADOW_PASS_INSTANCED_OBJECT_DATA_SET_BINDING = 0;
-
+    
+    class VulkanMaterialSystem;
+    class VulkanStaticMesh;
+    class Texture;
     class VulkanRenderer : public Renderer
     {
     public:
@@ -85,7 +83,7 @@ namespace yoyo
         VkDescriptorSet m_blit_output_texture_ds;
         VkDescriptorSetLayout m_blit_pass_ds_layout;
 
-        Ref<VulkanMesh> m_screen_quad;
+        Ref<VulkanStaticMesh> m_screen_quad;
 
         // TODO: Encapsulate as render targets
         VkRenderPass m_post_process_render_pass;

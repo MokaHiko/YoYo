@@ -3,11 +3,20 @@
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 
+#include <Renderer/RenderTypes.h>
+
 namespace yoyo
 {
     struct VulkanRenderContext
     {
+        // The recording command buffer
         VkCommandBuffer cmd;
+
+        // The current pipeline layout
+        VkPipelineLayout pipeline_layout; 
+
+        // The current pass
+        MeshPassType mesh_pass_type; 
     };
 
     struct VulkanQueue

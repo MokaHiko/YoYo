@@ -36,10 +36,16 @@ Entity ScriptableEntity::Instantiate(const std::string& name, const yoyo::Vec3& 
 	return e;
 }
 
-
 void ScriptableEntity::QueueDestroy() 
 { 
+	// Check if already queued
+	if(m_to_destroy)
+	{
+		return;
+	}
+
 	m_entity.m_scene->QueueDestroy(m_entity);
+	m_to_destroy = true;
 }
 
 // void ScriptableEntity::StartProcess(Ref<Process> process)

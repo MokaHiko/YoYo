@@ -34,7 +34,7 @@ namespace yoyo
 
             if (!event_manager)
             {
-                event_manager = Y_NEW EventManager;
+                event_manager = YNEW EventManager;
             }
 
             return *event_manager;

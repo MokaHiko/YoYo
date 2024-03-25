@@ -34,6 +34,7 @@ namespace yoyo
         const Vec3& Right() const {return m_right;}
 
         void SetType(CameraType type);
+        const CameraType GetType() const {return m_type;}
 
         void SetAspectRatio(float aspect_ratio) { m_aspect_ratio = aspect_ratio; }
         void SetFov(float fov) { m_fov = fov; }

@@ -37,6 +37,7 @@ public:
     virtual void OnComponentDestroyed(Entity e, NativeScriptComponent& native_script) override;
 
     void OnScriptCreatedCallback(ScriptableEntity* script);
+    void OnScriptDestroyedCallback(ScriptableEntity* script);
 private:
     void OnCollisionCallback(psx::Collision& col);
 private:

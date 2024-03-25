@@ -27,7 +27,7 @@ class GameLayer : public yoyo::Layer
 public:
     LayerType(GameLayer)
 
-    GameLayer(yoyo::Application& app);
+    GameLayer(yoyo::Application* app);
     virtual ~GameLayer();
 
     virtual void OnAttach() override;
@@ -62,5 +62,5 @@ private:
     bool m_rebuild_packet = true;
 
     yoyo::RendererLayer* m_renderer_layer;
-    yoyo::Application& m_app;
+    yoyo::Application* m_app;
 };

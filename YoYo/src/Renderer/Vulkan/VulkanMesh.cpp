@@ -2,9 +2,53 @@
 
 #include "Resource/ResourceEvent.h"
 #include "VulkanResourceManager.h"
+#include "Mesh.h"
 
 namespace yoyo
 {
+    Ref<StaticMesh> StaticMesh::Create(const std::string& name)
+    {
+        Ref<VulkanStaticMesh> mesh = CreateRef<VulkanStaticMesh>();
+        mesh->name = name;
+        mesh->m_dirty = MeshDirtyFlags::Unuploaded;
+
+        EventManager::Instance().Dispatch(CreateRef<MeshCreatedEvent<StaticMesh>>(mesh));
+        return mesh;
+    }
+
+    uint64_t StaticMesh::Hash() const
+    {
+        return std::hash<StaticMesh>{}(*this);
+    }
+
+    void VulkanStaticMesh::Bind(void* render_context)
+    {
+        const VulkanRenderContext* ctx = static_cast<VulkanRenderContext*>(render_context);
+        VkDeviceSize offset = 0;
+
+        if (!indices.empty())
+        {
+            vkCmdBindIndexBuffer(ctx->cmd, index_buffer.buffer, offset, VK_INDEX_TYPE_UINT32);
+        }
+
+        vkCmdBindVertexBuffers(ctx->cmd, 0, 1, &vertex_buffer.buffer, &offset);
+    }
+
+    void VulkanStaticMesh::Unbind() {}
+
+    void VulkanStaticMesh::UploadMeshData(bool free_host_memory)
+    {
+        VulkanResourceManager::UploadMesh<VulkanStaticMesh>(this);
+
+        if (free_host_memory)
+        {
+            vertices.clear();
+            indices.clear();
+        }
+
+        m_dirty &= ~MeshDirtyFlags::Unuploaded;
+    }
+
     const std::vector<VkVertexInputAttributeDescription>& VertexAttributeDescriptions()
     {
         static std::vector<VkVertexInputAttributeDescription> attributes = {};
@@ -68,24 +112,87 @@ namespace yoyo
         return bindings;
     }
 
-    Ref<Mesh> Mesh::Create(const std::string& name)
+    std::vector<VkVertexInputBindingDescription> GenerateVertexBindingDescriptions(const std::vector<ShaderInput>& inputs, VkVertexInputRate input_rate)
     {
-        Ref<VulkanMesh> mesh = CreateRef<VulkanMesh>();
+        std::vector<VkVertexInputBindingDescription> bindings = {};
+
+        VkVertexInputBindingDescription vertex_binding = {};
+        vertex_binding.binding = 0;
+
+        uint32_t stride = 0;
+
+        for (const ShaderInput& input : inputs)
+        {
+            if (input.format == Format::UNDEFINED)
+            {
+                continue;
+            }
+
+            stride += FormatToSize(input.format);
+        }
+
+        vertex_binding.stride = stride;
+        vertex_binding.inputRate = input_rate;
+
+        bindings.push_back(vertex_binding);
+        return bindings;
+    }
+
+
+    std::vector<VkVertexInputAttributeDescription> GenerateVertexAttributeDescriptions(const std::vector<ShaderInput>& inputs)
+    {
+        std::vector<VkVertexInputAttributeDescription> attributes = {};
+
+        uint32_t offset = 0;
+        for (const ShaderInput& input : inputs)
+        {
+            if (input.format == Format::UNDEFINED)
+            {
+                continue;
+            }
+
+            VkVertexInputAttributeDescription attribute = {};
+            attribute.binding = 0;
+            attribute.location = input.location;
+            attribute.format = (VkFormat)(input.format);
+            attribute.offset = offset;
+
+            offset += FormatToSize(input.format);
+            attributes.push_back(attribute);
+        }
+
+        return attributes;
+    }
+
+    Ref<SkinnedMesh> SkinnedMesh::Create(const std::string& name)
+    {
+        Ref<VulkanSkinnedMesh> mesh = CreateRef<VulkanSkinnedMesh>();
         mesh->name = name;
         mesh->m_dirty = MeshDirtyFlags::Unuploaded;
 
-        EventManager::Instance().Dispatch(CreateRef<MeshCreatedEvent>(mesh));
+        EventManager::Instance().Dispatch(CreateRef<MeshCreatedEvent<SkinnedMesh>>(mesh));
         return mesh;
     }
 
-    VulkanMesh::VulkanMesh() {}
+    uint64_t SkinnedMesh::Hash() const
+    {
+        return std::hash<SkinnedMesh>()(*this);
+    }
 
-    VulkanMesh::~VulkanMesh() {}
-
-    void VulkanMesh::Bind(void* render_context)
+    void VulkanSkinnedMesh::Bind(void* render_context)
     {
         const VulkanRenderContext* ctx = static_cast<VulkanRenderContext*>(render_context);
         VkDeviceSize offset = 0;
+
+        // TODO: FIX! Encapsulate
+        if(ctx->mesh_pass_type == MeshPassType::Forward)
+        {
+            vkCmdBindDescriptorSets(ctx->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->pipeline_layout, 3, 1, &bones_ds, 0, nullptr);
+        }
+        else if(ctx->mesh_pass_type == MeshPassType::Shadow)
+        {
+            vkCmdBindDescriptorSets(ctx->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->pipeline_layout, 1, 1, &bones_ds, 0, nullptr);
+        }
 
         if (!indices.empty())
         {
@@ -95,20 +202,39 @@ namespace yoyo
         vkCmdBindVertexBuffers(ctx->cmd, 0, 1, &vertex_buffer.buffer, &offset);
     }
 
-    void VulkanMesh::Unbind()
+    void VulkanSkinnedMesh::Unbind()
     {
+
     }
 
-	void VulkanMesh::UploadMeshData(bool free_host_memory)
-	{
-        VulkanResourceManager::UploadMesh(this);
+    void VulkanSkinnedMesh::UploadMeshData(bool free_host_memory)
+    {
+        VulkanResourceManager::UploadMesh<VulkanSkinnedMesh>(this);
 
-        if(free_host_memory)
+        if (free_host_memory)
         {
             vertices.clear();
             indices.clear();
         }
 
-		m_dirty &= ~MeshDirtyFlags::Unuploaded;
-	}
+        size_t paddded_bone_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(Mat4x4));
+        bones_buffer = VulkanResourceManager::CreateBuffer<Mat4x4>(paddded_bone_size * bones.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+
+        void* data;
+        VulkanResourceManager::MapMemory(bones_buffer.allocation, &data);
+        memcpy(data, bones.data(), bones.size() * sizeof(Mat4x4));
+        VulkanResourceManager::UnmapMemory(bones_buffer.allocation);
+
+        VkDescriptorBufferInfo info = {};
+        info.buffer = bones_buffer.buffer;
+        info.offset = 0;
+        info.range = VK_WHOLE_SIZE;
+
+        VulkanResourceManager::AllocateDescriptor()
+        .BindBuffer(0, &info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+        .Build(&bones_ds, &bones_ds_layout);
+
+        m_dirty &= ~MeshDirtyFlags::Unuploaded;
+    }
+
 }

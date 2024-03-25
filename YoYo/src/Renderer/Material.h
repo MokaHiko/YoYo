@@ -5,10 +5,8 @@
 #include "Math/Math.h"
 #include "Core/Memory.h"
 
-#include "Texture.h"
-#include "Shader.h"
-
 #include "Resource/Resource.h"
+#include "RenderTypes.h"
 
 namespace yoyo
 {
@@ -57,6 +55,8 @@ namespace yoyo
     inline MaterialDirtyFlags& operator&= (MaterialDirtyFlags& a, MaterialDirtyFlags b) { return (MaterialDirtyFlags&)((int&)a &= (int)b); }
     inline MaterialDirtyFlags& operator^= (MaterialDirtyFlags& a, MaterialDirtyFlags b) { return (MaterialDirtyFlags&)((int&)a ^= (int)b); }
 
+    class Texture;
+    class Shader;
     class YAPI Material : public Resource
     {
     public:
@@ -114,7 +114,6 @@ namespace yoyo
     };
 }
 
-// TODO: Make hash function unique
 template<>
 struct std::hash<yoyo::Material>
 {
@@ -127,10 +126,10 @@ struct std::hash<yoyo::Material>
         res = res * 31 + hash<string>()(material.name);
         res = res * 31 + hash<bool>()(material.instanced);
 
-        if(const auto& main_texture = material.MainTexture())
-        {
-            res = res * 31 + hash<string>()(main_texture->name);
-        }
+        //if(const auto& main_texture = material.MainTexture())
+        //{
+        //    res = res * 31 + hash<string>()(main_texture->name);
+        //}
 
         return res;
     }

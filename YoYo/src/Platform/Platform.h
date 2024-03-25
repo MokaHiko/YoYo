@@ -8,6 +8,9 @@ namespace yoyo {
         // Platform memory allocation call
         void* Allocate(size_t size);
 
+        // Platform memory free call
+        void Free(void* data);
+
         // Platform specific initialization (windowing, surface, etc...)
         bool Init(float x, float y, float width, float height, const std::string& app_name = "");
 

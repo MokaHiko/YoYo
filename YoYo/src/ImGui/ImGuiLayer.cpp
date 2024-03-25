@@ -7,7 +7,7 @@ namespace yoyo
 {	
 	ImGuiLayer::ImGuiLayer(Application* app)
 	{
-		YASSERT(app != nullptr, "Cannot initalize ImGui layer before application!");
+		YASSERT(app, "Cannot initalize ImGui layer before application!");
 		m_app = app;
 	}
 

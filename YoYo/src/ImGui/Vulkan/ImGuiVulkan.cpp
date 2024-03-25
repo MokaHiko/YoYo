@@ -39,7 +39,7 @@ namespace yoyo
 
 	ImGuiContext* ImGuiLayer::GetContext()
 	{
-		yoyo::Assert(s_context != nullptr, "ImGui context not created!");
+		YASSERT(s_context, "ImGui context not created!");
 		return s_context;
 	}
 

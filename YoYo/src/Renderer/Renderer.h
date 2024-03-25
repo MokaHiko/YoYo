@@ -2,8 +2,9 @@
 
 #include "Defines.h"
 #include "Core/Memory.h"
+#include "Math/MathTypes.h"
 
-#include "RenderScene.h"
+#include "RenderTypes.h"
 
 namespace yoyo
 {
@@ -32,6 +33,10 @@ namespace yoyo
     };
 
     // Structure that sends info about updates to the scene
+    class Camera;
+    class DirectionalLight;
+
+    class MeshPassObject;
     struct YAPI RenderPacket
     {
         Mat4x4 view;
@@ -64,6 +69,7 @@ namespace yoyo
     const int MAX_DIR_LIGHTS = 2;
     const int MAX_POINT_LIGHTS = 100;
     
+    class RenderScene;
     class Texture;
     class YAPI Renderer
     {

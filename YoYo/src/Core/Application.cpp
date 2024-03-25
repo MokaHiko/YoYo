@@ -34,12 +34,12 @@ namespace yoyo
         EventManager::Instance().Subscribe(ApplicationCloseEvent::s_event_type, [&](Ref<Event> event) {return OnClose();});
 
         // Debug Layers
-        PushLayer(Y_NEW ImGuiLayer(this));
+        PushLayer(YNEW ImGuiLayer(this));
 
         // Default layers
-        PushLayer(Y_NEW RendererLayer(this));
-        PushLayer(Y_NEW RuntimeResourceLayer());
-        PushLayer(Y_NEW InputLayer());
+        PushLayer(YNEW RendererLayer(this));
+        PushLayer(YNEW RuntimeResourceLayer());
+        PushLayer(YNEW InputLayer());
 
         m_running = success;
     }

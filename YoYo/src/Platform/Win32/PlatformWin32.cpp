@@ -31,6 +31,11 @@ namespace yoyo
         return malloc(size);
     }
 
+	void Platform::Free(void* data)
+	{
+        free(data);
+    }
+
     bool Platform::Init(float x, float y, float width, float height, const std::string& app_name)
     {
         if (SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO) != 0)
@@ -54,7 +59,7 @@ namespace yoyo
         return true;
     }
 
-    void Platform::SetAppName(const std::string& name)
+	void Platform::SetAppName(const std::string& name)
     {
         YASSERT(window, "Cannot set name of uninitialized application!");
         SDL_SetWindowTitle(window, name.c_str());
@@ -62,7 +67,7 @@ namespace yoyo
 
     void* Platform::NativeAppWindow()
     {
-        YASSERT(window != nullptr, "Platform Init Not called before requesting native window instance");
+        YASSERT(window, "Platform Init Not called before requesting native window instance");
         return window;
     }
 
@@ -134,7 +139,7 @@ namespace yoyo
 
     void Platform::CreateSurface(void* context, void* surface)
     {
-        YASSERT(window != nullptr, "Cannot Create Surface before SDL initialization");
+        YASSERT(window, "Cannot Create Surface before SDL initialization");
         if (SDL_Vulkan_CreateSurface(window, *((VkInstance*)context), (VkSurfaceKHR*)surface) != SDL_TRUE)
         {
             YERROR("Failed to create vulkan surface: Error: %s", SDL_GetError());
@@ -209,7 +214,7 @@ namespace yoyo
             return false;
         }
 
-        char* buff = Y_NEW char[virtual_size];
+        char* buff = YNEW char[virtual_size];
         if (buff)
         {
             delete[] buff;

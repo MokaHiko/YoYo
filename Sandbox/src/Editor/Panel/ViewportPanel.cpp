@@ -10,6 +10,7 @@
 #include "ECS/Components/RenderableComponents.h"
 
 #include "Editor/EditorEvents.h"
+#include "Input/Input.h"
 
 ViewportPanel::ViewportPanel(Ref<yoyo::Renderer> renderer)
 	:m_renderer(renderer)
@@ -42,7 +43,14 @@ void ViewportPanel::Draw(Scene* scene)
 		Ref<yoyo::Camera> cam = camera.GetComponent<CameraComponent>().camera;
 		if (m_focused_entity)
 		{
-			ImGuizmo::SetOrthographic(false);
+			if(cam->GetType() == yoyo::CameraType::Orthographic)
+			{
+				ImGuizmo::SetOrthographic(true);
+			}
+			else
+			{
+				ImGuizmo::SetOrthographic(false);
+			}
 			ImGuizmo::SetDrawlist();
 
 			float window_width = (float)(ImGui::GetWindowWidth());
@@ -58,21 +66,42 @@ void ViewportPanel::Draw(Scene* scene)
 			TransformComponent& transform = m_focused_entity.GetComponent<TransformComponent>();
 			yoyo::Mat4x4 transform_matrix = transform.model_matrix;
 
-			ImGuizmo::Manipulate(view.data, proj.data, ImGuizmo::TRANSLATE, ImGuizmo::LOCAL, transform_matrix.data);
+			static ImGuizmo::OPERATION operations[] {
+				ImGuizmo::TRANSLATE,
+				ImGuizmo::ROTATE,
+				ImGuizmo::SCALE
+			};
+			static int operation_index = 0;
+
+			if(yoyo::Input::GetKeyDown(yoyo::KeyCode::Key_w))
+			{	
+				operation_index = 0;
+			}
+
+			if(yoyo::Input::GetKeyDown(yoyo::KeyCode::Key_e))
+			{	
+				operation_index = 1;
+			}
+
+			if(yoyo::Input::GetKeyDown(yoyo::KeyCode::Key_r))
+			{	
+				operation_index = 2;
+			}
+
+			ImGuizmo::Manipulate(view.data, proj.data, operations[operation_index], ImGuizmo::LOCAL, transform_matrix.data, NULL, false);
 
 			yoyo::Vec3 translation, rotation, scale = {};
 			translation = yoyo::PositionFromMat4x4(transform_matrix);
 			scale = yoyo::ScaleFromMat4x4(transform_matrix);
-			// DecomposeTransform(transform_matrix, translation, rotation, scale);
 
 			if (ImGuizmo::IsUsing())
 			{
 				transform.position = translation;
 				transform.scale = scale;
+				transform.UpdateModelMatrix();
 
-				// TODO: Fix rotations 
-				// glm::vec3 delta_rotation = rotation - transform.rotation;
-				// transform.rotation += delta_rotation;
+				// TODO: Do rotation
+				//transform.quat_rotation = transform.quat_rotation * yoyo::QuatFromAxisAngle({ 0.0f, 1.0f, 0.0f }, yoyo::DegToRad());
 			}
 		}
 	}

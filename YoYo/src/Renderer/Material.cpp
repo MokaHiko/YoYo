@@ -1,6 +1,8 @@
 #include "Material.h"
 #include "Core/Log.h"
 
+#include "Texture.h"
+#include "Shader.h"
 #include "Resource/ResourceManager.h"
 
 namespace yoyo
@@ -21,7 +23,7 @@ namespace yoyo
 		}
 
         // TODO: Load from asset file
-        YTRACE("[Cache Miss][Material]: %s", name.c_str());
+        YWARN("[Cache Miss][Material]: %s", name.c_str());
 
 		return nullptr;
 	}
@@ -97,9 +99,10 @@ void Material::SetTexture(int index, Ref<Texture> texture)
 		// Check if property data has been allocated
 		if (!m_property_data)
 		{
-			m_property_data = malloc(property.size);
+			m_property_data = YAllocate(property.size, yoyo::MemoryTag::Resource);
 			m_property_size = property.size;
 			memset(m_property_data, 0, m_property_size);
+
 			return;
 		}
 

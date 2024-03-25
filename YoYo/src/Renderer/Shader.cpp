@@ -3,6 +3,8 @@
 #include "Core/Log.h"
 #include "Resource/ResourceManager.h"
 
+#include "Renderer/RenderPass.h"
+
 namespace yoyo
 {
     template<>
@@ -20,7 +22,7 @@ namespace yoyo
 			return shader_it->second;
 		}
 
-        YTRACE("[Cache Miss]: Resource Type: Shader!");
+        YWARN("[Cache Miss]: Resource Type: Shader!");
         return nullptr;
     }
 }

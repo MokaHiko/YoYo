@@ -51,4 +51,19 @@ void Scene::QueueDestroy(Entity e)
 	m_destruction_queue.push_back(e);
 }
 
+void Scene::FlushDestructionQueue() 
+{
+	for(auto e : m_destruction_queue)
+	{
+		Destroy(e);
+	}
+
+	m_destruction_queue.clear();
+}
+
+void Scene::Destroy(Entity e) 
+{
+	m_registry.destroy(e);
+}
+
 entt::registry &Scene::Registry() { return m_registry; }

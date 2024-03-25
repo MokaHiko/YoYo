@@ -27,6 +27,8 @@ public:
     template <typename T>
     T& GetComponent();
 
+    const bool IsValid() const;
+
     // Returns entity handle
     const uint32_t Id() const { return static_cast<uint32_t>(m_id); }
 
@@ -35,7 +37,7 @@ public:
 
     friend std::ostream& operator<<(std::ostream& stream, Entity& e);
 
-    operator bool() const { return m_id != entt::null; }
+    operator bool() const { return IsValid();  }
     operator entt::entity() const { return m_id; }
 private:
     friend class Scene;

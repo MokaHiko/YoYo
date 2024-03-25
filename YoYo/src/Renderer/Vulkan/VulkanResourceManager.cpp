@@ -34,6 +34,10 @@ namespace yoyo
 		m_physical_device_props = renderer->PhysicalDeviceProperties();
 		m_instance = renderer->Instance();
 
+		// TODO: Create cache and allocator for resource manager
+		m_descriptor_allocator = renderer->DescAllocator();
+		m_descriptor_layout_cache = renderer->DescLayoutCache();
+
 		m_queues = &renderer->Queues();
 		m_deletion_queue = &renderer->DeletionQueue();
 
@@ -66,9 +70,9 @@ namespace yoyo
 		}
 
 		// Subscribe to vulkan resource events
-        EventManager::Instance().Subscribe(MeshCreatedEvent::s_event_type, [&](Ref<Event> event){
+		EventManager::Instance().Subscribe(MeshCreatedEvent<Vertex>::s_event_type, [&](Ref<Event> event) {
 			return false;
-		});
+			});
 	}
 
 	void VulkanResourceManager::Shutdown()
@@ -81,52 +85,6 @@ namespace yoyo
 
 		// Destroy allocator
 		vmaDestroyAllocator(m_allocator);
-	}
-
-	bool VulkanResourceManager::UploadMesh(VulkanMesh* mesh)
-	{
-		mesh->vertex_buffer = CreateBuffer<Vertex>(mesh->vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-		if(mesh->vertices.size() * sizeof(Vertex) > MAX_MESH_VERTICES * sizeof(Vertex))
-		{
-			YINFO("Mesh vertices %d", mesh->vertices.size());
-		}
-		YASSERT(mesh->vertices.size() * sizeof(Vertex) <= MAX_MESH_VERTICES * sizeof(Vertex), "Mesh exceeds max vertices!");
-
-		void* data;
-		MapMemory(m_mesh_staging_buffer.allocation, &data);
-		memcpy(data, mesh->vertices.data(), mesh->vertices.size() * sizeof(Vertex));
-		UnmapMemory(m_mesh_staging_buffer.allocation);
-
-		ImmediateSubmit([&](VkCommandBuffer cmd) {
-			VkBufferCopy region = {};
-			region.dstOffset = 0;
-			region.srcOffset = 0;
-			region.size = mesh->vertices.size() * sizeof(Vertex);
-
-			vkCmdCopyBuffer(cmd, m_mesh_staging_buffer.buffer, mesh->vertex_buffer.buffer, 1, &region);
-		});
-
-		if (!mesh->indices.empty())
-		{
-			mesh->index_buffer = CreateBuffer<uint32_t>(mesh->indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-			void* data;
-			vmaMapMemory(m_allocator, m_mesh_staging_buffer.allocation, &data);
-			memcpy(data, mesh->indices.data(), mesh->indices.size() * sizeof(uint32_t));
-			vmaUnmapMemory(m_allocator, m_mesh_staging_buffer.allocation);
-
-			ImmediateSubmit([&](VkCommandBuffer cmd) {
-				VkBufferCopy region = {};
-				region.dstOffset = 0;
-				region.srcOffset = 0;
-				region.size = mesh->indices.size() * sizeof(uint32_t);
-
-				vkCmdCopyBuffer(cmd, m_mesh_staging_buffer.buffer, mesh->index_buffer.buffer, 1, &region);
-			});
-		}
-
-		return true;
 	}
 
 	bool VulkanResourceManager::UploadTexture(VulkanTexture* texture)
@@ -208,10 +166,10 @@ namespace yoyo
 
 		// Clean up
 		vmaDestroyBuffer(m_allocator, staging_buffer.buffer, staging_buffer.allocation);
-		m_deletion_queue->Push([=](){
-				vkDestroySampler(m_device, texture->sampler, nullptr);
-				vkDestroyImageView(m_device, texture->image_view, nullptr);
-		});
+		m_deletion_queue->Push([=]() {
+			vkDestroySampler(m_device, texture->sampler, nullptr);
+			vkDestroyImageView(m_device, texture->image_view, nullptr);
+			});
 
 		return true;
 	}
@@ -247,7 +205,7 @@ namespace yoyo
 			memcpy(shader_module->code.data(), buffer, buffer_size);
 			delete buffer;
 
-			m_deletion_queue->Push([=](){
+			m_deletion_queue->Push([=]() {
 				vkDestroyShaderModule(m_device, shader_module->module, nullptr);
 			});
 		}
@@ -270,12 +228,12 @@ namespace yoyo
 
 		VK_CHECK(vmaCreateImage(m_allocator, &image_info, &alloc_info, &image.image, &image.allocation, nullptr));
 
-		if(manage_memory)
+		if (manage_memory)
 		{
 			m_deletion_queue->Push([=]()
-			{
-				vmaDestroyImage(m_allocator, image.image, image.allocation);
-			});
+				{
+					vmaDestroyImage(m_allocator, image.image, image.allocation);
+				});
 		}
 
 		return image;
@@ -331,5 +289,10 @@ namespace yoyo
 
 		// Reset command pool
 		vkResetCommandPool(m_device, m_upload_context.command_pool, 0);
+	}
+
+	DescriptorBuilder VulkanResourceManager::AllocateDescriptor()
+	{
+        return DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get());
 	}
 }

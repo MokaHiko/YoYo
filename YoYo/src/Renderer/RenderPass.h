@@ -3,21 +3,12 @@
 #include "Core/Memory.h"
 #include "Math/Math.h"
 
+#include "RenderTypes.h"
+
 namespace yoyo
 {
-    // Unique identifier of a renderable object in a RenderScene.
-    using RenderSceneId = uint32_t;
-    const RenderSceneId NULL_RENDER_SCENE_ID = -1;
-
-    // Unique identifier of a renderable batch in a RenderScene.
-    using RenderableBatchId = uint64_t;
-
-    class Mesh;
+    class IMesh;
     class Material;
-
-    class Camera;
-    class DirectionalLight;
-    class PointLight;
 
     class RenderableObject
     {
@@ -28,27 +19,9 @@ namespace yoyo
         RenderSceneId m_id = NULL_RENDER_SCENE_ID;
     };
 
-    class RenderPass
-    {
-    public:
-        RenderPass() = default;
-        virtual ~RenderPass() = default;
-
-    private:
-
-    };
-
-    enum class MeshPassType
-    {
-        Forward,
-        ForwardTransparent,
-        Shadow,
-        PostProcess,
-    };
-
     struct MeshPassObject
     {
-        Ref<Mesh> mesh;
+        Ref<IMesh> mesh;
         Ref<Material> material;
         Mat4x4 model_matrix;
 
@@ -58,16 +31,18 @@ namespace yoyo
         RenderSceneId m_id = NULL_RENDER_SCENE_ID;
     };
 
-	const RenderableBatchId GenerateBatchId(const Ref<Mesh>& mesh, const Ref<Material>& material);
+    const RenderableBatchId GenerateBatchId(Ref<IMesh>& mesh, const Ref<Material>& material);
 
     // A renderable batch is a grouping of renderable objects that share the same Mesh and Material.
     struct RenderableBatch
     {
-        RenderableBatch(Ref<Mesh> mesh, Ref<Material> material);
+        RenderableBatch(Ref<IMesh> mesh_, Ref<Material> material_)
+            :material(material_), mesh(mesh_), id(GenerateBatchId(mesh, material)){}
+
         virtual ~RenderableBatch() = default;
 
         Ref<Material> material;
-        Ref<Mesh> mesh;
+        Ref<IMesh> mesh;
 
         // Only used when material of batch is instanced as the starting index into the InstanceData buffer.
         uint32_t instance_index = 0;

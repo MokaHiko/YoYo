@@ -16,7 +16,10 @@ public:
 
     virtual void OnCreate() {}
     virtual void OnStart() {}
+
     virtual void OnUpdate(float dt) {}
+
+    virtual void OnDestroy() {}
 
     virtual void OnCollisionEnter(const psx::Collision& col) {}
 
@@ -55,5 +58,6 @@ protected:
     //void StartProcess(Ref<Process> process);
 private:
     bool m_active = false;
+    bool m_to_destroy = false;
     Entity m_entity = {};
 };

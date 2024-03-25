@@ -14,7 +14,7 @@ public:
     yoyo::Vec3 rotation{ 0.0f , 0.0f, 0.0f}; // Rotation in euler radians
     yoyo::Vec3 scale{ 1.0f , 1.0f, 1.0f};
 
-    yoyo::Mat4x4 model_matrix{ 1.0f };
+    yoyo::Mat4x4 model_matrix{};
 
     const yoyo::Vec3& Forward() const; // Returns the forward component of the transform
 

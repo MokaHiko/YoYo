@@ -1,19 +1,20 @@
 #pragma once
 
-#include "Events/Event.h"
+#include "Events/Event.h" 
+#include "Renderer/Mesh.h"
 
 namespace yoyo
 {
-    class Mesh;
+    template<typename MeshType>
     class MeshCreatedEvent : public Event
     {
     public:
-        MeshCreatedEvent(Ref<Mesh> new_mesh);
-        virtual ~MeshCreatedEvent() = default;
-
-        Ref<Mesh> mesh;
-
         EVENT_TYPE(MeshCreatedEvent)
+        MeshCreatedEvent(Ref<MeshType> new_mesh)
+		    :mesh(new_mesh){}
+
+        virtual ~MeshCreatedEvent() = default;
+        Ref<MeshType> mesh;
     };
 
     class Texture;
