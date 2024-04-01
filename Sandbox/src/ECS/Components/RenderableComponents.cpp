@@ -2,6 +2,8 @@
 
 #include <Resource/ResourceManager.h>
 
+#include <Renderer/Animation.h>
+
 MeshRendererComponent::MeshRendererComponent(const std::string& mesh_name, const std::string& material_name)
 {
 	mesh = yoyo::ResourceManager::Instance().Load<yoyo::StaticMesh>(mesh_name);
@@ -18,3 +20,7 @@ MeshRendererComponent::~MeshRendererComponent()
 {
 }
 
+AnimatorComponent::AnimatorComponent() 
+{
+	animator = CreateRef<yoyo::Animator>();
+}

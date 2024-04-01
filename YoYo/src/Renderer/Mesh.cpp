@@ -30,32 +30,5 @@ namespace yoyo
     YAPI void ResourceManager::Free<StaticMesh>(Ref<StaticMesh> resource)
     {
         // TODO: Free resource
-    }
-
-    template<>
-    YAPI Ref<SkinnedMesh> ResourceManager::Load<SkinnedMesh>(const std::string& path)
-    {
-		const std::string name = FileNameFromFullPath(path);
-
-        auto& mesh_cache = Cache<SkinnedMesh>();
-		auto mesh_it = std::find_if(mesh_cache.begin(), mesh_cache.end(), [&](const auto& it){
-			return it.second->name == name;
-		});
-		
-		if(mesh_it != mesh_cache.end())
-		{
-			return mesh_it->second;
-		}
-
-        // TODO: Load from asset file
-        YWARN("[Cache Miss][SkinnedMesh]: %s", name.c_str());
-     
-        return nullptr;
-    }
-
-    template<>
-    YAPI void ResourceManager::Free<SkinnedMesh>(Ref<SkinnedMesh> resource)
-    {
-        // TODO: Free resource
-    }
+    } 
 }

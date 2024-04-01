@@ -26,6 +26,9 @@
 
 #include "Editor/EditorLayer.h"
 
+// Move to animation system
+#include "Renderer/Animation.h"
+
 GameLayer::GameLayer(yoyo::Application* app)
     :m_app(app) {}
 
@@ -92,17 +95,14 @@ void GameLayer::OnEnable()
     yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/plane.yo");
     Ref<yoyo::Model> cube_model = yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/cube.yo");
 
-    // Crate
-    {
-        Ref<yoyo::Material> crate_material = yoyo::Material::Create(default_lit_instanced, "crate_material");
-        crate_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/container2.yo"));
-        crate_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-        crate_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
-        crate_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
-    }
-
     // Universal game material
-    {
+    { 
+		Ref<yoyo::Material> people_material = yoyo::Material::Create(default_lit_instanced, "people_material");
+		people_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/people_texture_map.yo"));
+		people_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+		people_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+		people_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
+
 		Ref<yoyo::Material> colormap_material = yoyo::Material::Create(default_lit_instanced, "colormap_material");
 		colormap_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/colormap.yo"));
 		colormap_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
@@ -156,8 +156,8 @@ void GameLayer::OnEnable()
     }
 
     // Set up scene
-    auto camera = m_scene->Instantiate("camera", { 0.0f, 25.0f, 20.0f });
-    camera.AddComponent<CameraComponent>().camera->SetType(yoyo::CameraType::Orthographic);
+    auto camera = m_scene->Instantiate("camera", { 0.0f, 50.0f, 50.0f });
+    camera.AddComponent<CameraComponent>().camera->SetType(yoyo::CameraType::Perspective);
     camera.AddComponent<CameraControllerComponent>(camera);
 
     // Village Manager
@@ -182,7 +182,7 @@ void GameLayer::OnEnable()
         grid_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
         grid_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
 
-        Entity floors = m_scene->Instantiate("floors");
+        Entity floors = m_scene->Instantiate("floors", {0.0f, 0.0f, 0.0f});
         TransformComponent& floor_transform = floors.GetComponent<TransformComponent>();
 
         float root = 5;
@@ -244,6 +244,15 @@ void GameLayer::OnUpdate(float dt)
         auto& mesh_renderer = e.GetComponent<MeshRendererComponent>();
         mesh_renderer.mesh_object->model_matrix = transform.model_matrix;
     }
+
+    // Animation System
+    for (auto& id : m_scene->Registry().view<TransformComponent, AnimatorComponent>())
+    {
+        Entity e{ id, m_scene };
+        AnimatorComponent& animator = e.GetComponent<AnimatorComponent>();
+        animator.animator->Update(dt);
+    }
+
 
     // Scripting System
     {

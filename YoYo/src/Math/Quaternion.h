@@ -6,6 +6,14 @@ namespace yoyo
 {
     union YAPI Quat
     {
+        Quat()
+            :x(0), y(0), z(0),w(1){}
+        ~Quat() = default;
+
+        Quat(float v_x, float v_y, float v_z, float scalar)
+            :x(v_x), y(v_y), z(v_z), w(scalar){}
+        Quat(const Vec3& v, float scalar)
+            :x(v.x), y(v.y), z(v.z), w(scalar){}
 #ifdef YUSESIMD
         // Use SIMD
         alignas(16) _m128 data;
@@ -31,6 +39,7 @@ namespace yoyo
             };
         };
 
+        operator Vec4() const { return { x,y,z,w}; }
         Quat& operator*=(const Quat &other);
     };
     // Returns the normal of the quaternion.
@@ -46,4 +55,9 @@ namespace yoyo
     YAPI Vec3 EulerAnglesFromQuat(const Quat& q);
 
     YAPI const Quat operator*(const Quat& q1, const Quat& q2);
+
+    YAPI const Quat Slerp(const Quat& q1, const Quat& q2, float t);
+    YAPI const Quat operator*(const Quat& q, float scalar);
+    YAPI const Quat operator+(const Quat& q1, const Quat& q2);
+    YAPI const Quat operator-(const Quat& q1, const Quat& q2);
 }

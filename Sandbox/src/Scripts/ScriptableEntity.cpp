@@ -36,6 +36,12 @@ Entity ScriptableEntity::Instantiate(const std::string& name, const yoyo::Vec3& 
 	return e;
 }
 
+Entity ScriptableEntity::Instantiate(const std::string& name, const yoyo::Mat4x4& transform)
+{
+	auto e = m_entity.m_scene->Instantiate(name, transform);
+	return e;
+}
+
 void ScriptableEntity::QueueDestroy() 
 { 
 	// Check if already queued

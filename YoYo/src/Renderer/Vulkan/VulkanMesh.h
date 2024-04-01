@@ -2,6 +2,7 @@
 
 #include "Renderer/Shader.h"
 #include "Renderer/Mesh.h"
+#include "Renderer/SkinnedMesh.h"
 
 #include "VulkanStructures.h"
 
@@ -45,9 +46,9 @@ namespace yoyo
         AllocatedBuffer<> vertex_buffer = {};
         AllocatedBuffer<uint32_t> index_buffer = {};
     private:
-        VkDescriptorSet bones_ds = VK_NULL_HANDLE;
+        std::vector<VkDescriptorSet> bones_dsets = {};
         VkDescriptorSetLayout bones_ds_layout = VK_NULL_HANDLE;
 
-        AllocatedBuffer<Mat4x4> bones_buffer = {};
+        std::vector<AllocatedBuffer<Mat4x4>> bone_buffers = {};
     };
 };

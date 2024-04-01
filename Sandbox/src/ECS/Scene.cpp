@@ -2,6 +2,7 @@
 
 #include "Core/Assert.h"
 #include "Components/Components.h"
+#include "Math/MatrixTransform.h"
 
 Scene::Scene()
 {
@@ -43,6 +44,25 @@ Entity Scene::Instantiate(const std::string& name, const yoyo::Vec3& position, b
 	auto& root_transform = Root().GetComponent<TransformComponent>();
 	root_transform.AddChild(e);
 
+	return e;
+}
+
+Entity Scene::Instantiate(const std::string & name, const yoyo::Mat4x4 & transform_matrix, bool* serialize)
+{
+	Entity e = {};
+	e = Entity{ m_registry.create(), this };
+
+	auto& tag = e.AddComponent<TagComponent>();
+	tag.tag = name;
+
+	auto& transform = e.AddComponent<TransformComponent>();
+	transform.position = yoyo::PositionFromMat4x4(transform_matrix);
+	transform.scale = yoyo::ScaleFromMat4x4(transform_matrix);
+	transform.quat_rotation = yoyo::RotationFromMat4x4(transform_matrix);
+
+	// Add to root of scene
+	auto& root_transform = Root().GetComponent<TransformComponent>();
+	root_transform.AddChild(e);
 	return e;
 }
 

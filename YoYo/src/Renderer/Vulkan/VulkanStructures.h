@@ -17,6 +17,9 @@ namespace yoyo
 
         // The current pass
         MeshPassType mesh_pass_type; 
+
+        // Current frame
+        uint32_t frame;
     };
 
     struct VulkanQueue

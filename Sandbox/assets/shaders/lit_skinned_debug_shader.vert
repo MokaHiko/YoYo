@@ -15,7 +15,7 @@ layout(location = 3) out vec2 v_uv;
 
 layout(location = 4) out vec4 v_position_light_space;
 
-layout(location = 5) out float v_focused_bone_weight;
+layout(location = 5) flat out float v_focused_bone_weight;
 
 struct DirectionalLight {
   mat4 view_proj;
@@ -24,14 +24,12 @@ struct DirectionalLight {
   vec4 direction;
 };
 
-struct ObjectData 
-{
-	mat4 model_matrix;
+struct ObjectData {
+  mat4 model_matrix;
 };
 
-struct Bone
-{
-	mat4 model_matrix;
+struct Bone {
+  mat4 model_matrix;
 };
 
 layout(set = 0, binding = 0) uniform SceneData {
@@ -48,7 +46,7 @@ layout(std140, set = 0, binding = 1) readonly buffer DirectionalLights {
   DirectionalLight dir_lights[];
 };
 
-layout(std140, set = 0, binding = 5) readonly buffer objectData{
+layout(std140, set = 0, binding = 5) readonly buffer objectData {
   ObjectData objects[];
 };
 
@@ -59,38 +57,37 @@ layout(set = 2, binding = 0) uniform Material {
   int focused_bone_index;
 };
 
-// Descriptor set 3 is reserved for skinned mesh data 
-layout(std140, set = 3, binding = 0) readonly buffer BonesData{
+// Descriptor set 3 is reserved for skinned mesh data
+layout(std140, set = 3, binding = 0) readonly buffer BonesData {
   Bone bones[];
 };
- 
-void main()
-{
+
+void main() {
   mat4 bone_transform = bones[bone_ids[0]].model_matrix * bone_weights[0];
   bone_transform += bones[bone_ids[1]].model_matrix * bone_weights[1];
   bone_transform += bones[bone_ids[2]].model_matrix * bone_weights[2];
   bone_transform += bones[bone_ids[3]].model_matrix * bone_weights[3];
 
   v_focused_bone_weight = 0.0f;
-  for(int i = 0; i < 4; i++)
-  {
-    if(bone_ids[i] == focused_bone_index)
-    {
+  for (int i = 0; i < 4; i++) {
+    if (bone_ids[i] == focused_bone_index) {
       v_focused_bone_weight = bone_weights[focused_bone_index];
     }
   }
 
-	mat4 model_matrix = objects[gl_BaseInstance].model_matrix;
+  mat4 model_matrix = objects[gl_BaseInstance].model_matrix;
 
-  vec4 rigged_position = vec4(position, 1.0f);
-	v_position_world_space = vec3(model_matrix * rigged_position);
-	v_color = color;
+  vec4 rigged_position = bone_transform * vec4(position, 1.0f);
+  v_position_world_space = vec3(model_matrix * rigged_position);
 
-	v_uv = uv;
+  v_color = color;
 
-	// v_normal_world_space = normalize(mat3(model_matrix) * normal); // For uniform scaled objects
-	v_normal_world_space = normalize(mat3(transpose(inverse(model_matrix))) * normal); 
+  v_uv = uv;
 
-	v_position_light_space =  dir_lights[0].view_proj * vec4(v_position_world_space, 1.0f);
-	gl_Position = proj * view * vec4(v_position_world_space, 1.0f);
+  // v_normal_world_space = normalize(mat3(model_matrix) * normal); // For
+  // uniform scaled objects
+  v_normal_world_space = normalize(mat3(transpose(inverse(model_matrix))) * normal);
+
+  v_position_light_space = dir_lights[0].view_proj * vec4(v_position_world_space, 1.0f);
+  gl_Position = proj * view * vec4(v_position_world_space, 1.0f);
 }

@@ -32,18 +32,6 @@ namespace yoyo
         int nums[4];
     };
 
-    struct YAPI SkinnedVertex
-    {
-        Vec3 position = { 0.0f, 0.0f, 0.0f };
-        Vec3 color = { 0.0f, 0.0f, 0.0f };
-        Vec3 normal = { 0.0f, 0.0f, 0.0f };
-
-        Vec2 uv = { 0.0f, 0.0f};
-
-        int bone_ids[4] = { 0, 0, 0, 0 };
-        float bone_weights[4] = {0.0f, 1.0f, 0.0f, 0.0f};
-    };
-
     enum class MeshType
     {
         Static,
@@ -57,6 +45,7 @@ namespace yoyo
         Unuploaded = 1 << 2, // Mesh not in gpu
         VertexDataChange = 1 << 3, // Vertex data not updated
         IndexDataChange = 1 << 4, // Index data not updated
+        BoneDataChanged = 1 << 5, // Index data not updated
     };
 
     inline MeshDirtyFlags operator~ (MeshDirtyFlags a) { return (MeshDirtyFlags)~(int)a; }
@@ -91,7 +80,7 @@ namespace yoyo
     {
     public:
         RESOURCE_TYPE(Mesh)
-            virtual ~Mesh() = default;
+        virtual ~Mesh() = default;
 
         const virtual uint32_t GetIndexCount() const override final { return indices.size(); }
         const virtual uint32_t GetVertexCount() const override final { return vertices.size(); }
@@ -124,21 +113,6 @@ namespace yoyo
         static Ref<StaticMesh> Create(const std::string& name = "");
         virtual uint64_t Hash() const override;
     };
-
-    class YAPI SkinnedMesh : public Mesh<yoyo::SkinnedVertex, uint32_t>
-    {
-    public:
-        SkinnedMesh()
-        {
-            SetMeshType(MeshType::Skinned);
-        };
-        virtual ~SkinnedMesh() = default;
-
-        static Ref<SkinnedMesh> Create(const std::string& name = "");
-        virtual uint64_t Hash() const override;
-
-        std::vector<Mat4x4> bones;
-    };
 }
 
 template<>
@@ -149,20 +123,6 @@ struct std::hash<yoyo::StaticMesh>
         // http://stackoverflow.com/a/1646913/126995
         std::size_t res = mesh.vertices.size() + mesh.indices.size();
         res = res * 31 + hash<string>()(mesh.name);
-
-        return res;
-    }
-};
-
-template<>
-struct std::hash<yoyo::SkinnedMesh>
-{
-    std::size_t operator()(const yoyo::SkinnedMesh& mesh) const noexcept
-    {
-        // http://stackoverflow.com/a/1646913/126995
-        std::size_t res = mesh.vertices.size() + mesh.indices.size();
-        res = res * 31 + hash<string>()(mesh.name);
-        res = res * 31 + hash<uint64_t>()(mesh.bones.size());
 
         return res;
     }

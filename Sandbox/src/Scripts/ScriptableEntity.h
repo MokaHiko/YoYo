@@ -39,6 +39,7 @@ public:
 
     // Insantiates new entity
     Entity Instantiate(const std::string& name = "", const yoyo::Vec3& position = {});
+    Entity Instantiate(const std::string& name, const yoyo::Mat4x4& transform);
 
     // Queues attached entity for destruction
     void QueueDestroy();

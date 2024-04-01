@@ -69,6 +69,10 @@ add_library(YoYo SHARED
     src/Renderer/Material.cpp
     src/Renderer/Mesh.h
     src/Renderer/Mesh.cpp
+    src/Renderer/SkinnedMesh.h
+    src/Renderer/SkinnedMesh.cpp
+    src/Renderer/Animation.cpp
+    src/Renderer/Animation.h
     src/Renderer/Texture.h
     src/Renderer/Texture.cpp
     src/Renderer/RendererLayer.h

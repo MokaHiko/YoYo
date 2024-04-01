@@ -36,7 +36,7 @@ void SceneHierarchyPanel::Draw(Scene* scene)
 	{
 		if (ImGui::Button("New Entity"))
 		{
-			scene->Instantiate("New Entity");
+			scene->Instantiate("New Entity", { 0.0f, 0.0f, 0.0f });
 			ImGui::CloseCurrentPopup();
 		}
 

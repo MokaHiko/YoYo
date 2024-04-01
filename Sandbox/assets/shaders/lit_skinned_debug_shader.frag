@@ -64,7 +64,11 @@ void main() {
   // float shadow = (1 - CalculateShadows(v_position_light_space, normal, -dir_lights[0].direction.xyz));
 
   // frag_color = vec4(ambient, 0.0f) + (shadow * final_color); 
-  frag_color = vec4(0.0f, 1.0f, 1.0f, v_focused_bone_weight);
+  vec4 white = vec4(1.0f, 1.0f, 1.0f, 0.25f);
+  vec4 cyan = vec4(0.0f, 1.0f, 1.0f, 1.0f);
+  vec4 color = mix(white, cyan, v_focused_bone_weight);
+  frag_color = color;
+  // frag_color = vec4(0.0f, 1.0f, 1.0f, v_focused_bone_weight);
 }
 
 vec4 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 view_dir) {

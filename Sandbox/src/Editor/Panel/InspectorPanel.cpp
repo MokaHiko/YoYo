@@ -3,6 +3,8 @@
 #include <Events/Event.h>
 #include <ImGui/ImGuiLayer.h>
 
+#include <Math/MatrixTransform.h>
+
 #include "Editor/EditorEvents.h"
 #include "ECS/Components/Components.h"
 
@@ -28,7 +30,7 @@ static void MatrixInput(const char* name, yoyo::Mat4x4& mat)
 	if (ImGui::TreeNode(name))
 	{
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x / 4.0f);
-		for(int i = 0; i < 4; i++)
+		for (int i = 0; i < 4; i++)
 		{
 			ImGui::DragFloat("##label", &mat.data[0 + i], 0.1f); ImGui::SameLine();
 			ImGui::DragFloat("##label", &mat.data[4 + i], 0.1f); ImGui::SameLine();
@@ -97,7 +99,15 @@ void InspectorPanel::DrawComponents()
 
 		ImGui::TableSetColumnIndex(1);
 		ImGui::PushItemWidth(label_width * 3.0f);
-		ImGui::DragFloat3("##Rotation", transform.rotation.elements);
+
+		yoyo::Vec3 degrees = { yoyo::RadToDeg(transform.rotation.x), yoyo::RadToDeg(transform.rotation.y), yoyo::RadToDeg(transform.rotation.z) };
+		if (ImGui::DragFloat3("##Rotation", degrees.elements))
+		{
+			transform.quat_rotation = yoyo::QuatFromAxisAngle({ 1.0f, 0.0f, 0.0f }, yoyo::DegToRad(degrees.x))
+									* yoyo::QuatFromAxisAngle({ 0.0f, 1.0f, 0.0f }, yoyo::DegToRad(degrees.y))
+									* yoyo::QuatFromAxisAngle({ 0.0f, 0.0f, 1.0f }, yoyo::DegToRad(degrees.z));
+		}
+
 		ImGui::PopItemWidth();
 
 		ImGui::TableNextRow();
@@ -112,7 +122,60 @@ void InspectorPanel::DrawComponents()
 
 		ImGui::EndTable();
 
-		MatrixInput("Model Matrix", transform.model_matrix);
+		static char* matrix_type_strings[] = { "model", "translation", "rotation", "scale" };
+		static bool matrix_type_bools[] = { false, false, false, false };
+		static int index = 0;
+
+		if (ImGui::Button(matrix_type_strings[index])) { ImGui::OpenPopup("MatrixTypePopUp"); }
+		if (ImGui::BeginPopup("MatrixTypePopUp"))
+		{
+			if (ImGui::Selectable(matrix_type_strings[0], matrix_type_bools[0]))
+			{
+				memset(matrix_type_bools, 0, sizeof(matrix_type_bools));
+				matrix_type_bools[0] = true;
+				index = 0;
+			}
+
+			if (ImGui::Selectable(matrix_type_strings[1], matrix_type_bools[1]))
+			{
+				memset(matrix_type_bools, 0, sizeof(matrix_type_bools));
+				matrix_type_bools[1] = true;
+				index = 1;
+			}
+
+			if (ImGui::Selectable(matrix_type_strings[2], matrix_type_bools[2]))
+			{
+				memset(matrix_type_bools, 0, sizeof(matrix_type_bools));
+				matrix_type_bools[2] = true;
+				index = 2;
+			}
+
+			if (ImGui::Selectable(matrix_type_strings[3], matrix_type_bools[3]))
+			{
+				memset(matrix_type_bools, 0, sizeof(matrix_type_bools));
+				matrix_type_bools[3] = true;
+				index = 3;
+			}
+
+			ImGui::EndPopup();
+		}
+
+		if (matrix_type_bools[0])
+		{
+			MatrixInput("##label", transform.model_matrix);
+		}
+		else if (matrix_type_bools[1])
+		{
+			MatrixInput("##label", transform.LocalTranslationMatrix());
+		}
+		else if (matrix_type_bools[2])
+		{
+			MatrixInput("##label", transform.LocalRotationMatrix());
+		}
+		else if (matrix_type_bools[3])
+		{
+			MatrixInput("##label", transform.LocalScaleMatrix());
+		}
 
 		}, true);
 

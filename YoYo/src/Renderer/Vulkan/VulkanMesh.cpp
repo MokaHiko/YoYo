@@ -2,6 +2,7 @@
 
 #include "Resource/ResourceEvent.h"
 #include "VulkanResourceManager.h"
+
 #include "Mesh.h"
 
 namespace yoyo
@@ -184,14 +185,20 @@ namespace yoyo
         const VulkanRenderContext* ctx = static_cast<VulkanRenderContext*>(render_context);
         VkDeviceSize offset = 0;
 
+        // TODO: Move to upload mesh data
+        void* data;
+        VulkanResourceManager::MapMemory(bone_buffers[ctx->frame].allocation, &data);
+        memcpy(data, bones.data(), bones.size() * sizeof(Mat4x4));
+        VulkanResourceManager::UnmapMemory(bone_buffers[ctx->frame].allocation);
+
         // TODO: FIX! Encapsulate
-        if(ctx->mesh_pass_type == MeshPassType::Forward)
+        if (ctx->mesh_pass_type == MeshPassType::Forward)
         {
-            vkCmdBindDescriptorSets(ctx->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->pipeline_layout, 3, 1, &bones_ds, 0, nullptr);
+            vkCmdBindDescriptorSets(ctx->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->pipeline_layout, 3, 1, &bones_dsets[ctx->frame], 0, nullptr);
         }
-        else if(ctx->mesh_pass_type == MeshPassType::Shadow)
+        else if (ctx->mesh_pass_type == MeshPassType::Shadow)
         {
-            vkCmdBindDescriptorSets(ctx->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->pipeline_layout, 1, 1, &bones_ds, 0, nullptr);
+            vkCmdBindDescriptorSets(ctx->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->pipeline_layout, 1, 1, &bones_dsets[ctx->frame], 0, nullptr);
         }
 
         if (!indices.empty())
@@ -217,22 +224,28 @@ namespace yoyo
             indices.clear();
         }
 
-        size_t paddded_bone_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(Mat4x4));
-        bones_buffer = VulkanResourceManager::CreateBuffer<Mat4x4>(paddded_bone_size * bones.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        // TODO: Get Renderer Flames in Flight
+        bones_dsets.resize(2);
+        bone_buffers.resize(2);
+        for(int i = 0; i < bone_buffers.size(); i++)
+        {
+			size_t paddded_bone_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(Mat4x4));
+			bone_buffers[i] = VulkanResourceManager::CreateBuffer<Mat4x4>(paddded_bone_size * bones.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
-        void* data;
-        VulkanResourceManager::MapMemory(bones_buffer.allocation, &data);
-        memcpy(data, bones.data(), bones.size() * sizeof(Mat4x4));
-        VulkanResourceManager::UnmapMemory(bones_buffer.allocation);
+			void* data;
+			VulkanResourceManager::MapMemory(bone_buffers[i].allocation, &data);
+			memcpy(data, bones.data(), bones.size() * sizeof(Mat4x4));
+			VulkanResourceManager::UnmapMemory(bone_buffers[i].allocation);
 
-        VkDescriptorBufferInfo info = {};
-        info.buffer = bones_buffer.buffer;
-        info.offset = 0;
-        info.range = VK_WHOLE_SIZE;
+			VkDescriptorBufferInfo info = {};
+			info.buffer = bone_buffers[i].buffer;
+			info.offset = 0;
+			info.range = VK_WHOLE_SIZE;
 
-        VulkanResourceManager::AllocateDescriptor()
-        .BindBuffer(0, &info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
-        .Build(&bones_ds, &bones_ds_layout);
+			VulkanResourceManager::AllocateDescriptor()
+				.BindBuffer(0, &info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+				.Build(&bones_dsets[i], &bones_ds_layout);
+        }
 
         m_dirty &= ~MeshDirtyFlags::Unuploaded;
     }

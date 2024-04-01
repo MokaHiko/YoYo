@@ -18,6 +18,12 @@ struct VillageProps
     int max_villagers;
 };
 
+namespace yoyo
+{
+    class SkeletalNode;
+    class SkinnedMeshJoint;
+}
+
 class VillageManagerComponent : public ScriptableEntity
 {
 public:
@@ -29,8 +35,8 @@ public:
     virtual void OnUpdate(float dt) override;
 
     void SpawnVillager(const VillagerProps& props = {});
-    void SpawnItem(const VillageItem& item);
 private:
+    void TraverseRecursive(const yoyo::SkeletalNode* node, const std::vector<yoyo::SkinnedMeshJoint>& joints, Entity parent);
     float m_timer = 0;
     int m_villager_count = 0;
 };

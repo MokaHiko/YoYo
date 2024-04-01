@@ -16,11 +16,17 @@ namespace yoyo
 
     YAPI const float Lerp(float a, float b, float t);
 
+    YAPI bool FloatCompare(float x, float y, float epsilon = 0.01f);
+
     YAPI const float Length(const Vec3& v1);
     YAPI const Vec3 Normalize(const Vec3& v1);
 
     YAPI const float Dot(const Vec3& v1, const Vec3& v2);
+    YAPI const float Dot(const Vec4& v1, const Vec4& v2);
+
     YAPI const Vec3 Cross(const Vec3& v1, const Vec3& v2);
+
+    YAPI const Vec3 Lerp(const Vec3& v1, const Vec3& v2, float t);
 
     YAPI const Vec2 operator*(const Vec2& v1, const Vec2& v2);
     YAPI const Vec3 operator*(const Vec3& v1, const Vec3& v2);
@@ -29,6 +35,7 @@ namespace yoyo
     YAPI const Vec3 operator+(const Vec3& v1, const Vec3& v2);
 
     YAPI const Vec2 operator-(const Vec2& v1, const Vec2& v2);
+    YAPI const Vec3 operator-(const Vec3& v1, const Vec3& v2);
 
     YAPI const Vec3 operator*(const Vec3& v1, float scalar);
     YAPI const Vec4 operator*(const Vec4& v1, float scalar);
@@ -39,4 +46,5 @@ namespace yoyo
     YAPI const Mat4x4 operator*(const Mat4x4& m1, const Mat4x4& m2);
 
     YAPI yoyo::Vec3 operator*( Mat4x4 m, yoyo::Vec3 v);
+    YAPI const Vec4 operator*(const Mat4x4& m, const Vec4& v);
 }

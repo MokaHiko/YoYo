@@ -1,5 +1,6 @@
 #include "MatrixTransform.h"
 
+#include "Core/Assert.h"
 #include "Quaternion.h"
 
 namespace yoyo
@@ -165,7 +166,12 @@ namespace yoyo
         return out_matrix;
     }
 
-	YAPI Mat4x4 QuatToMat4x4(const Quat& q)
+	YAPI float Trace4x4(const Mat4x4& matrix)
+	{
+        return matrix.data[0] + matrix.data[5] + matrix.data[10] + matrix.data[15];
+	}
+
+    YAPI Mat4x4 QuatToMat4x4(const Quat& q)
     {
         Mat4x4 out_matrix = {};
 
@@ -173,6 +179,7 @@ namespace yoyo
 
         Quat n = NormalizeQuat(q);
 
+        // TODO: In row major this needs to be transposed
         out_matrix.data[0] = 1.0f - 2.0f * n.y * n.y - 2.0f * n.z * n.z;
         out_matrix.data[1] = 2.0f * n.x * n.y - 2.0f * n.z * n.w;
         out_matrix.data[2] = 2.0f * n.x * n.z + 2.0f * n.y * n.w;
@@ -188,22 +195,150 @@ namespace yoyo
         return out_matrix;
     }
 
-	YAPI Vec3 PositionFromMat4x4(const Mat4x4& matrix)
+    YAPI Mat4x4 InverseMat4x4(const Mat4x4& matrix)
+    {
+        const float* m = matrix.data;
+
+        float t0 = m[10] * m[15];
+        float t1 = m[14] * m[11];
+        float t2 = m[6] * m[15];
+        float t3 = m[14] * m[7];
+        float t4 = m[6] * m[11];
+        float t5 = m[10] * m[7];
+        float t6 = m[2] * m[15];
+        float t7 = m[14] * m[3];
+        float t8 = m[2] * m[11];
+        float t9 = m[10] * m[3];
+        float t10 = m[2] * m[7];
+        float t11 = m[6] * m[3];
+        float t12 = m[8] * m[13];
+        float t13 = m[12] * m[9];
+        float t14 = m[4] * m[13];
+        float t15 = m[12] * m[5];
+        float t16 = m[4] * m[9];
+        float t17 = m[8] * m[5];
+        float t18 = m[0] * m[13];
+        float t19 = m[12] * m[1];
+        float t20 = m[0] * m[9];
+        float t21 = m[8] * m[1];
+        float t22 = m[0] * m[5];
+        float t23 = m[4] * m[1];
+
+        Mat4x4 out_matrix;
+        float* o = out_matrix.data;
+
+        o[0] = (t0 * m[5] + t3 * m[9] + t4 * m[13]) -
+            (t1 * m[5] + t2 * m[9] + t5 * m[13]);
+        o[1] = (t1 * m[1] + t6 * m[9] + t9 * m[13]) -
+            (t0 * m[1] + t7 * m[9] + t8 * m[13]);
+        o[2] = (t2 * m[1] + t7 * m[5] + t10 * m[13]) -
+            (t3 * m[1] + t6 * m[5] + t11 * m[13]);
+        o[3] = (t5 * m[1] + t8 * m[5] + t11 * m[9]) -
+            (t4 * m[1] + t9 * m[5] + t10 * m[9]);
+
+        float d = 1.0f / (m[0] * o[0] + m[4] * o[1] + m[8] * o[2] + m[12] * o[3]);
+
+        o[0] = d * o[0];
+        o[1] = d * o[1];
+        o[2] = d * o[2];
+        o[3] = d * o[3];
+        o[4] = d * ((t1 * m[4] + t2 * m[8] + t5 * m[12]) -
+            (t0 * m[4] + t3 * m[8] + t4 * m[12]));
+        o[5] = d * ((t0 * m[0] + t7 * m[8] + t8 * m[12]) -
+            (t1 * m[0] + t6 * m[8] + t9 * m[12]));
+        o[6] = d * ((t3 * m[0] + t6 * m[4] + t11 * m[12]) -
+            (t2 * m[0] + t7 * m[4] + t10 * m[12]));
+        o[7] = d * ((t4 * m[0] + t9 * m[4] + t10 * m[8]) -
+            (t5 * m[0] + t8 * m[4] + t11 * m[8]));
+        o[8] = d * ((t12 * m[7] + t15 * m[11] + t16 * m[15]) -
+            (t13 * m[7] + t14 * m[11] + t17 * m[15]));
+        o[9] = d * ((t13 * m[3] + t18 * m[11] + t21 * m[15]) -
+            (t12 * m[3] + t19 * m[11] + t20 * m[15]));
+        o[10] = d * ((t14 * m[3] + t19 * m[7] + t22 * m[15]) -
+            (t15 * m[3] + t18 * m[7] + t23 * m[15]));
+        o[11] = d * ((t17 * m[3] + t20 * m[7] + t23 * m[11]) -
+            (t16 * m[3] + t21 * m[7] + t22 * m[11]));
+        o[12] = d * ((t14 * m[10] + t17 * m[14] + t13 * m[6]) -
+            (t16 * m[14] + t12 * m[6] + t15 * m[10]));
+        o[13] = d * ((t20 * m[14] + t12 * m[2] + t19 * m[10]) -
+            (t18 * m[10] + t21 * m[14] + t13 * m[2]));
+        o[14] = d * ((t18 * m[6] + t23 * m[14] + t15 * m[2]) -
+            (t22 * m[14] + t14 * m[2] + t19 * m[6]));
+        o[15] = d * ((t22 * m[10] + t16 * m[2] + t21 * m[6]) -
+            (t20 * m[6] + t23 * m[10] + t17 * m[2]));
+
+        return out_matrix;
+    }
+
+
+    YAPI Vec3 PositionFromMat4x4(const Mat4x4& matrix)
     {
         Vec3 pos = {};
+
         pos.x = matrix.data[12];
         pos.y = matrix.data[13];
         pos.z = matrix.data[14];
+
         return pos;
     }
-	YAPI Vec3 ScaleFromMat4x4(const Mat4x4& matrix)
+
+    YAPI Vec3 ScaleFromMat4x4(const Mat4x4& matrix)
     {
         Vec3 scale = {};
+
         scale.x = matrix.data[0];
         scale.y = matrix.data[5];
         scale.z = matrix.data[10];
 
+        if(!(FloatCompare(scale.x, scale.y) && FloatCompare(scale.y, scale.z)))
+        {
+            // YERROR("Non uniform scale: %.2f %.2f %.2f", scale.x, scale.y, scale.z);
+        }
+
         return scale;
     }
+
+	YAPI Quat RotationFromMat4x4(const Mat4x4& matrix)
+	{
+        Mat4x4 rot_mat = matrix;
+
+        // Normalize rotation
+        for(int i = 0; i < 3; i++)
+        {
+            float scale_factor = rot_mat[0 + i ] * rot_mat[0 + i] + rot_mat[4 + i] * rot_mat[4 + i] + rot_mat[8 + i] * rot_mat[8 + i];
+            float inverse_scale_factor = 1.0f / scale_factor;
+
+            rot_mat[0 + i] *= inverse_scale_factor; rot_mat[4 + i] *= inverse_scale_factor; rot_mat[8 + i] *= inverse_scale_factor;
+        }
+
+        Quat quat = {};
+        quat.w = sqrt(fmax(0, 1 + Trace4x4(rot_mat)) / 2.0f);
+        quat.x = sqrt(fmax(0, 1 + rot_mat[0] - rot_mat[5] - rot_mat[10]) / 4.0f);
+        quat.y = sqrt(fmax(0, 1 - rot_mat[0] + rot_mat[5] - rot_mat[10]) / 4.0f);
+        quat.z = sqrt(fmax(0, 1 - rot_mat[0] - rot_mat[5] + rot_mat[10]) / 4.0f);
+
+        // Correct signs
+        if(rot_mat[0] - rot_mat[5] - rot_mat[10] < 0)
+        {
+            quat.x *= -1.0f;
+        }
+
+        if(rot_mat[0] - rot_mat[5] - rot_mat[10] < 0)
+        {
+            quat.x *= -1.0f;
+        }
+
+        if(rot_mat[5] - rot_mat[0] - rot_mat[10] < 0)
+        {
+            quat.y *= -1.0f;
+        }
+
+        if(rot_mat[10] - rot_mat[0] - rot_mat[5] < 0)
+        {
+            quat.z *= -1.0f;
+        }
+
+        return NormalizeQuat(quat);
+	}
 
 }

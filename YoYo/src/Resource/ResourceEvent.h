@@ -51,4 +51,28 @@ namespace yoyo
 
         EVENT_TYPE(MaterialCreatedEvent)
     };
+
+    class SkeletalHierarchy;
+    class SkeletalHierarchyCreatedEvent : public Event
+    {
+    public:
+        EVENT_TYPE(SkeletalHierarchyCreatedEvent)
+        SkeletalHierarchyCreatedEvent(Ref<SkeletalHierarchy> new_skeletal_hierarchy)
+		    :skeletal_hierarchy(new_skeletal_hierarchy){}
+        virtual ~SkeletalHierarchyCreatedEvent() = default;
+
+        Ref<SkeletalHierarchy> skeletal_hierarchy;
+    };
+
+    class Animation;
+    class AnimationCreatedEvent : public Event
+    {
+    public:
+        EVENT_TYPE(AnimationCreatedEvent)
+        AnimationCreatedEvent(Ref<Animation> new_animation)
+		    :animation(new_animation){}
+        virtual ~AnimationCreatedEvent() = default;
+
+        Ref<Animation> animation;
+    };
 }

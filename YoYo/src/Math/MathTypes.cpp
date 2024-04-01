@@ -83,9 +83,7 @@ namespace yoyo
         data[15] = 1;
     }
 
-    Mat4x4::~Mat4x4()
-    {
-    }
+    Mat4x4::~Mat4x4() {}
 
 	Mat4x4::Mat4x4(float val)
 	{

@@ -336,6 +336,7 @@ namespace yoyo
                 render_context.cmd = cmd;
                 render_context.pipeline_layout = shader_pass->layout;
                 render_context.mesh_pass_type = MeshPassType::Shadow;
+                render_context.frame = m_frame_count;
 
                 // Bind mesh
                 batch->mesh->Bind(&render_context);
@@ -406,7 +407,8 @@ namespace yoyo
             rect.extent.height = Settings().height;
 
             VkClearValue color_clear = {};
-            color_clear.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+            // color_clear.color = { 0.0f, 1.0f, 1.0f, 1.0f };
+            color_clear.color = { 0.0f, 0.0f, 0.0f, 0.0f };
             VkClearValue depth_clear = {};
             depth_clear.depthStencil = { 1.0f, 0 };
 
@@ -430,6 +432,7 @@ namespace yoyo
                 render_context.cmd = cmd;
                 render_context.pipeline_layout = shader_pass->layout;
                 render_context.mesh_pass_type = MeshPassType::Forward;
+                render_context.frame = m_frame_count;
 
                 // Bind batch material and mesh 
                 if (batch->material->Dirty()) { m_material_system->UpdateMaterial(std::static_pointer_cast<VulkanMaterial>(batch->material)); }

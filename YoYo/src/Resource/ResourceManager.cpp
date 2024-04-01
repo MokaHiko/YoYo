@@ -3,9 +3,11 @@
 #include "ResourceEvent.h"
 
 #include "Renderer/Mesh.h"
+#include "Renderer/SkinnedMesh.h"
 #include "Renderer/Texture.h"
 #include "Renderer/Shader.h"
 #include "Renderer/Material.h"
+#include "Renderer/Animation.h"
 
 #include <imgui.h>
 
@@ -80,6 +82,11 @@ namespace yoyo
 			{
 				// TODO: Update vertex data in gpu
 			}
+
+			if ((flags & MeshDirtyFlags::BoneDataChanged) == MeshDirtyFlags::BoneDataChanged) 
+			{
+				// mesh->UpdateMeshData();
+			}
 		}
 
 		for (auto it : ResourceManager::Instance().Cache<Texture>())
@@ -146,6 +153,16 @@ namespace yoyo
 		EventManager::Instance().Subscribe(MaterialCreatedEvent::s_event_type, [](Ref<Event> event) {
 			const auto& material_created_event = std::static_pointer_cast<MaterialCreatedEvent>(event);
 			return ResourceManager::Instance().OnResourceCreated<Material>(material_created_event->material);
+		});
+
+		EventManager::Instance().Subscribe(SkeletalHierarchyCreatedEvent::s_event_type, [](Ref<Event> event) {
+			const auto& skeletal_hierarchy_created_event = std::static_pointer_cast<SkeletalHierarchyCreatedEvent>(event);
+			return ResourceManager::Instance().OnResourceCreated<SkeletalHierarchy>(skeletal_hierarchy_created_event->skeletal_hierarchy);
+		});
+
+		EventManager::Instance().Subscribe(AnimationCreatedEvent::s_event_type, [](Ref<Event> event) {
+			const auto& animation_created_event = std::static_pointer_cast<AnimationCreatedEvent>(event);
+			return ResourceManager::Instance().OnResourceCreated<Animation>(animation_created_event->animation);
 		});
 	}
 

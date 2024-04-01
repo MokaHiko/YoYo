@@ -4,6 +4,7 @@
 
 #include <Renderer/Material.h>
 #include <Renderer/Mesh.h>
+#include <Renderer/SkinnedMesh.h>
 #include <Renderer/Model.h>
 #include <Renderer/Light.h>
 #include <Renderer/Camera.h>
@@ -52,4 +53,13 @@ struct NewMeshComponent
 struct ModelRendererComponent
 {
 
+};
+
+namespace yoyo{class Animator;}
+struct AnimatorComponent
+{
+    AnimatorComponent();
+    ~AnimatorComponent() = default;
+
+    Ref<yoyo::Animator> animator;
 };

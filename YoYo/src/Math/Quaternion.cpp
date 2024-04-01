@@ -70,6 +70,77 @@ namespace yoyo
 		return out_Quaternion;
 	}
 
+	YAPI const Quat Slerp(const Quat& q1, const Quat& q2, float t)
+	{
+		Quat q1_normalized = NormalizeQuat(q1);
+		Quat q2_normalized = NormalizeQuat(q2);
+
+		float dot = q1_normalized.x* q2_normalized.x + q1_normalized.y * q2_normalized.y +
+					q1_normalized.z * q2_normalized.z + q1_normalized.w * q2_normalized.w;
+
+		if (dot < 0.0f)
+		{
+			q1_normalized = q1_normalized * -1;
+			dot = -dot;
+		}
+
+		// Linearly interpolate if quaternions are almost equal 
+		if (dot > 0.9995f) 
+		{
+			Quat out = q1_normalized + (q2_normalized - q1_normalized) * t;
+			return NormalizeQuat(out);
+		}
+
+		// Calculate angle between quaternions
+		float theta_0 = std::acos(dot);
+		float theta = theta_0 * t;
+
+		// Interpolate
+		float s1 = std::cos(theta) - dot * std::sin(theta) / std::sin(theta_0);
+		float s2 = std::sin(theta) / std::sin(theta_0);
+
+		return Quat(
+			s1 * q1_normalized.x + s2 * q2_normalized.x,
+			s1 * q1_normalized.y + s2 * q2_normalized.y,
+			s1 * q1_normalized.z + s2 * q2_normalized.z,
+			s1 * q1_normalized.w + s2 * q2_normalized.w
+		);
+	}
+
+	YAPI const Quat operator*(const Quat& q, float scalar)
+	{
+		Quat out = q;
+
+		out.x *= scalar;
+		out.y *= scalar;
+		out.z *= scalar;
+		out.w *= scalar;
+
+		return out;
+	}
+
+	YAPI const Quat operator+(const Quat& q1, const Quat& q2)
+	{
+		Quat out = q1;
+		out.x += q2.x;
+		out.y += q2.y;
+		out.z += q2.z;
+		out.w += q2.w;
+
+		return out;
+	}
+
+	YAPI const Quat operator-(const Quat& q1, const Quat& q2)
+	{
+		Quat out = q1;
+		out.x -= q2.x;
+		out.y -= q2.y;
+		out.z -= q2.z;
+		out.w -= q2.w;
+
+		return out;
+	}
+
 	Quat& Quat::operator*=(const Quat& other)
 	{
 		Quat out_Quaternion = { 0, 0, 0, 1 };

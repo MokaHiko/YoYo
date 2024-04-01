@@ -90,15 +90,16 @@ void ViewportPanel::Draw(Scene* scene)
 
 			ImGuizmo::Manipulate(view.data, proj.data, operations[operation_index], ImGuizmo::LOCAL, transform_matrix.data, NULL, false);
 
-			yoyo::Vec3 translation, rotation, scale = {};
+			yoyo::Vec3 translation, scale = {};
 			translation = yoyo::PositionFromMat4x4(transform_matrix);
 			scale = yoyo::ScaleFromMat4x4(transform_matrix);
+			yoyo::Quat quat_rotation = yoyo::RotationFromMat4x4(transform_matrix);
 
 			if (ImGuizmo::IsUsing())
 			{
 				transform.position = translation;
-				transform.scale = scale;
-				transform.UpdateModelMatrix();
+				//transform.scale = scale;
+				//transform.quat_rotation = quat_rotation;
 
 				// TODO: Do rotation
 				//transform.quat_rotation = transform.quat_rotation * yoyo::QuatFromAxisAngle({ 0.0f, 1.0f, 0.0f }, yoyo::DegToRad());

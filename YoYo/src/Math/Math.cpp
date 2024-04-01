@@ -45,34 +45,44 @@ namespace yoyo
         return sum;
     }
 
-	YAPI const Vec2 operator-(const Vec2& v1, const Vec2& v2)
-	{
+    YAPI const Vec2 operator-(const Vec2& v1, const Vec2& v2)
+    {
         Vec2 dif = {};
         dif.x = v1.x - v2.x;
         dif.y = v1.y - v2.y;
 
         return dif;
-	}
+    }
 
-	const Vec3 operator*(const Vec3& v1, float scalar)
-	{
+    YAPI const Vec3 operator-(const Vec3& v1, const Vec3& v2)
+    {
+        Vec3 dif = {};
+        dif.x = v1.x - v2.x;
+        dif.y = v1.y - v2.y;
+        dif.z = v1.z - v2.z;
+
+        return dif;
+    }
+
+    const Vec3 operator*(const Vec3& v1, float scalar)
+    {
         Vec3 out = {};
         out.x = v1.x * scalar;
         out.y = v1.y * scalar;
         out.z = v1.z * scalar;
 
         return out;
-	}
+    }
 
-	const Vec3 operator*(Vec3 v1, float scalar)
-	{
+    const Vec3 operator*(Vec3 v1, float scalar)
+    {
         Vec3 out = {};
         out.x = v1.x * scalar;
         out.y = v1.y * scalar;
         out.z = v1.z * scalar;
 
         return out;
-	}
+    }
 
     const Vec4 operator*(const Vec4& v1, float scalar)
     {
@@ -91,12 +101,22 @@ namespace yoyo
         return { v1.x / scalar, v1.y / scalar, v1.z / scalar };
     }
 
-    YAPI yoyo::Vec3 operator*( Mat4x4 m, yoyo::Vec3 v)
+    YAPI yoyo::Vec3 operator*(Mat4x4 m, yoyo::Vec3 v)
     {
         return {
             v.x * m.data[0] + v.y * m.data[4] + v.z * m.data[8] + m.data[12],
             v.x * m.data[1] + v.y * m.data[5] + v.z * m.data[9] + m.data[13],
-            v.x * m.data[2] + v.y * m.data[6] + v.z * m.data[10] + m.data[14]};
+            v.x * m.data[2] + v.y * m.data[6] + v.z * m.data[10] + m.data[14] };
+    }
+
+    YAPI const Vec4 operator*(const Mat4x4& m, const Vec4& v)
+    {
+        return {
+            v.x * m.data[0] + v.y * m.data[4] + v.z * m.data[8] + m.data[12],
+            v.x * m.data[1] + v.y * m.data[5] + v.z * m.data[9] + m.data[13],
+            v.x * m.data[2] + v.y * m.data[6] + v.z * m.data[10] + m.data[14],
+            v.x * m.data[3] + v.y * m.data[7] + v.z * m.data[11] + m.data[15]
+        };
     }
 
     const Mat4x4 operator*(const Mat4x4& v1, float scalar)
@@ -141,7 +161,13 @@ namespace yoyo
     const Vec3 Normalize(const Vec3& v1)
     {
         float l = Length(v1);
-        YASSERT(l >= 0, "Cannot normalize a vector with 0 length");
+
+        if (l <= 0)
+        {
+            YWARN("Cannot normalize a vector with 0 length");
+            return { 0.0f, 0.0f, 0.0f };
+        }
+
         return v1 / l;
     }
 
@@ -152,9 +178,21 @@ namespace yoyo
                  v1.x * v2.y - v1.y * v2.x };
     }
 
-    const float Dot(const Vec3& v1, const Vec3& v2)
+    YAPI const Vec3 Lerp(const Vec3& v1, const Vec3& v2, float t)
+    {
+        return {Lerp(v1.x, v2.x, t),
+                Lerp(v1.y, v2.y, t),
+                Lerp(v1.z, v2.z, t), };
+    }
+
+    YAPI const float Dot(const Vec3& v1, const Vec3& v2)
     {
         return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+    }
+
+    YAPI const float Dot(const Vec4& v1, const Vec4& v2)
+    {
+        return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z + v1.w * v2.w;
     }
 
     float Cos(float rad)
@@ -167,10 +205,10 @@ namespace yoyo
         return sin(rad);
     }
 
-	float Tan(float rad)
-	{
-		return tan(rad);
-	}
+    float Tan(float rad)
+    {
+        return tan(rad);
+    }
 
     float DegToRad(float deg)
     {
@@ -182,8 +220,13 @@ namespace yoyo
         return (rad * 180.0f) / Y_PI;
     }
 
-	const float Lerp(float a, float b, float t)
-	{
+    const float Lerp(float a, float b, float t)
+    {
         return (a * (1 - t)) + (b * t);
-	}
+    }
+
+    YAPI bool FloatCompare(float x, float y, float epsilon)
+    {
+        return (fabs(x - y) < epsilon);
+    }
 }

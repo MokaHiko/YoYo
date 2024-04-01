@@ -28,9 +28,16 @@ namespace yoyo
 
     YAPI Mat4x4 TransposeMat4x4(Mat4x4& matrix);
 
+    YAPI float Trace4x4(const Mat4x4& matrix);
+
     YAPI Mat4x4 QuatToMat4x4(const Quat& q);
+
+    // Returns the inverse of a matrix
+    YAPI Mat4x4 InverseMat4x4(const Mat4x4& matrix);
 
     YAPI Vec3 PositionFromMat4x4(const Mat4x4& matrix);
 
     YAPI Vec3 ScaleFromMat4x4(const Mat4x4& matrix);
+
+    YAPI Quat RotationFromMat4x4(const Mat4x4& matrix);
 }

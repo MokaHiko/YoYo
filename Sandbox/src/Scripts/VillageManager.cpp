@@ -9,6 +9,7 @@
 #include <Renderer/Model.h>
 #include <Renderer/Material.h>
 #include <Renderer/Texture.h>
+#include <Renderer/Animation.h>
 
 #include "ECS/Components/RenderableComponents.h"
 
@@ -23,7 +24,6 @@ static yoyo::PRNGenerator<float> height_generator(2.0f, 15.0f);
 VillageManagerComponent::VillageManagerComponent(Entity e)
 	:ScriptableEntity(e)
 {
-	
 }
 
 VillageManagerComponent::~VillageManagerComponent() {}
@@ -32,127 +32,104 @@ void VillageManagerComponent::OnUpdate(float dt)
 {
 	m_timer += dt;
 
-	const VillageProps& props = GetComponent<VillageProps>();
+	VillageProps& props = GetComponent<VillageProps>();
+	props.max_villagers = 10;
 	if (m_timer > props.spawn_rate)
 	{
 		if (m_villager_count < props.max_villagers)
 		{
 			SpawnVillager();
-
-			VillageItem item;
-			SpawnItem(item);
 		}
 
 		m_timer = 0;
 	}
 }
 
+void VillageManagerComponent::TraverseRecursive(const yoyo::SkeletalNode* node, const std::vector<yoyo::SkinnedMeshJoint>& joints, Entity parent)
+{
+	if (!node)
+	{
+		return;
+	}
+
+	if(!parent)
+	{
+		return;
+	}
+
+	// TODO: Pass as argument
+	static yoyo::Mat4x4 skinned_mesh_transform = parent.GetComponent<TransformComponent>().model_matrix;
+	const std::string joint_name = node->name;
+
+	// Bind pose
+	// Entity joint = Instantiate(joint_name.c_str(), {0.0f, 0.0f, 0.0f});
+	// auto& mesh_renderer = joint.AddComponent<MeshRendererComponent>("cubeCube", "default_instanced_material");
+	// parent.GetComponent<TransformComponent>().AddChild(joint);
+
+	// yoyo::Mat4x4 transform_matrix = skinned_mesh_transform * joints[node->joint_index].bind_pose_transform;
+	// joint.GetComponent<TransformComponent>().SetGlobalTransform(transform_matrix);
+	// joint.GetComponent<TransformComponent>().scale = {1.0f, 1.0f, 1.0f};
+	// const std::string joint_name = node->name;
+
+	Entity joint = Instantiate(joint_name.c_str(), {node->transform});
+	auto& mesh_renderer = joint.AddComponent<MeshRendererComponent>("cubeCube", "default_instanced_material");
+	parent.GetComponent<TransformComponent>().AddChild(joint);
+	joint.GetComponent<TransformComponent>().scale = {1.0f, 1.0f, 1.0f};
+
+	// for (yoyo::SkeletalNode* child : node->children)
+	// {
+	// 	TraverseRecursive(child, joints, joint);
+	// }
+}
+
 void VillageManagerComponent::SpawnVillager(const VillagerProps& props)
 {
-	static auto villager_model = yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/Peasant.yo");
-	static auto villager_material = yoyo::ResourceManager::Instance().Load<yoyo::Material>("colormap_material");
-
+	//static auto villager_model = yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/Peasant.yo");
 	//static auto skinned_villager_material = yoyo::ResourceManager::Instance().Load<yoyo::Material>("skinned_colormap_material");
-	static auto skinned_villager_debug_material = yoyo::ResourceManager::Instance().Load<yoyo::Material>("skinned_colormap_debug_material");
-	static auto grid_material = yoyo::ResourceManager::Instance().Load<yoyo::Material>("grid_material");
+	//static auto villager_material = yoyo::ResourceManager::Instance().Load<yoyo::Material>("people_material");
+	//static auto grid_material = yoyo::ResourceManager::Instance().Load<yoyo::Material>("grid_material");
 
-	for (int i = 0; i < 1; i++)
+	static auto skinned_debug_material = yoyo::ResourceManager::Instance().Load<yoyo::Material>("skinned_colormap_debug_material");
+	static auto villager_model = yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/mutant.yo");
+	auto villager = Instantiate("villager", { pos_generator.Next(), height_generator.Next(), pos_generator.Next()});
+	TransformComponent& model_transform = villager.GetComponent<TransformComponent>();
+	model_transform.scale *= 0.20f;
+
+	for (int i = 0; i < villager_model->meshes.size(); i++)
 	{
-		auto villager = Instantiate("villager_" + std::to_string(i), { pos_generator.Next(), height_generator.Next(), pos_generator.Next() });
-		TransformComponent& model_transform = villager.GetComponent<TransformComponent>();
+		yoyo::MeshType mesh_type = villager_model->meshes[i]->GetMeshType();
 
-		for (int j = 0; j < villager_model->meshes.size(); j++)
+		if (mesh_type == yoyo::MeshType::Skinned)
 		{
-			yoyo::MeshType mesh_type = villager_model->meshes[j]->GetMeshType();
+			Ref<yoyo::SkinnedMesh> mesh = std::static_pointer_cast<yoyo::SkinnedMesh>(villager_model->meshes[i]);
 
-			if(mesh_type == yoyo::MeshType::Static)
+			Entity child = Instantiate(mesh->name, villager_model->model_matrices[i]);
+			model_transform.AddChild(child);
+
 			{
-				Ref<yoyo::StaticMesh> mesh = std::static_pointer_cast<yoyo::StaticMesh>(villager_model->meshes[j]);
-				Entity child = Instantiate(mesh->name);
-
-				TransformComponent& transform = child.GetComponent<TransformComponent>();
-				transform.position = yoyo::PositionFromMat4x4(villager_model->model_matrices[j]);
-				transform.scale = yoyo::ScaleFromMat4x4(villager_model->model_matrices[j]);
-
 				auto& mesh_renderer = child.AddComponent<MeshRendererComponent>();
 				mesh_renderer.mesh = mesh;
 				mesh_renderer.type = mesh_type;
-				mesh_renderer.material = villager_material;
-
-				model_transform.AddChild(child);
+				mesh_renderer.material = skinned_debug_material; // skinned_villager_material;
 			}
-			else if(mesh_type == yoyo::MeshType::Skinned)
-			{
-				Ref<yoyo::SkinnedMesh> mesh = std::static_pointer_cast<yoyo::SkinnedMesh>(villager_model->meshes[j]);
-				Entity child = Instantiate(mesh->name);
 
-				TransformComponent& transform = child.GetComponent<TransformComponent>();
-				transform.position = yoyo::PositionFromMat4x4(villager_model->model_matrices[j]);
-				transform.scale = yoyo::ScaleFromMat4x4(villager_model->model_matrices[j]);
+			const yoyo::SkeletalNode* node = mesh->skeletal_hierarchy->GetRoot();
+			TraverseRecursive(node, mesh->joints, child);
 
-				{
-					auto& mesh_renderer = child.AddComponent<MeshRendererComponent>();
-					mesh_renderer.mesh = mesh;
-					mesh_renderer.type = mesh_type;
-					//mesh_renderer.material = skinned_villager_material;
-					mesh_renderer.material = skinned_villager_debug_material;
-				}
-
-				for(auto& bMatrix : mesh->bones)
-				{	
-					const std::string bone_name = "bone";
-					Entity bone = Instantiate(bone_name.c_str());
-					TransformComponent& bone_transform = bone.GetComponent<TransformComponent>();
-					bone_transform.position = yoyo::PositionFromMat4x4(bMatrix);
-					bone_transform.scale *= 0.05f;
-
-					auto& mesh_renderer = bone.AddComponent<MeshRendererComponent>("cubeCube", "default_instanced_material");;
-					model_transform.AddChild(bone);
-				}
-
-				model_transform.AddChild(child);
-			}
+			AnimatorComponent& animator = child.AddComponent<AnimatorComponent>();
+			animator.animator->skinned_mesh = mesh;
+			animator.animator->animations.push_back(yoyo::ResourceManager::Instance().Load<yoyo::Animation>("Armature|Armature|mixamo.com|Layer0"));
 		}
-
-		// villager.AddComponent<psx::RigidBodyComponent>().LockRotationAxis({1,0,1});
-		// psx::BoxColliderComponent& box_collider = villager.AddComponent<psx::BoxColliderComponent>();
-		// villager.AddComponent<VillagerComponent>(villager);
-
-		model_transform.position = {0.0f, 0.0f, 0.0f};
-		model_transform.scale *= 15.0f;
-		villager.AddComponent<DemoModelComponent>(villager);
-
-		m_villager_count++;
 	}
+
+	// villager.AddComponent<psx::RigidBodyComponent>().LockRotationAxis({1,0,1});
+	// psx::BoxColliderComponent& box_collider = villager.AddComponent<psx::BoxColliderComponent>();
+	// villager.AddComponent<VillagerComponent>(villager);
+
+	villager.AddComponent<DemoModelComponent>(villager);
+	m_villager_count++;
 }
 
-void VillageManagerComponent::SpawnItem(const VillageItem& item)
-{
-	//static auto colormap_material = yoyo::resourcemanager::instance().load<yoyo::material>("colormap_material");
-	//static auto pine_model = yoyo::resourcemanager::instance().load<yoyo::model>("assets/models/pine.yo");
 
-	//for (int i = 0; i < 1; i++)
-	//{
-	//	auto pine = Instantiate("pine_" + std::to_string(i), { pos_generator.Next(), height_generator.Next(), pos_generator.Next() });
-	//	TransformComponent& model_transform = pine.GetComponent<TransformComponent>();
-	//	model_transform.scale *= 5.0f;
 
-	//	for (int j = 0; j < pine_model->meshes.size(); j++)
-	//	{
-	//		Entity mesh = Instantiate(pine_model->meshes[j]->name);
-	//		TransformComponent& transform = mesh.GetComponent<TransformComponent>();
-	//		transform.position = yoyo::PositionFromMat4x4(pine_model->model_matrices[j]);
-	//		transform.scale = yoyo::ScaleFromMat4x4(pine_model->model_matrices[j]);
 
-	//		auto& mesh_renderer = mesh.AddComponent<MeshRendererComponent>();
-	//		mesh_renderer.mesh = pine_model->meshes[j];
-	//		mesh_renderer.material = colormap_material;
-
-	//		model_transform.AddChild(mesh);
-	//	}
-	//	pine.AddComponent<psx::RigidBodyComponent>();
-	//	psx::BoxColliderComponent& box_collider = pine.AddComponent<psx::BoxColliderComponent>();
-
-	//	pine.AddComponent<DestructableComponent>(pine);
-	//}
-}

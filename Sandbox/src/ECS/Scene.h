@@ -67,6 +67,7 @@ public:
 
     // Create and returns entity
     Entity Instantiate(const std::string& name = "", const yoyo::Vec3& position = {}, bool* serialize = nullptr);
+    Entity Instantiate(const std::string& name = "", const yoyo::Mat4x4& transform_matrix = {}, bool* serialize = nullptr);
 
     // Queues an entity for destruction
     void QueueDestroy(Entity e);
