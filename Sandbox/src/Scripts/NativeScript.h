@@ -21,11 +21,15 @@ private:
     int m_insert_index = 0;
 };
 
-class PhysicsWorld;
+namespace psx
+{
+    class PhysicsWorld;
+}
+
 class ScriptingSystem : public System<NativeScriptComponent>
 {
 public:
-    ScriptingSystem(Scene* scene, PhysicsWorld* physics_world = nullptr /*If not passed physics event callbacks will not be called */)
+    ScriptingSystem(Scene* scene, psx::PhysicsWorld* physics_world = nullptr /*If not passed physics event callbacks will not be called */)
         :System<NativeScriptComponent>(scene), m_physics_world(physics_world){}
     virtual ~ScriptingSystem() = default;
 
@@ -41,7 +45,18 @@ public:
 private:
     void OnCollisionCallback(psx::Collision& col);
 private:
-    PhysicsWorld* m_physics_world;
+    psx::PhysicsWorld* m_physics_world;
+
     // TODO: Script cache
     std::vector<ScriptableEntity*> m_script_cache;
+public:
+    // Processes
+    void AttachProcess(Ref<Process> process);
+    void AbortAllProcesses(bool immediate);
+
+    void UpdateProcesses(float dt);
+
+    uint32_t ProcessCount() const { return static_cast<uint32_t>(m_processes.size()); }
+private:
+    std::list<Ref<Process>> m_processes;
 };

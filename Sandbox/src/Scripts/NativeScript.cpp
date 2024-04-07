@@ -1,6 +1,8 @@
 #include "NativeScript.h"
 
 #include "ScriptEvents.h"
+#include "Process.h"
+
 #include "Physics/PhysicsEvents.h"
 
 void ScriptingSystem::Init()
@@ -9,19 +11,19 @@ void ScriptingSystem::Init()
 		const Ref<ScriptCreatedEvent>& script_event = std::static_pointer_cast<ScriptCreatedEvent>(event);
 		OnScriptCreatedCallback(script_event->script);
 		return false;
-	});
+		});
 
 	yoyo::EventManager::Instance().Subscribe(ScriptDestroyedEvent::s_event_type, [&](Ref<yoyo::Event> event) {
 		const Ref<ScriptDestroyedEvent>& script_event = std::static_pointer_cast<ScriptDestroyedEvent>(event);
 		OnScriptDestroyedCallback(script_event->script);
 		return false;
-	});
+		});
 
 	yoyo::EventManager::Instance().Subscribe(psx::CollisionEvent::s_event_type, [&](Ref<yoyo::Event> event) {
 		const Ref<psx::CollisionEvent>& col_event = std::static_pointer_cast<psx::CollisionEvent>(event);
 		OnCollisionCallback(col_event->collision);
 		return false;
-	});
+		});
 }
 
 void ScriptingSystem::Shutdown()
@@ -46,7 +48,7 @@ void ScriptingSystem::Update(float dt)
 				continue;
 			}
 
-			if(!ns.m_scripts[i]->started)
+			if (!ns.m_scripts[i]->started)
 			{
 				ns.m_scripts[i]->OnStart();
 				ns.m_scripts[i]->started = true;
@@ -55,6 +57,9 @@ void ScriptingSystem::Update(float dt)
 			ns.m_scripts[i]->OnUpdate(dt);
 		}
 	}
+
+	// Process are updated after all scripts
+	UpdateProcesses(dt);
 }
 
 void ScriptingSystem::OnComponentCreated(Entity e, NativeScriptComponent& native_script)
@@ -63,7 +68,7 @@ void ScriptingSystem::OnComponentCreated(Entity e, NativeScriptComponent& native
 
 void ScriptingSystem::OnComponentDestroyed(Entity e, NativeScriptComponent& native_script)
 {
-	for(int i = 0; i < native_script.m_scripts_count; i++)
+	for (int i = 0; i < native_script.m_scripts_count; i++)
 	{
 		native_script.RemoveScript(native_script.m_scripts[i]);
 	}
@@ -71,7 +76,7 @@ void ScriptingSystem::OnComponentDestroyed(Entity e, NativeScriptComponent& nati
 
 void ScriptingSystem::OnScriptCreatedCallback(ScriptableEntity* script)
 {
-	if(!script->GameObject().HasComponent<NativeScriptComponent>())
+	if (!script->GameObject().HasComponent<NativeScriptComponent>())
 	{
 		auto& ns = script->GameObject().AddComponent<NativeScriptComponent>();
 		ns.AddScript(script);
@@ -81,13 +86,18 @@ void ScriptingSystem::OnScriptCreatedCallback(ScriptableEntity* script)
 		NativeScriptComponent& ns = script->GameObject().GetComponent<NativeScriptComponent>();
 		ns.AddScript(script);
 	}
+
+	// TODO: Find a better way to handle this, possibly event driven.
+	// Assign scripting system and physics world
+	script->m_scripting_system = this;
+	script->m_physics_world = m_physics_world;
 }
 
 void ScriptingSystem::OnScriptDestroyedCallback(ScriptableEntity* script)
 {
-	YASSERT(script && "attempting to destroy invalid script");
+	YASSERT(script, "attempting to destroy invalid script");
 
-	if(!script->GameObject().HasComponent<NativeScriptComponent>())
+	if (!script->GameObject().HasComponent<NativeScriptComponent>())
 	{
 		auto& ns = script->GameObject().AddComponent<NativeScriptComponent>();
 		ns.RemoveScript(script);
@@ -134,6 +144,72 @@ void ScriptingSystem::OnCollisionCallback(psx::Collision& col)
 	}
 }
 
+void ScriptingSystem::AttachProcess(Ref<Process> process)
+{
+	YASSERT(process != nullptr, "Process is null");
+	m_processes.push_back(process);
+}
+
+void ScriptingSystem::AbortAllProcesses(bool immediate)
+{
+	// TODO: Abort all processes
+}
+
+void ScriptingSystem::UpdateProcesses(float dt)
+{
+	auto it = m_processes.begin();
+
+	uint8_t success_count = 0;
+	uint8_t fail_count = 0;
+
+	while (it != m_processes.end()) {
+		Ref<Process> process = (*it);
+
+		std::list<Ref<Process>>::iterator this_it = it;
+		it++;
+
+		if (process->State() == Process::Uninitialized)
+		{
+			process->OnInit();
+		}
+
+		if (process->State() == Process::Running)
+		{
+			process->OnUpdate(dt);
+		}
+
+		if (process->IsDead()) {
+			switch (process->State())
+			{
+			case Process::ProcessState::Succeeded:
+			{
+				process->OnSuccess();
+				if (process->Child())
+				{
+					AttachProcess(process->Child());
+				}
+				else
+				{
+					success_count++;
+				}
+			} break;
+			case Process::ProcessState::Failed:
+			{
+				process->OnFail();
+				fail_count++;
+			} break;
+			case Process::ProcessState::Aborted:
+			{
+				process->OnAbort();
+				fail_count++;
+			} break;
+			}
+
+			m_processes.erase(this_it);
+		}
+	}
+}
+
 NativeScriptComponent::NativeScriptComponent() {}
 
 void NativeScriptComponent::AddScript(ScriptableEntity* script)
@@ -168,13 +244,13 @@ void NativeScriptComponent::RemoveScript(ScriptableEntity* script)
 	}
 
 	// Return if no script found
-	if(index < 0)
+	if (index < 0)
 	{
 		return;
 	}
 
 	// Make sure scripts array is contiguos
-	if(index != m_scripts.size() - 1)
+	if (index != m_scripts.size() - 1)
 	{
 		m_scripts[index] = m_scripts.back();
 		m_scripts[m_scripts.size() - 1] = nullptr;

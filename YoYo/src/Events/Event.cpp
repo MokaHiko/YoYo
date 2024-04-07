@@ -4,6 +4,7 @@
 
 namespace yoyo
 {
+	// TODO: Return handler
 	void EventManager::Subscribe(const EventType& type, const EventHandler& handler)
 	{
 		auto& it = m_event_listeners[type];

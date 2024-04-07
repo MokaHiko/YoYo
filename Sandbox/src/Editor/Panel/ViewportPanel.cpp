@@ -12,6 +12,8 @@
 #include "Editor/EditorEvents.h"
 #include "Input/Input.h"
 
+#include "Physics/Collider.h"
+
 ViewportPanel::ViewportPanel(Ref<yoyo::Renderer> renderer)
 	:m_renderer(renderer)
 {
@@ -60,7 +62,6 @@ void ViewportPanel::Draw(Scene* scene)
 			// Camera
 			const yoyo::Mat4x4& view = cam->View();
 			yoyo::Mat4x4 proj = cam->Projection();
-			proj[5] *= -1;
 
 			// Entity transform
 			TransformComponent& transform = m_focused_entity.GetComponent<TransformComponent>();
@@ -95,14 +96,23 @@ void ViewportPanel::Draw(Scene* scene)
 			scale = yoyo::ScaleFromMat4x4(transform_matrix);
 			yoyo::Quat quat_rotation = yoyo::RotationFromMat4x4(transform_matrix);
 
+			// Visualize colliders
+			psx::BoxColliderComponent* box_collider = nullptr;
+			if(m_focused_entity.TryGetComponent<psx::BoxColliderComponent>(&box_collider))
+			{
+				const yoyo::Vec3& half_extents = box_collider->GetHalfExtents();
+				yoyo::Mat4x4 colldier_matrix = yoyo::TranslationMat4x4(translation) * yoyo::ScaleMat4x4(half_extents * 2.0f);
+				ImGuizmo::DrawCubes(view.data, proj.data, colldier_matrix.data, 1);
+			}
+
+			// yoyo::Mat4x4 identity = {};
+			// ImGuizmo::DrawGrid(view.data,proj.data, identity.data, 1000.0f);
+
 			if (ImGuizmo::IsUsing())
 			{
 				transform.position = translation;
 				//transform.scale = scale;
-				//transform.quat_rotation = quat_rotation;
-
-				// TODO: Do rotation
-				//transform.quat_rotation = transform.quat_rotation * yoyo::QuatFromAxisAngle({ 0.0f, 1.0f, 0.0f }, yoyo::DegToRad());
+				transform.quat_rotation = quat_rotation;
 			}
 		}
 	}

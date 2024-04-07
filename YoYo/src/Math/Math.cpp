@@ -101,6 +101,12 @@ namespace yoyo
         return { v1.x / scalar, v1.y / scalar, v1.z / scalar };
     }
 
+    YAPI const Vec4 operator/(const Vec4& v1, float scalar)
+    {
+        YASSERT(scalar != 0, "Cannot divide by 0!");
+        return { v1.x / scalar, v1.y / scalar, v1.z / scalar , v1.w / scalar};
+    }
+
     YAPI yoyo::Vec3 operator*(Mat4x4 m, yoyo::Vec3 v)
     {
         return {
@@ -158,7 +164,25 @@ namespace yoyo
         return sqrt(v1.x * v1.x + v1.y * v1.y + v1.z * v1.z);
     }
 
+    const float Length(const Vec4& v1)
+    {
+        return sqrt(v1.x * v1.x + v1.y * v1.y + v1.z * v1.z + v1.w * v1.w);
+    }
+
     const Vec3 Normalize(const Vec3& v1)
+    {
+        float l = Length(v1);
+
+        if (l <= 0)
+        {
+            YWARN("Cannot normalize a vector with 0 length");
+            return { 0.0f, 0.0f, 0.0f };
+        }
+
+        return v1 / l;
+    }
+
+    YAPI const Vec4 Normalize(const Vec4& v1)
     {
         float l = Length(v1);
 
@@ -210,6 +234,11 @@ namespace yoyo
         return tan(rad);
     }
 
+	YAPI float ACos(float rad)
+	{
+        return acos(rad);
+	}
+
     float DegToRad(float deg)
     {
         return deg * (Y_PI / 180.0f);
@@ -224,6 +253,21 @@ namespace yoyo
     {
         return (a * (1 - t)) + (b * t);
     }
+
+	const float Clamp(float value, float min, float max)
+	{
+        if(value < min)
+        {
+            return min;
+        }
+
+        if(value > max)
+        {
+            return max;
+        }
+
+        return value;
+	}
 
     YAPI bool FloatCompare(float x, float y, float epsilon)
     {

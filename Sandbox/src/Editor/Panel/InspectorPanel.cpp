@@ -13,6 +13,10 @@
 
 #include <Renderer/Shader.h>
 
+#include <Renderer/Animation.h>
+
+#include <Scripts/CameraController.h>
+
 static void HelpMarker(const char* desc)
 {
 	ImGui::TextDisabled("(?)");
@@ -200,17 +204,15 @@ void InspectorPanel::DrawComponents()
 			case yoyo::MeshType::Skinned: {
 				Ref<yoyo::SkinnedMesh> mesh = std::static_pointer_cast<yoyo::SkinnedMesh>(mesh_renderer.mesh);
 				ImGui::Text("Name: %s", mesh->name.c_str());
-				ImGui::Text("Id: %u", mesh->Id());
+				ImGui::Text("Mesh Id: %u", mesh->Id());
+				ImGui::Text("Renderer Id: %u", mesh_renderer.mesh_object->Id());
 				ImGui::Text("Vertices: %d", mesh->vertices.size());
 				ImGui::Text("Indices: %d", mesh->indices.size());
 
-				if (ImGui::TreeNode("Bones"))
+				const std::string bone_header = "Skeletal Hierarchy : " + mesh->skeletal_hierarchy->name + "(" + std::to_string(mesh->bones.size()) + ")";
+				if (ImGui::TreeNode(bone_header.c_str()))
 				{
-					for (int i = 0; i < mesh->bones.size(); i++)
-					{
-						const std::string name = std::to_string(i);
-						MatrixInput(name.c_str(), mesh->bones[i]);
-					}
+					// TODO: Traverse heirarchy
 					ImGui::TreePop();
 				}
 			}break;
@@ -342,23 +344,70 @@ void InspectorPanel::DrawComponents()
 		}
 		}, false);
 
+	DrawComponentUI<AnimatorComponent>("Animator", m_focused_entity, [](AnimatorComponent& animator_component) {
+    	Ref<yoyo::Animator> animator = animator_component.animator;
+
+		if (!animator) 
+		{
+			ImGui::Text("Null reference to animator!");
+			return;
+		}
+
+		if (ImGui::TreeNodeEx("Animations", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			for(int i = 0; i < animator->animations.size(); i++)
+			{
+				Ref<yoyo::Animation>& animation = animator->animations[i];
+
+				ImGuiTreeNodeFlags flags = {};
+				flags |= i == animator->GetCurrentAnimationIndex() ? ImGuiTreeNodeFlags_Selected : 0;
+				if (ImGui::TreeNodeEx(animation->name.c_str(), flags))
+				{
+					ImGui::Text("Duration: %.2f s", animation->Duration());
+					ImGui::DragFloat("Ticks", &animation->ticks);
+					ImGui::DragFloat("Ticks Per Second", &animation->ticks_per_second);
+
+					if (ImGui::TreeNodeEx("Timeline", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::Text("Timeline");
+						ImGui::TreePop();
+					}
+
+					ImGui::TreePop();
+				}
+			}
+
+			ImGui::TreePop();
+		}
+
+	});
+
 	DrawComponentUI<psx::RigidBodyComponent>("RigidBody", m_focused_entity, [](psx::RigidBodyComponent& rb) {
 		float mass = rb.GetMass();
 		if (ImGui::DragFloat("Mass", &mass, 1.0f))
 		{
 			rb.SetMass(mass);
 		}
-		});
+	});
 
-	// class RigidBodyComponent
-	// {
-	// public:
-	// 	void AddForce(const yoyo::Vec3& force, ForceMode type);
+	DrawComponentUI<psx::BoxColliderComponent>("BoxCollider", m_focused_entity, [](psx::BoxColliderComponent& box_coillder) {
+		yoyo::Vec3 half_extents = box_coillder.GetHalfExtents();
+		if(ImGui::DragFloat3("Extents", half_extents.elements))
+		{
+			box_coillder.SetHalfExtents(half_extents);
+		}
+	});
 
-	// 	// Locks an axis of rotation
-	// 	void LockRotationAxis(const yoyo::Vec3& axis);
-	// private:	
-	// 	friend class PhysicsWorld;
-	// 	physx::PxRigidActor* actor;
-	// };
+	// TODO: Script template
+	DrawComponentUI<CameraControllerComponent>("RigidBody", m_focused_entity, [](CameraControllerComponent& camera_component) {
+		Entity target = camera_component.follow_target;
+
+		ImGui::Checkbox("Follow", &camera_component.follow);
+		ImGui::Text("%u", camera_component.follow_target);
+
+		ImGui::DragFloat3("Follow Offset", camera_component.follow_offset.elements);
+
+		ImGui::DragFloat("Pitch", &camera_component.pitch);
+		ImGui::DragFloat("Yaw", &camera_component.yaw);
+	});
 }

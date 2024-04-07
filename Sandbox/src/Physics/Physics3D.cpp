@@ -56,18 +56,38 @@ namespace psx
 		shape->release();
 	}
 
-	void PhysicsWorld::AttachBoxShape(RigidBodyComponent& rb, const yoyo::Vec3& extents, PhysicsMaterial* material)
+	void PhysicsWorld::AttachBoxShape(RigidBodyComponent& rb, const yoyo::Vec3& extents, physx::PxBoxGeometry** box_shape, PhysicsMaterial* material)
 	{
 		using namespace physx;
 
 		// TODO: Cache Shape: 
 		PxShape* shape = m_physics->createShape(PxBoxGeometry({ extents.x, extents.y, extents.z }), *m_material);
+		*box_shape = (physx::PxBoxGeometry*)shape;
 
 		rb.actor->attachShape(*shape);
 
 		shape->release();
 	}
 
+	bool PhysicsWorld::Raycast(const yoyo::Vec3& origin, const yoyo::Vec3& dir, float max_distance, RaycastHit& out)
+	{
+		using namespace physx;
+
+		PxRaycastBuffer hit;
+
+		if (!m_scene->raycast({ origin.x, origin.y, origin.z }, { dir.x, dir.y, dir.z }, max_distance, hit))
+		{
+			return false;
+		}
+
+		out.distance = hit.block.distance;
+		out.normal = { hit.block.normal.x, hit.block.normal.y, hit.block.normal.z };
+		out.point = { hit.block.position.x, hit.block.position.y, hit.block.position.z };
+		out.entity_id = (uint32_t)hit.block.actor->userData;
+
+		return true;
+	}
+	
 	PhysicsWorld::PhysicsWorld(Scene* scene)
 		:System<RigidBodyComponent>(scene)
 	{
@@ -146,9 +166,13 @@ namespace psx
 		{
 			yoyo::ScopedTimer profiler([&](const yoyo::ScopedTimer& timer) {
 				// YINFO("Physics time %.5fms", timer.delta * 1000.0f);
-			});
+				});
 
-			m_scene->simulate(1.0f / 60.0f);
+			if(!m_scene->simulate(1.0f / 60.0f))
+			{
+				YERROR("Physics step failed!");
+			}
+
 			m_scene->fetchResults(true);
 		}
 
@@ -189,7 +213,7 @@ namespace psx
 		const TransformComponent& transform = e.GetComponent<TransformComponent>();
 		PxTransform t = { transform.position.x, transform.position.y, transform.position.z };
 
-		// Implicit release of shape
+		// Implicit release of shapes
 		rb.actor->release();
 	}
 
@@ -207,31 +231,31 @@ namespace psx
 		uint32_t e1 = (uint32_t)pairHeader.actors[0]->userData;
 		uint32_t e2 = (uint32_t)pairHeader.actors[1]->userData;
 
-		Collision col {};
+		Collision col{};
 		col.a = e1;
 		col.b = e2;
 
 		static std::vector<PxContactPairPoint> contactPoints;
-		for(PxU32 i=0;i<nbPairs;i++)
+		for (PxU32 i = 0;i < nbPairs;i++)
 		{
 			PxU32 contactCount = pairs[i].contactCount;
-			if(contactCount)
+			if (contactCount)
 			{
 				contactPoints.resize(contactCount);
 				pairs[i].extractContacts(&contactPoints[0], contactCount);
 
-				for(PxU32 j=0;j<contactCount;j++)
+				for (PxU32 j = 0;j < contactCount;j++)
 				{
 					//gContactPositions.push_back(contactPoints[j].position);
 					//gContactImpulses.push_back(contactPoints[j].impulse);
-					col.collision_points.push_back({{contactPoints[j].position.x, contactPoints[j].position.y, contactPoints[j].position.z}, {contactPoints[j].normal.x, contactPoints[j].normal.y, contactPoints[j].normal.z}});
+					col.collision_points.push_back({ {contactPoints[j].position.x, contactPoints[j].position.y, contactPoints[j].position.z}, {contactPoints[j].normal.x, contactPoints[j].normal.y, contactPoints[j].normal.z} });
 				}
 			}
 		}
 
 		// TODO: Cache common physics events
-		 static Ref<CollisionEvent> col_event = CreateRef<CollisionEvent>(col);
-		 col_event->collision = col;
+		static Ref<CollisionEvent> col_event = CreateRef<CollisionEvent>(col);
+		col_event->collision = col;
 		yoyo::EventManager::Instance().Dispatch(col_event);
 
 		//// Retrieve the current poses and velocities of the two actors involved in the contact event.

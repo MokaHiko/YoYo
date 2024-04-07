@@ -68,6 +68,7 @@ Entity Scene::Instantiate(const std::string & name, const yoyo::Mat4x4 & transfo
 
 void Scene::QueueDestroy(Entity e) 
 {
+	// TODO: Check if current entity already queued for destruction
 	m_destruction_queue.push_back(e);
 }
 

@@ -50,7 +50,7 @@ namespace yoyo
     public:
         RESOURCE_TYPE(Texture)
 
-            Texture() = default;
+        Texture() = default;
         ~Texture() = default;
 
         const TextureSamplerType GetSamplerType() const { return m_sampler_type; }

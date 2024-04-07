@@ -46,7 +46,7 @@ void SunComponent::OnUpdate(float dt)
 		transform.position.x = yoyo::Lerp(end_position, start_position, (1 - (time / day_duration)));
 	}
 
-	transform.rotation += yoyo::Normalize({1.0f, 1.0f, 1.0f}) * dt;
+	transform.rotation += yoyo::Normalize(yoyo::Vec3{1.0f, 1.0f, 1.0f}) * dt;
 
 	auto& light = GetComponent<DirectionalLightComponent>();
 	light.dir_light->direction = yoyo::Vec4{transform.position.x, transform.position.y, transform.position.z, 0.0f} * -1.0f;

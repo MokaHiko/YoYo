@@ -39,5 +39,6 @@ namespace yoyo
 
     YAPI Vec3 ScaleFromMat4x4(const Mat4x4& matrix);
 
+    // Returns a normalized quaternion from the matrix 
     YAPI Quat RotationFromMat4x4(const Mat4x4& matrix);
 }

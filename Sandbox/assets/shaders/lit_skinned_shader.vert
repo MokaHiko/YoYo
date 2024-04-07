@@ -63,7 +63,7 @@ void main()
   bone_transform += bones[bone_ids[3]].model_matrix * bone_weights[3];
 
 	mat4 model_matrix = objects[gl_BaseInstance].model_matrix;
-
+ 
   vec4 rigged_position = bone_transform * vec4(position, 1.0f);
 	v_position_world_space = vec3(model_matrix * rigged_position); 
 	v_color = color;

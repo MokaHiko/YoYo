@@ -33,6 +33,15 @@ namespace psx
 		uint32_t a, b;
 	};
 
+	struct RaycastHit
+	{
+		yoyo::Vec3 normal = {};
+		yoyo::Vec3 point = {};
+
+		float distance;
+		uint32_t entity_id;
+	};
+
 	class RigidBodyComponent
 	{
 	public:
@@ -46,6 +55,14 @@ namespace psx
 
 		// Returns the mass in kg
 		void SetMass(float mass);
+
+		void SetAngularVelocity(const yoyo::Vec3& velocity);
+
+		void SetLinearVelocity(const yoyo::Vec3& velocity);
+
+		void SetMaxLinearVelocity(float max_velocity);
+
+		void SetUseGravity(bool value);
 	private:	
 		friend class PhysicsWorld;
 		physx::PxRigidActor* actor;
@@ -59,6 +76,8 @@ namespace psx
 	class BoxColliderComponent
 	{
 	public:
+		BoxColliderComponent(const yoyo::Vec3& extents);
+
 		BoxColliderComponent();
 		~BoxColliderComponent() = default;
 

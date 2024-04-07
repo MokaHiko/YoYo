@@ -1,6 +1,8 @@
 #include "Mesh.h"
-#include "Resource/ResourceManager.h"
 
+#include <Hurno.h>
+
+#include "Resource/ResourceManager.h"
 #include "Core/Log.h"
 
 namespace yoyo
@@ -20,9 +22,39 @@ namespace yoyo
 			return mesh_it->second;
 		}
 
-        // TODO: Load from asset file
         YWARN("[Cache Miss][StaticMesh]: %s", name.c_str());
-     
+
+		Ref<StaticMesh> mesh = StaticMesh::LoadFromAsset(path.c_str());
+		if (!mesh)
+		{
+			return nullptr;
+		}
+
+		mesh_cache[mesh->Id()] = mesh;
+		return mesh;
+    }
+
+    Ref<StaticMesh> StaticMesh::LoadFromAsset(const char* asset_path, const std::string& name)
+    {
+        hro::Mesh hro_mesh;
+
+        if(hro_mesh.Load(asset_path))
+        {
+            hro_mesh.Unpack(nullptr, nullptr);
+
+			// Create and copy mesh
+            const std::string static_mesh_name = name.empty() ? FileNameFromFullPath(asset_path) : name;
+            Ref<StaticMesh> static_mesh = StaticMesh::Create(static_mesh_name);
+
+            static_mesh->vertices.resize(hro_mesh.vertices.size());
+            memcpy(static_mesh->vertices.data(), hro_mesh.vertices.data(), hro_mesh.vertices.size() * sizeof(Vertex));
+
+            static_mesh->indices.resize(hro_mesh.indices.size());
+            memcpy(static_mesh->indices.data(), hro_mesh.indices.data(), hro_mesh.indices.size() * sizeof(uint32_t));
+
+            return static_mesh;
+        }
+
         return nullptr;
     }
 

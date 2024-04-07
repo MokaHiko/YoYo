@@ -35,6 +35,8 @@ public:
     virtual void OnUpdate(float dt) override;
 
     void SpawnVillager(const VillagerProps& props = {});
+    void SpawnEnemy();
+    void SpawnMutant();
 private:
     void TraverseRecursive(const yoyo::SkeletalNode* node, const std::vector<yoyo::SkinnedMeshJoint>& joints, Entity parent);
     float m_timer = 0;

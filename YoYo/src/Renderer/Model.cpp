@@ -21,7 +21,7 @@ namespace yoyo
 		auto& model_cache = Cache<Model>();
 		auto model_it = std::find_if(model_cache.begin(), model_cache.end(), [&](const auto& it) {
 			return it.second->name == name;
-			});
+		});
 
 		if (model_it != model_cache.end())
 		{
@@ -35,7 +35,6 @@ namespace yoyo
 			return nullptr;
 		}
 
-		// model->dirty = ModelDirtyFlags::Unuploaded;
 		model_cache[model->Id()] = model;
 		return model;
 	}
@@ -89,37 +88,11 @@ namespace yoyo
 
 			mesh->joints[i] = joint;
 
-			// No Pose 
-			Mat4x4 bone_space_transform = {};
-
-			// Apply transform in bone space then return to mesh space
-			Mat4x4 final_joint_transform = joint.bind_pose_transform * bone_space_transform * joint.inverse_bind_pose_transform;
-
 			// Bind Pose Transform
-			mesh->bones[i] = final_joint_transform;
+			mesh->bones[i] = {};
 		}
 
 		return mesh;
-	}
-
-	void ProcessNodeRecursive(hro::Node* node, void* data, int level = 0)
-	{
-		std::string debug_string = "";
-
-		for (int i = 0; i < level; i++)
-		{
-			debug_string += "\t";
-		}
-
-		debug_string += "-";
-		debug_string += node->name_buffer;
-		YINFO("%s", debug_string.c_str());
-
-		level += 1;
-		for (int i = 0; i < node->ChildrenCount(); i++)
-		{
-			ProcessNodeRecursive(node->GetChild(i, data), data, level);
-		}
 	}
 
 	Ref<Model> Model::LoadFromAsset(const char* asset_path, const std::string& name)
@@ -134,9 +107,6 @@ namespace yoyo
 			char* data = (char*)YAllocate(hro_model_info.UnpackedSize(), yoyo::MemoryTag::Resource);
 			hro_model.Unpack(&hro_model_info, data);
 
-			char* vertex_buffer = (char*)hro_model.VertexBuffer(&hro_model_info, data);
-			char* index_buffer = (char*)hro_model.IndexBuffer(&hro_model_info, data);
-
 			void* global_bone_buffer = (char*)hro_model.BoneBuffer(&hro_model_info, data);
 			void* global_vertex_bone_map_buffer = (char*)hro_model.VertexBoneMapBuffer(&hro_model_info, data);
 
@@ -145,23 +115,17 @@ namespace yoyo
 
 			Ref<Model> model = Model::Create(name);
 			model->name = !name.empty() ? name : FileNameFromFullPath(asset_path);
-			for (int i = 0; i < hro_model_info.mesh_count; i++)
+
+			for(const hro::MeshInfo& hro_mesh : hro_model.mesh_infos)
 			{
 				// TODO: Check vertex format
-				const hro::MeshInfo& hro_mesh = hro_model_info.mesh_infos[i];
 
 				// Push model matrix
 				Mat4x4 model_matrix = {};
 				memcpy(&model_matrix, hro_mesh.model_matrix, sizeof(float) * 16);
 				model->model_matrices.push_back(model_matrix);
 
-				Ref<StaticMesh> mesh = LoadStaticMesh(
-					FileNameFromFullPath(asset_path) + hro_mesh.name,
-					vertex_buffer + vertex_offset, hro_mesh.vertex_buffer_size,
-					index_buffer + index_offset, hro_mesh.index_buffer_size
-				);
-				vertex_offset += hro_mesh.vertex_buffer_size;
-				index_offset += hro_mesh.index_buffer_size;
+				Ref<StaticMesh> mesh = StaticMesh::LoadFromAsset(hro_mesh.original_file_path.c_str());
 
 				if (hro_mesh.bone_count > 0)
 				{
@@ -176,7 +140,7 @@ namespace yoyo
 					);
 
 					// Load skeletal data
-					skinned_mesh->skeletal_hierarchy = ResourceManager::Instance().Load<SkeletalHierarchy>("assets/skeletal_meshes/test.yskmesh");
+					skinned_mesh->skeletal_hierarchy = ResourceManager::Instance().Load<SkeletalHierarchy>(hro_model.skeletal_mesh_path);
 					model->meshes.push_back(skinned_mesh);
 				}
 				else
@@ -210,50 +174,13 @@ namespace yoyo
 			}
 
 			// Load Animations
-			char* hro_animations = (char*)hro_model.AnimationsBuffer(&hro_model_info, data);
-
-			uint32_t anim_ctr = 0;
-			for (const auto& anim_info : hro_model_info.animation_infos)
+			for(const std::string& path : hro_model.animation_paths)
 			{
-				YINFO("%s", anim_info.name.c_str());
-				YINFO("pos channels: %d", anim_info.position_channel_count);
-				YINFO("rot channels: %d", anim_info.rotation_channel_count);
-				YINFO("scale channels: %d", anim_info.scale_channel_count);
-
-				hro::Animation hro_animation = {};
-				{
-					uint64_t pos_channel_size = anim_info.position_channel_count * sizeof(hro::Channel<float[3]>);
-					uint64_t rot_channel_size = anim_info.rotation_channel_count * sizeof(hro::Channel<float[4]>);
-					uint64_t scale_channel_size = anim_info.scale_channel_count * sizeof(hro::Channel<float[3]>);
-
-					hro_animation.position_channels.resize(anim_info.position_channel_count);
-					memcpy(hro_animation.position_channels.data(), hro_animations, pos_channel_size);
-
-					hro_animation.rotation_channels.resize(anim_info.rotation_channel_count);
-					memcpy(hro_animation.rotation_channels.data(), hro_animations + pos_channel_size, rot_channel_size);
-
-					hro_animation.scale_channels.resize(anim_info.scale_channel_count);
-					memcpy(hro_animation.scale_channels.data(), hro_animations + pos_channel_size + rot_channel_size, scale_channel_size);
-				}
-
-				{
-					Ref<Animation> animation = Animation::Create(anim_info.name);
-					animation->ticks = anim_info.ticks;
-					animation->ticks_per_second = anim_info.ticks_per_second;
-
-					animation->position_channels.resize(hro_animation.position_channels.size());
-					memcpy(animation->position_channels.data(), hro_animation.position_channels.data(), hro_animation.position_channels.size() * sizeof(hro_animation.position_channels[0]));
-
-					animation->rotation_channels.resize(hro_animation.rotation_channels.size());
-					memcpy(animation->rotation_channels.data(), hro_animation.rotation_channels.data(), hro_animation.rotation_channels.size() * sizeof(hro_animation.rotation_channels[0]));
-
-					animation->scale_channels.resize(hro_animation.scale_channels.size());
-					memcpy(animation->scale_channels.data(), hro_animation.scale_channels.data(), hro_animation.scale_channels.size() * sizeof(hro_animation.scale_channels[0]));
-				}
+				ResourceManager::Instance().Load<Animation>(path);
 			}
 
 			// Clean up
-			delete data;
+			YFree(data);
 			return model;
 		}
 		else

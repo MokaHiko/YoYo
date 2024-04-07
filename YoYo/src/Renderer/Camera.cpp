@@ -35,7 +35,7 @@ namespace yoyo
 		case(CameraType::Perspective):
 		{
 			m_proj = PerspectiveProjectionMat4x4(DegToRad(m_fov), m_aspect_ratio, m_near, m_far);
-			m_proj[5] *= -1; // Reconfigure y values as positive for vulkan
+			m_proj[5] *= 1; // Reconfigure y values as positive for vulkan
 		}break;
 		case(CameraType::Orthographic):
 		{
@@ -45,7 +45,7 @@ namespace yoyo
 			float half_width = static_cast<float>(width) / 2.0f;
 			float half_height = static_cast<float>(height) / 2.0f;
 			m_proj = OrthographicProjectionMat4x4(-half_width, half_width, -half_height, half_height, -1000, 1000);
-			m_proj[5] *= -1.0f;
+			m_proj[5] *= 1.0f;
 		}break;
 		default:
 			break;

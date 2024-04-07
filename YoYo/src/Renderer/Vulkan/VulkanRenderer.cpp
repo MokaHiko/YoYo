@@ -175,8 +175,21 @@ namespace yoyo
     Ref<Shader> skinned_lit_debug_shader = Shader::Create("skinned_lit_debug_shader");
     skinned_lit_debug_shader->shader_passes[MeshPassType::Forward] = skinned_lit_debug_shader_pass;
     skinned_lit_debug_shader->shader_passes[MeshPassType::Shadow] = offscreen_skinned_shadow_pass;
-#endif
 
+    Ref<VulkanShaderEffect> unlit_collider_debug_effect = CreateRef<VulkanShaderEffect>();
+    unlit_collider_debug_effect->polygon_mode = VK_POLYGON_MODE_LINE;
+    {
+        Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_collider_debug_shader.vert.spv");
+        unlit_collider_debug_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+
+        Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_collider_debug_shader.frag.spv");
+        unlit_collider_debug_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+    }
+    auto unlit_collider_debug_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, unlit_collider_debug_effect);
+
+    Ref<Shader> unlit_collider_debug_shader = Shader::Create("unlit_collider_debug_shader");
+    unlit_collider_debug_shader->shader_passes[MeshPassType::Forward] = unlit_collider_debug_shader_pass;
+#endif
     }
 
     void VulkanRenderer::Shutdown()
@@ -258,8 +271,10 @@ namespace yoyo
             VulkanResourceManager::MapMemory(m_object_data_buffers[m_frame_count].allocation, (void**)&data);
             const size_t padded_object_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(ObjectData));
 
-            for (const Ref<MeshPassObject>& renderable : scene->forward_pass->renderables)
+            for (uint32_t i = 0; i < scene->GetForwardPassCount(); i++)
             {
+                const Ref<MeshPassObject>& renderable = scene->GetForwardPass()->renderables[i];
+
                 ObjectData obj_data = {};
                 obj_data.model_matrix = renderable->model_matrix;
 

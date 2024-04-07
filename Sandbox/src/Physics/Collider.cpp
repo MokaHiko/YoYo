@@ -26,7 +26,8 @@ namespace psx
 
 		RigidBodyComponent& rb = e.GetComponent<RigidBodyComponent>();
 		const yoyo::Vec3 extents = box_collider.GetHalfExtents();
-		m_world.AttachBoxShape(rb, extents);
+
+		m_world.AttachBoxShape(rb, extents, &box_collider.m_box);
 	}
 
 	void BoxColliderSystem::OnComponentDestroyed(Entity e, BoxColliderComponent& box_collider)

@@ -27,6 +27,10 @@ public:
     template <typename T>
     T& GetComponent();
 
+    // Tries to get component of type <T> as out
+    template <typename T>
+    bool TryGetComponent(T** out);
+
     const bool IsValid() const;
 
     // Returns entity handle

@@ -8,5 +8,9 @@ layout(location = 0) out vec4 frag_color;
 
 void main()
 {
-	frag_color = texture(input_texture, v_uv);
+	vec2 out_uv = v_uv;
+	out_uv.y = 1.0f - v_uv.y;
+	frag_color = texture(input_texture, out_uv);
+
+	//frag_color = texture(input_texture, v_uv);
 }

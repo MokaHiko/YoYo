@@ -72,7 +72,7 @@ vec4 CalculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 view_di
 
   vec3 reflect_dir = reflect(light_dir.xyz, normal);
 	float specular_factor = pow(max(dot(view_dir, reflect_dir), 0.5f), 32);
-  vec4 specular = specular_factor * light.color * texture(specular_texture, v_uv);
+  vec4 specular = specular_factor * light.color * texture(specular_texture, v_uv) * specular_color;
 
   return vec4(diffuse.xyz + specular.xyz, 1.0f);
 }

@@ -2,6 +2,7 @@
 Sandbox/assets/**/*.obj
 Sandbox/assets/**/*.png
 Sandbox/assets/**/*.fbx
+Sandbox/assets/**/*.dae
 
 #build
 [Bb]uild

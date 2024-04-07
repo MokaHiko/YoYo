@@ -79,7 +79,6 @@ namespace yoyo
     class Mesh : public IMesh, public Resource
     {
     public:
-        RESOURCE_TYPE(Mesh)
         virtual ~Mesh() = default;
 
         const virtual uint32_t GetIndexCount() const override final { return indices.size(); }
@@ -104,6 +103,7 @@ namespace yoyo
     class YAPI StaticMesh : public Mesh<yoyo::Vertex, uint32_t>
     {
     public:
+        RESOURCE_TYPE(StaticMesh)
         StaticMesh()
         {
             SetMeshType(MeshType::Static);
@@ -111,6 +111,8 @@ namespace yoyo
         virtual ~StaticMesh() = default;
 
         static Ref<StaticMesh> Create(const std::string& name = "");
+        static Ref<StaticMesh> LoadFromAsset(const char* asset_path, const std::string& name = "");
+
         virtual uint64_t Hash() const override;
     };
 }

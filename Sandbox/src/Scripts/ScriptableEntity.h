@@ -6,8 +6,16 @@
 
 #include "Physics/PhysicsEvents.h"
 
+namespace psx
+{
+    class PhysicsWorld;
+    struct Collision;
+    struct RaycastHit;
+}
+
+class Process;
+
 // Scriptable Entity is the base class that many script components 
-struct psx::Collision;
 class ScriptableEntity
 {
 public:
@@ -41,8 +49,14 @@ public:
     Entity Instantiate(const std::string& name = "", const yoyo::Vec3& position = {});
     Entity Instantiate(const std::string& name, const yoyo::Mat4x4& transform);
 
+    // Queus an entity for destruction
+    void DestroyObject(Entity e);
+
     // Queues attached entity for destruction
     void QueueDestroy();
+
+    // Destroys attached entity
+    void Destroy();
 
     // Returns if current script is active
     bool IsActive() const { return m_active; }
@@ -51,14 +65,38 @@ public:
     void ToggleActive(bool active) { m_active = active; }
 
     template <typename T>
-    Entity FindEntityWithComponent() {return m_entity.m_scene->FindEntityWithComponent<T>();}
+    Entity FindEntityWithComponent() { return m_entity.m_scene->FindEntityWithComponent<T>(); }
+
+    template <typename T>
+    T* FindComponentInChildren()
+    {
+        YASSERT(HasComponent<TransformComponent>(), "All entities must have a transform!");
+
+        TransformComponent& transform = GetComponent<TransformComponent>();
+        for (int i = 0; i < GetComponent<TransformComponent>().children_count; i++)
+        {
+            if (transform.children[i].HasComponent<T>())
+            {
+                return &transform.children[i].GetComponent<T>();
+            }
+        }
+
+        return nullptr;
+    }
 
     bool started = false;
+public:
+    // Scene Queries
+    bool Raycast(const yoyo::Vec3& origin, const yoyo::Vec3& dir, float max_distance, psx::RaycastHit& out);
 protected:
-    class Process;
-    //void StartProcess(Ref<Process> process);
+    void StartProcess(Ref<Process> process);
 private:
+    friend class ScriptingSystem;
     bool m_active = false;
     bool m_to_destroy = false;
+
     Entity m_entity = {};
+    ScriptingSystem* m_scripting_system = nullptr;
+    psx::PhysicsWorld* m_physics_world = nullptr;
 };
+

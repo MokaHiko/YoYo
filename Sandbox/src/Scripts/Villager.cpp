@@ -2,10 +2,15 @@
 
 #include <Math/Quaternion.h>
 #include <Input/Input.h>
+#include <Renderer/Animation.h>
+
+#include <ECS/Components/RenderableComponents.h>
+#include "Process.h"
 
 #include "CameraController.h"
 
-#include "ECS/Components/RenderableComponents.h"
+#include "Unit.h"
+#include "UnitController.h"
 
 VillagerComponent::VillagerComponent(Entity e)
 	:ScriptableEntity(e) {}
@@ -16,12 +21,11 @@ void VillagerComponent::OnCreate() {}
 
 void VillagerComponent::OnStart() 
 {
-	FindEntityWithComponent<CameraControllerComponent>().GetComponent<CameraControllerComponent>().follow = GameObject();
+	FindEntityWithComponent<CameraControllerComponent>().GetComponent<CameraControllerComponent>().follow_target = GameObject();
 }
 
 void VillagerComponent::OnUpdate(float dt) 
 {
-	float ms = 25.0f;
 	auto& transform = GetComponent<TransformComponent>();
 
 	// Combat
@@ -30,41 +34,46 @@ void VillagerComponent::OnUpdate(float dt)
 	{
 		if (m_time > (1.0f / attack_speed))
 		{
-			BasicAttack();
+			GetComponent<UnitController>().BasicAttack();
 			m_time = 0.0f;
 		}
 	}
 
+	if(yoyo::Input::GetMouseButton(3))
+	{
+		if (m_time > (1.0f / attack_speed))
+		{
+			GetComponent<UnitController>().AltAttack();
+			m_time = 0.0f;
+		}
+	}
+
+	// Movement
+	yoyo::Vec3 input = {0.0f, 0.0f, 0.0f};
 	if(yoyo::Input::GetKey(yoyo::KeyCode::Key_w))
 	{
-		GetComponent<psx::RigidBodyComponent>().AddForce(transform.Forward() * ms *  dt, psx::ForceMode::Impulse);
+		input += yoyo::Vec3{0.0f, 0.0f, 1.0f};
 	}
 
 	if(yoyo::Input::GetKey(yoyo::KeyCode::Key_s))
 	{
-		GetComponent<psx::RigidBodyComponent>().AddForce(transform.Forward() * ms *  dt * -1, psx::ForceMode::Impulse);
+		input += yoyo::Vec3{0.0f, 0.0f, -1.0f};
 	}
 
 	if(yoyo::Input::GetKey(yoyo::KeyCode::Key_d))
 	{
-		GetComponent<psx::RigidBodyComponent>().AddForce(yoyo::Vec3{ms, 0.0f, 0} * dt, psx::ForceMode::Impulse);
+		input += yoyo::Vec3{-1, 0.0f, 0};
 	}
 
 	if(yoyo::Input::GetKey(yoyo::KeyCode::Key_a))
 	{
-		GetComponent<psx::RigidBodyComponent>().AddForce(yoyo::Vec3{-ms, 0.0f, 0} * dt, psx::ForceMode::Impulse);
+		input += yoyo::Vec3{1, 0.0f, 0};
+	}
+
+	if(Length(input) > 0)
+	{
+		GetComponent<UnitController>().TravelTo(transform.position + Normalize(input));
 	}
 }
 
-void VillagerComponent::BasicAttack()
-{
-	const auto& transfrom = GetComponent <TransformComponent>();
 
-	float bullet_speed = 100.0f;
-	Entity bullet = Instantiate("bullet", transfrom.position + transfrom.Forward() * 2.0f);
-	MeshRendererComponent& mesh_renderer = bullet.AddComponent<MeshRendererComponent>("cubeCube", "default_instanced_material");
-
-	psx::RigidBodyComponent& rb = bullet.AddComponent<psx::RigidBodyComponent>();
-	psx::BoxColliderComponent& col = bullet.AddComponent<psx::BoxColliderComponent>();
-	rb.AddForce(transfrom.Forward() * bullet_speed, psx::ForceMode::Impulse);
-}

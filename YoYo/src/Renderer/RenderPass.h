@@ -56,6 +56,7 @@ namespace yoyo
     {
     public:
         std::vector<Ref<MeshPassObject>> renderables;
+
         MeshPassType type;
         uint32_t renderpass_id;  // TODO: use as index in render passes array
     };

@@ -414,13 +414,16 @@ namespace yoyo
             m_scene->directional_lights.push_back(light);
         }
 
+        // Add new objects
+        static bool build_batches = false;
+
         // Remove deleted objects
         for (auto id : packet->deleted_objects)
         {
+            m_scene->RemoveMeshPassObject(id);
+            build_batches = true;
         }
 
-        // Add new objects
-        static bool build_batches = false;
         for (auto& obj : packet->new_objects)
         {
             build_batches = true;
@@ -429,7 +432,7 @@ namespace yoyo
 
         if(build_batches)
         {
-            m_scene->BuildFlatBatches(m_scene->forward_pass->renderables);
+            m_scene->BuildFlatBatches();
             build_batches = false;
         }
     }
@@ -466,7 +469,7 @@ namespace yoyo
     void RendererLayer::OnEnable()
     {
         m_renderer->Init();
-        m_scene = CreateRef<RenderScene>();
+        m_scene = CreateRef<RenderScene>(MAX_OBJECTS);
     }
 
     void RendererLayer::OnDisable()
@@ -505,8 +508,8 @@ namespace yoyo
 		ImGui::Begin("Renderer");
 
 		ImGui::Text("Frame time: %.6f", m_dt);
-		ImGui::Text("Shadow renderables: %d", m_scene->shadow_pass->renderables.size());
-		ImGui::Text("Forward renderables: %d", m_scene->forward_pass->renderables.size());
+		ImGui::Text("Shadow renderables: %d", m_scene->GetShadowPassCount());
+		ImGui::Text("Forward renderables: %d", m_scene->GetForwardPassCount());
 		ImGui::Text("Blit pass renderables: %d", 1);
 
 		ImGui::Text("Draw calls: %d", m_renderer->Profile().draw_calls);

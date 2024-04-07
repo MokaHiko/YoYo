@@ -65,7 +65,7 @@ namespace yoyo
         double dt;
     };
 
-    const int MAX_OBJECTS = 1000;
+    const uint32_t MAX_OBJECTS = 1000;
     const int MAX_DIR_LIGHTS = 2;
     const int MAX_POINT_LIGHTS = 100;
     

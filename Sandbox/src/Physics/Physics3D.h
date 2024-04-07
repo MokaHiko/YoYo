@@ -37,8 +37,10 @@ namespace psx
         virtual void OnComponentDestroyed(Entity e, RigidBodyComponent& rb) override;
     public:
         // Actor functions
-        void AttachBoxShape(RigidBodyComponent& rb, const yoyo::Vec3& extents, PhysicsMaterial* material = nullptr);
-        //void DetatchShape(RigidBodyComponent& rb, const Collider& collider);
+        void AttachBoxShape(RigidBodyComponent& rb, const yoyo::Vec3& extents, physx::PxBoxGeometry** box_shape, PhysicsMaterial* material = nullptr);
+
+        // Casts a ray, from point origin, in direction direction, of length maxDistance, against all colliders in the Scene.
+        bool Raycast(const yoyo::Vec3& origin, const yoyo::Vec3& dir, float max_distance, RaycastHit& out);
     private:
         physx::PxRigidDynamic* CreateDynamic(const physx::PxTransform& t, const physx::PxGeometry& geometry, const physx::PxVec3& velocity = physx::PxVec3(0));
         void CreateStack(const physx::PxTransform& t, physx::PxU32 size, physx::PxReal halfExtent);

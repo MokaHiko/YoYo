@@ -39,8 +39,9 @@ namespace yoyo
     };
 
     // A hierarchy of joints
-    struct YAPI SkeletalHierarchy : public Resource
+    class YAPI SkeletalHierarchy : public Resource
     {
+    public:
         RESOURCE_TYPE(SkeletalHierarchy);
         static Ref<SkeletalHierarchy> Create(const std::string& name = "");
         static Ref<SkeletalHierarchy> LoadFromAsset(const char* asset_path, const std::string& name = "");
@@ -55,6 +56,8 @@ namespace yoyo
     class YAPI SkinnedMesh : public Mesh<yoyo::SkinnedVertex, uint32_t>
     {
     public:
+        RESOURCE_TYPE(SkinnedMesh)
+
         SkinnedMesh()
         {
             SetMeshType(MeshType::Skinned);

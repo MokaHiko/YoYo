@@ -26,6 +26,9 @@ add_executable(${PROJECT_NAME}
 	src/Scripts/NativeScript.h
 	src/Scripts/NativeScript.cpp
 
+	src/Scripts/Process.h
+	src/Scripts/Process.cpp
+
 	src/SceneGraph/SceneGraph.h
 	src/SceneGraph/SceneGraph.cpp
 
@@ -44,14 +47,25 @@ add_executable(${PROJECT_NAME}
 	src/Scripts/CameraController.h
 	src/Scripts/CameraController.cpp
 
-	src/Scripts/DemoModel.h
-	src/Scripts/DemoModel.cpp
-
 	src/Scripts/Destructable.h
 	src/Scripts/Destructable.cpp
 
 	src/Scripts/Sun.h
 	src/Scripts/Sun.cpp
+
+	src/Scripts/Unit.h
+	src/Scripts/Unit.cpp
+	src/Scripts/UnitController.h
+	src/Scripts/UnitController.cpp
+
+	src/Scripts/Enemy.h
+	src/Scripts/Enemy.cpp
+
+	src/Scripts/Projectile.h
+	src/Scripts/Projectile.cpp
+
+	src/Scripts/Turret.h
+	src/Scripts/Turret.cpp
 
 	src/Scripts/VillageManager.h
 	src/Scripts/VillageManager.cpp

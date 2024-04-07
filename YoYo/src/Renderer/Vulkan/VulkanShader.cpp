@@ -26,8 +26,8 @@ namespace yoyo
 		for (uint32_t i = 0; i < r_descriptor_sets.size(); i++)
 		{
 			const SpvReflectDescriptorSet& r_descriptor_set = *r_descriptor_sets[i];
-			YINFO("\tDescriptor Set %d:", r_descriptor_set.set);
 
+			//YINFO("\tDescriptor Set %d:", r_descriptor_set.set);
 			// Check if descriptor set already exists
 			auto it = std::find_if(set_infos.begin(), set_infos.end(), [&](const VulkanDescriptorSetInformation& ds) {return ds.index == r_descriptor_set.set;});
 			if (it != set_infos.end())
@@ -43,7 +43,7 @@ namespace yoyo
 					it->AddBinding(r_descriptor_binding.binding, stage, binding);
 					
 					const char* binding_name = *r_descriptor_binding.name != 0? r_descriptor_binding.name : r_descriptor_binding.type_description->type_name;
-					YINFO("\t\tbinding %d: %s | type: %d", r_descriptor_binding.binding, binding_name, r_descriptor_binding.descriptor_type);
+					//YINFO("\t\tbinding %d: %s | type: %d", r_descriptor_binding.binding, binding_name, r_descriptor_binding.descriptor_type);
 				};
 			}
 			else
@@ -106,7 +106,7 @@ namespace yoyo
 
 							default:
 							{
-								YINFO("\t\t\t Binding Type Uknown");
+								//YINFO("\t\t\t Binding Type Uknown");
 							}break;
 						}
 
@@ -115,7 +115,7 @@ namespace yoyo
 
 					descriptor_set.AddBinding(r_descriptor_binding.binding, stage, binding);
 					const char* binding_name = *r_descriptor_binding.name != 0? r_descriptor_binding.name : r_descriptor_binding.type_description->type_name;
-					YINFO("\t\tbinding %d: %s | type: %d", r_descriptor_binding.binding, binding_name, r_descriptor_binding.descriptor_type);
+					//YINFO("\t\tbinding %d: %s | type: %d", r_descriptor_binding.binding, binding_name, r_descriptor_binding.descriptor_type);
 				};
 
 				set_infos.push_back(descriptor_set);
@@ -148,7 +148,7 @@ namespace yoyo
 		shader_stage.module = shader_module;
 
 		// Inputs Variables
-		YINFO("\tInputs :");
+		//YINFO("\tInputs :");
 		{
 			uint32_t var_count = 0;
 			result = spvReflectEnumerateInputVariables(&module, &var_count, NULL);
@@ -173,10 +173,10 @@ namespace yoyo
 				input.location = input_var->location;
 				shader_stage.inputs[input_var->location] = input;
 
-				YINFO("\t\t%s: ", input_var->name);
-				YINFO("\t\t\tlocation: %d ", input_var->location);
-				YINFO("\t\t\tformat: %d ", input_var->format);
-				YINFO("\t\t\toffset: %u ", input_var->word_offset.location);
+				// YINFO("\t\t%s: ", input_var->name);
+				// YINFO("\t\t\tlocation: %d ", input_var->location);
+				// YINFO("\t\t\tformat: %d ", input_var->format);
+				// YINFO("\t\t\toffset: %u ", input_var->word_offset.location);
 			}
 			shader_stage.inputs.shrink_to_fit();
 
@@ -188,7 +188,7 @@ namespace yoyo
 		for (uint32_t i = 0; i < r_descriptor_sets.size(); i++)
 		{
 			const SpvReflectDescriptorSet& r_descriptor_set = *r_descriptor_sets[i];
-			YINFO("\tDescriptor Set %d:", r_descriptor_set.set);
+			//YINFO("\tDescriptor Set %d:", r_descriptor_set.set);
 
 			// Check if descriptor set already exists
 			auto it = std::find_if(effect.set_infos.begin(), effect.set_infos.end(), [&](const VulkanDescriptorSetInformation& ds) {return ds.index == r_descriptor_set.set;});
@@ -205,7 +205,7 @@ namespace yoyo
 					it->AddBinding(r_descriptor_binding.binding, stage, binding);
 
 					const char* binding_name = *r_descriptor_binding.name != 0 ? r_descriptor_binding.name : r_descriptor_binding.type_description->type_name;
-					YINFO("\t\tbinding %d: %s | type: %d", r_descriptor_binding.binding, binding_name, r_descriptor_binding.descriptor_type);
+					//YINFO("\t\tbinding %d: %s | type: %d", r_descriptor_binding.binding, binding_name, r_descriptor_binding.descriptor_type);
 				};
 			}
 			else
@@ -269,7 +269,7 @@ namespace yoyo
 
 						default:
 						{
-							YINFO("\t\t\t Binding Type Uknown");
+							//YINFO("\t\t\t Binding Type Uknown");
 						}break;
 						}
 
@@ -278,7 +278,7 @@ namespace yoyo
 
 					descriptor_set.AddBinding(r_descriptor_binding.binding, stage, binding);
 					const char* binding_name = *r_descriptor_binding.name != 0 ? r_descriptor_binding.name : r_descriptor_binding.type_description->type_name;
-					YINFO("\t\tbinding %d: %s | type: %d", r_descriptor_binding.binding, binding_name, r_descriptor_binding.descriptor_type);
+					//YINFO("\t\tbinding %d: %s | type: %d", r_descriptor_binding.binding, binding_name, r_descriptor_binding.descriptor_type);
 				};
 
 				effect.set_infos.push_back(descriptor_set);
@@ -308,7 +308,7 @@ namespace yoyo
 
 	void VulkanShaderEffect::PushShader(Ref<VulkanShaderModule> shader_module, VkShaderStageFlagBits stage)
 	{
-		YINFO("%s:", shader_module->source_path.c_str());
+		//YINFO("%s:", shader_module->source_path.c_str());
 
 		ParseSpirVStage(shader_module, *this, stage);
 	}

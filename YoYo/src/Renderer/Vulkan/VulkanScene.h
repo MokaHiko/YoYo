@@ -8,7 +8,7 @@ namespace yoyo
     class VulkanRenderScene : public RenderScene
     {
     public:
-        VulkanRenderScene();
+        VulkanRenderScene(uint32_t max_objects);
         virtual ~VulkanRenderScene();
     private:
         std::vector<VkDrawIndexedIndirectCommand> m_draw_indirects;

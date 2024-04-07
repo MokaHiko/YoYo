@@ -41,7 +41,7 @@ namespace yoyo
         EventManager::Instance().Subscribe(MaterialCreatedEvent::s_event_type, [&](Ref<Event> event) {
             auto material_created_event = std::static_pointer_cast<MaterialCreatedEvent>(event);
             return RegisterMaterial(std::static_pointer_cast<VulkanMaterial>(material_created_event->material));
-            });
+        });
     }
 
     void VulkanMaterialSystem::Shutdown() {}

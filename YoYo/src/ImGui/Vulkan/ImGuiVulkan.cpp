@@ -161,5 +161,5 @@ void ImGui::Image(Ref<yoyo::Texture> texture, const ImVec2& image_size)
 		ds = yoyo::s_image_dsets[hash];
 	}
 
-	ImGui::Image((ImTextureID)ds, image_size);
+	ImGui::Image((ImTextureID)ds, image_size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
 }

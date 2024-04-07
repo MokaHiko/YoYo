@@ -1,5 +1,7 @@
 #include "Animation.h"
 
+#include <Hurno.h>
+
 #include "Core/Assert.h"
 #include "Math/MatrixTransform.h"
 #include "Math/Quaternion.h"
@@ -23,7 +25,7 @@ namespace yoyo
 			return position;
 		}
 		
-		for (int i = 1; animation->position_channels.size(); i++)
+		for (int i = 1; i < animation->position_channels.size(); i++)
 		{
 			if(animation->position_channels[i].time > time_in_ticks && animation->position_channels[i].bone_index == index)
 			{
@@ -50,7 +52,7 @@ namespace yoyo
 			}
 		}
 
-		YASSERT(0);
+		return {0.0f, 0.0f, 0.0f};
 	}
 
 	const Quat GetInterpolatedRotation(const Ref<Animation>& animation, int index, float time_in_ticks)
@@ -62,7 +64,7 @@ namespace yoyo
 			return rotation;
 		}
 
-		for (int i = 1; animation->rotation_channels.size(); i++)
+		for (int i = 1; i < animation->rotation_channels.size(); i++)
 		{
 			if(animation->rotation_channels[i].time > time_in_ticks && animation->rotation_channels[i].bone_index == index)
 			{
@@ -91,7 +93,7 @@ namespace yoyo
 			}
 		}
 
-		YASSERT(0);
+		return {0.0f, 0.0f, 0.0f, 1.0f};
 	}
 
 	const Vec3 GetInterpolatedScale(const Ref<Animation>& animation, int index, float time_in_ticks)
@@ -104,7 +106,7 @@ namespace yoyo
 			return scale;
 		}
 
-		for (int i = 1; animation->scale_channels.size(); i++)
+		for (int i = 1; i < animation->scale_channels.size(); i++)
 		{
 			if(animation->scale_channels[i].time > time_in_ticks && animation->scale_channels[i].bone_index == index)
 			{
@@ -131,7 +133,7 @@ namespace yoyo
 			}
 		}
 
-		YASSERT(0);
+		return {1.0f, 1.0f, 1.0f};
 	}
 
 	Ref<Animation> Animation::Create(const std::string& name)
@@ -146,8 +148,7 @@ namespace yoyo
 	template<>
 	YAPI Ref<Animation> ResourceManager::Load<Animation>(const std::string& path)
 	{
-		//const std::string name = FileNameFromFullPath(path);
-		const std::string name = path;
+		const std::string name = FileNameFromFullPath(path);
 
 		auto& animation_cache = Cache<Animation>();
 		auto animation_it = std::find_if(animation_cache.begin(), animation_cache.end(), [&](const auto& it) {
@@ -159,23 +160,69 @@ namespace yoyo
 			return animation_it->second;
 		}
 
-		// TODO: Load from asset file
 		YWARN("[Cache Miss][Animation]: %s", name.c_str());
+		Ref<Animation> animation = Animation::LoadFromAsset(path.c_str(), name);
+
+		if (!animation)
+		{
+			return nullptr;
+		}
+
+		animation_cache[animation->Id()] = animation;
+
+		return animation;
+	}
+
+	Ref<Animation> Animation::LoadFromAsset(const char* asset_path, const std::string& name)
+	{
+		hro::Animation hro_animation = {};
+		if (hro_animation.Load(asset_path))
+		{
+			hro_animation.Unpack(nullptr, nullptr);
+
+			// Copy animation data
+			const std::string asset_name = name.empty() ? hro_animation.name : name;
+			Ref<Animation> animation = Animation::Create(asset_name);
+			animation->ticks = hro_animation.ticks;
+			animation->ticks_per_second = hro_animation.ticks_per_second;
+
+			animation->position_channels.resize(hro_animation.position_channels.size());
+			memcpy(animation->position_channels.data(), hro_animation.position_channels.data(), hro_animation.position_channels.size() * sizeof(hro_animation.position_channels[0]));
+
+			animation->rotation_channels.resize(hro_animation.rotation_channels.size());
+			memcpy(animation->rotation_channels.data(), hro_animation.rotation_channels.data(), hro_animation.rotation_channels.size() * sizeof(hro_animation.rotation_channels[0]));
+
+			animation->scale_channels.resize(hro_animation.scale_channels.size());
+			memcpy(animation->scale_channels.data(), hro_animation.scale_channels.data(), hro_animation.scale_channels.size() * sizeof(hro_animation.scale_channels[0]));
+
+			return animation;
+		}
 
 		return nullptr;
 	}
 
 	void Animator::Play(uint32_t animation_index)
 	{
-		YASSERT(animation_index < animations.size(), "Uknown animation index!");
-		m_current_animation;
+		if (animation_index >= animations.size())
+		{
+			YERROR("Uknown animation index!");
+			return;
+		}
+
+		m_current_animation = animation_index;
 	}
 
 	void Animator::Update(float dt)
 	{
 		if (!skinned_mesh)
 		{
-			YWARN("Animation playing without skinned mesh attached!");
+			YWARN("Animation cannot play without skinned mesh attached!");
+			return;
+		}
+
+		if (!skinned_mesh->skeletal_hierarchy)
+		{
+			YWARN("Animation cannot play without skeletal hierarchy!");
 			return;
 		}
 
@@ -186,7 +233,13 @@ namespace yoyo
 
 		YASSERT(m_current_animation < animations.size(), "Uknown animation index!");
 
-		const Ref<Animation>& animation = animations[m_current_animation];
+		Ref<Animation> animation = animations[m_current_animation];
+		if(!animation)
+		{
+			YWARN("Animation selected is null reference!");
+			return;
+		}
+
 		float time_in_ticks = m_time_elapsed * animation->ticks_per_second;
 
 		Mat4x4 identity = {};
@@ -196,6 +249,9 @@ namespace yoyo
 		if (m_time_elapsed > animation->Duration())
 		{
 			m_time_elapsed = 0.0f;
+
+			// Check if go next
+			// m_current_animation = (m_current_animation + 1) % animations.size();
 		}
 	}
 
@@ -207,7 +263,7 @@ namespace yoyo
 	{
 		Mat4x4 node_transform = node->transform;
 
-		static const Ref<Animation>& animation = animations[m_current_animation];
+		const Ref<Animation>& animation = animations[m_current_animation];
 
 		// check if node is animated (i.e has joint index)
 		if (node->joint_index >= 0)

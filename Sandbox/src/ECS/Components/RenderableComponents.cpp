@@ -12,7 +12,7 @@ MeshRendererComponent::MeshRendererComponent(const std::string& mesh_name, const
 
 MeshRendererComponent::MeshRendererComponent()
 {
-	mesh = yoyo::ResourceManager::Instance().Load<yoyo::StaticMesh>("cubeCube");
+	mesh = yoyo::ResourceManager::Instance().Load<yoyo::StaticMesh>("Cube");
 	material = yoyo::ResourceManager::Instance().Load<yoyo::Material>("default_material");
 }
 

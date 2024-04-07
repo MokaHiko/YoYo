@@ -14,19 +14,21 @@ namespace yoyo
 	{
 		const std::string name = FileNameFromFullPath(path);
 
-		auto& mesh_cache = Cache<SkeletalHierarchy>();
-		auto mesh_it = std::find_if(mesh_cache.begin(), mesh_cache.end(), [&](const auto& it) {
+		auto& sk_cache = Cache<SkeletalHierarchy>();
+		auto sk_it = std::find_if(sk_cache.begin(), sk_cache.end(), [&](const auto& it) {
 			return it.second->name == name;
 			});
 
-		if (mesh_it != mesh_cache.end())
+		if (sk_it != sk_cache.end())
 		{
-			return mesh_it->second;
+			return sk_it->second;
 		}
 
 		YWARN("[Cache Miss][SkeletalHierarchy]: %s", name.c_str());
 
-		return SkeletalHierarchy::LoadFromAsset(path.c_str(), name);
+		Ref<SkeletalHierarchy> sk_hierarchy = SkeletalHierarchy::LoadFromAsset(path.c_str(), name);
+		sk_cache[sk_hierarchy->Id()] = sk_hierarchy;
+		return sk_hierarchy;
 	}
 
 	template<>
@@ -99,19 +101,23 @@ namespace yoyo
 	{
 		hro::SkeletalMesh sk_mesh = {};
 		hro::AssetInfo sk_info = {};
-		sk_mesh.Load("assets/skeletal_meshes/test.yskmesh");
+		if(sk_mesh.Load(asset_path))
+		{
+			sk_mesh.ParseInfo(&sk_info);
+			sk_mesh.Unpack(&sk_info, nullptr);
 
-		sk_mesh.ParseInfo(&sk_info);
-		sk_mesh.Unpack(&sk_info, nullptr);
+			hro::Node* hro_node = sk_mesh.Root();
 
-		hro::Node* hro_node = sk_mesh.Root();
+			// Create and copy skeletal hierarchy
+            const std::string sk_mesh_name = name.empty() ? FileNameFromFullPath(asset_path) : name;
+			Ref<SkeletalHierarchy> sk_hierarchy = SkeletalHierarchy::Create(sk_mesh_name);
+			SkeletalNode* node = sk_hierarchy->root = YNEW SkeletalNode;
+			CopyHroHierarchy(hro_node, node, &sk_mesh);
 
-		// Copy skeletal hierarchy
-		Ref<SkeletalHierarchy> sk_hierarchy = SkeletalHierarchy::Create(name);
-		SkeletalNode* node = sk_hierarchy->root = YNEW SkeletalNode;
-		CopyHroHierarchy(hro_node, node, &sk_mesh);
+			return sk_hierarchy;
+		}
 
-		return sk_hierarchy;
+		return nullptr;
 	}
 
     void SkeletalHierarchy::Traverse(std::function<void(const SkeletalNode*)> fn) const

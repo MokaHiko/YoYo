@@ -50,6 +50,11 @@ struct NewMeshComponent
     float time_stamp;
 };
 
+struct DestroyedMeshComponent
+{
+    float time_stamp;
+};
+
 struct ModelRendererComponent
 {
 
@@ -62,4 +67,9 @@ struct AnimatorComponent
     ~AnimatorComponent() = default;
 
     Ref<yoyo::Animator> animator;
+};
+
+struct DebugColliderRendererComponent
+{
+    Ref<yoyo::MeshPassObject> mesh_object;
 };

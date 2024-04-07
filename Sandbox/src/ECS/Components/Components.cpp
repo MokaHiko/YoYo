@@ -95,7 +95,7 @@ void TransformComponent::UpdateModelMatrix()
 
 yoyo::Mat4x4 TransformComponent::LocalModelMatrix() {
     m_local_scale_matrix = yoyo::ScaleMat4x4(scale);
-    m_local_rotation_matrix = yoyo::QuatToMat4x4(quat_rotation);
+    m_local_rotation_matrix = yoyo::TransposeMat4x4(yoyo::QuatToMat4x4(quat_rotation));
     m_local_translation_matrix = yoyo::TranslationMat4x4(position);
 
     m_forward = yoyo::Normalize(m_local_rotation_matrix * yoyo::Vec3{0.0f, 0.0f, 1.0f});

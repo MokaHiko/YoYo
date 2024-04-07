@@ -55,9 +55,15 @@ layout(std140, set = 1, binding = 0) readonly buffer BonesData{
  
 void main()
 {
+  mat4 bone_transform = bones[bone_ids[0]].model_matrix * bone_weights[0];
+  bone_transform += bones[bone_ids[1]].model_matrix * bone_weights[1];
+  bone_transform += bones[bone_ids[2]].model_matrix * bone_weights[2];
+  bone_transform += bones[bone_ids[3]].model_matrix * bone_weights[3];
+
 	mat4 model_matrix = objects[gl_BaseInstance].model_matrix;
 
-	v_position_world_space = vec3(model_matrix * vec4(position, 1.0f)); 
+  vec4 rigged_position = bone_transform * vec4(position, 1.0f);
+	v_position_world_space = vec3(model_matrix * rigged_position); 
 	v_color = color;
 
 	v_uv = uv;

@@ -34,10 +34,10 @@ void SceneGraph::OnComponentDestroyed(Entity e, TransformComponent& transform)
 		transform.parent.GetComponent<TransformComponent>().RemoveChild(e);
 	}
 
-	// Destroy children
+	// Destroy children immediately
 	for (uint32_t i = 0; i < transform.children_count; i++)
 	{
-		GetScene()->QueueDestroy(transform.children[i]);
+		GetScene()->Destroy(transform.children[i]);
 	}
 }
 
@@ -53,21 +53,4 @@ void SceneGraph::RecursiveUpdate(TransformComponent& node)
 
 		RecursiveUpdate(transform);
 	}
-}
-
-void OnModelRendererCreated(entt::basic_registry<entt::entity>&, entt::entity entity)
-{
-	// Entity model_entity(entity, m_scene);
-	// Transform& model_transform = model_entity.GetComponent<Transform>();
-
-	// Ref<Model> model = model_entity.GetComponent<ModelRenderer>().model;
-
-	// for (auto& model_mesh : model->_meshes)
-	// {
-	// 	bool serialize = false;
-	// 	Entity e = m_scene->Instantiate(model_mesh.mesh->_mesh_name, {}, &serialize);
-
-	// 	auto& mesh_renderer = e.AddComponent<MeshRenderer>(model_mesh.mesh, model->_materials[model_mesh.material_index]);
-	// 	model_transform.AddChild(e);
-	// }
 }

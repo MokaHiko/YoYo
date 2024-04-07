@@ -42,7 +42,7 @@ void GameLayer::OnAttach()
     // Init systems
     m_scene_graph = CreateRef<SceneGraph>(m_scene);
     m_physics_world = CreateRef<psx::PhysicsWorld>(m_scene);
-    m_scripting = CreateRef<ScriptingSystem>(m_scene);
+    m_scripting = CreateRef<ScriptingSystem>(m_scene, m_physics_world.get());
 
     // Init render packet
     m_rp = YNEW yoyo::RenderPacket;
@@ -96,37 +96,74 @@ void GameLayer::OnEnable()
     Ref<yoyo::Model> cube_model = yoyo::ResourceManager::Instance().Load<yoyo::Model>("assets/models/cube.yo");
 
     // Universal game material
-    { 
-		Ref<yoyo::Material> people_material = yoyo::Material::Create(default_lit_instanced, "people_material");
-		people_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/people_texture_map.yo"));
-		people_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-		people_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
-		people_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
+    {
+        Ref<yoyo::Material> people_material = yoyo::Material::Create(default_lit_instanced, "people_material");
+        people_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/people_texture_map.yo"));
+        people_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+        people_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+        people_material->SetVec4("specular_color", yoyo::Vec4{ 1.0, 1.0f, 1.0f, 1.0f });
 
-		Ref<yoyo::Material> colormap_material = yoyo::Material::Create(default_lit_instanced, "colormap_material");
-		colormap_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/colormap.yo"));
-		colormap_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-		colormap_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
-		colormap_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
+        Ref<yoyo::Material> colormap_material = yoyo::Material::Create(default_lit_instanced, "colormap_material");
+        colormap_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/colormap.yo"));
+        colormap_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+        colormap_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+        colormap_material->SetVec4("specular_color", yoyo::Vec4{ 1.0, 1.0f, 1.0f, 1.0f });
+
+        Ref<yoyo::Material> grenade_instanced_material = yoyo::Material::Create(default_lit_instanced, "grenade_instanced_material");
+        Ref<yoyo::Texture> grenade_instanced_texture = yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/prototype_512x512_white.yo");
+        grenade_instanced_material->SetTexture(yoyo::MaterialTextureType::MainTexture, grenade_instanced_texture);
+        grenade_instanced_material->SetVec4("diffuse_color", yoyo::Vec4{ 0.0f, 1.0f, 0.0f, 1.0f });
+        grenade_instanced_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
+        grenade_instanced_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
     }
 
     // Animated Universal
     {
-		Ref<yoyo::Material> colormap_material = yoyo::Material::Create(skinned_lit, "skinned_colormap_material");
-		colormap_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/colormap.yo"));
-		colormap_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-		colormap_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
-        colormap_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
+        Ref<yoyo::Material> skinned_default_material = yoyo::Material::Create(skinned_lit, "skinned_default_material");
+        skinned_default_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/prototype_512x512_white.yo"));
+        skinned_default_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+        skinned_default_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+        skinned_default_material->SetVec4("specular_color", yoyo::Vec4{ 1.0, 1.0f, 1.0f, 1.0f });
 
-        Ref<yoyo::Shader> skinned_lit_debug = yoyo::ResourceManager::Instance().Load<yoyo::Shader>("skinned_lit_debug_shader");
-		Ref<yoyo::Material> color_map_skinned_material = yoyo::Material::Create(skinned_lit_debug, "skinned_colormap_debug_material");
-		color_map_skinned_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/colormap.yo"));
-		color_map_skinned_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-		color_map_skinned_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
-        color_map_skinned_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
+        Ref<yoyo::Material> skinned_people_material = yoyo::Material::Create(skinned_lit, "skinned_people_material");
+        skinned_people_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/people_texture_map.yo"));
+        skinned_people_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+        skinned_people_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+        skinned_people_material->SetVec4("specular_color", yoyo::Vec4{ 0.0f, 0.0f, 0.0f, 0.0f });
 
-        uint32_t index = 0;
-        color_map_skinned_material->SetProperty("focused_bone_index", &index);
+#ifdef Y_DEBUG
+        {
+            Ref<yoyo::Shader> skinned_lit_debug = yoyo::ResourceManager::Instance().Load<yoyo::Shader>("skinned_lit_debug_shader");
+
+            Ref<yoyo::Material> color_map_skinned_material = yoyo::Material::Create(skinned_lit_debug, "skinned_colormap_debug_material");
+            color_map_skinned_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/colormap.yo"));
+            color_map_skinned_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+            color_map_skinned_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+            color_map_skinned_material->SetVec4("specular_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+
+            uint32_t index = 0;
+            color_map_skinned_material->SetProperty("focused_bone_index", &index);
+        }
+
+        {
+            Ref<yoyo::Shader> collider_debug = yoyo::ResourceManager::Instance().Load<yoyo::Shader>("unlit_collider_debug_shader");
+            Ref<yoyo::Material> collider_debug_material = yoyo::Material::Create(collider_debug, "collider_debug_material");
+
+            collider_debug_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/prototype_512x512_white.yo"));
+            collider_debug_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+            collider_debug_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+            collider_debug_material->SetVec4("specular_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+        }
+#endif
+    }
+
+    // Animated Mutant
+    {
+        Ref<yoyo::Material> skinned_mutant_material = yoyo::Material::Create(skinned_lit, "skinned_mutant_material");
+        skinned_mutant_material->SetTexture(yoyo::MaterialTextureType::MainTexture, yoyo::ResourceManager::Instance().Load<yoyo::Texture>("assets/textures/Mutant_diffuse.yo"));
+        skinned_mutant_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+        skinned_mutant_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+        skinned_mutant_material->SetVec4("specular_color", yoyo::Vec4{ 0.0, 0.0f, 0.0f, 0.0f });
     }
 
     // Lights
@@ -149,7 +186,7 @@ void GameLayer::OnEnable()
         dir_light->direction = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f } *-1.0f;
 
         auto& mesh_renderer = light.AddComponent<MeshRendererComponent>();
-        mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::StaticMesh>("cubeCube");
+        mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::StaticMesh>("Cube");
         mesh_renderer.material = light_material;
 
         light.AddComponent<SunComponent>(light);
@@ -157,7 +194,7 @@ void GameLayer::OnEnable()
 
     // Set up scene
     auto camera = m_scene->Instantiate("camera", { 0.0f, 50.0f, 50.0f });
-    camera.AddComponent<CameraComponent>().camera->SetType(yoyo::CameraType::Perspective);
+    camera.AddComponent<CameraComponent>().camera->SetType(yoyo::CameraType::Orthographic);
     camera.AddComponent<CameraControllerComponent>(camera);
 
     // Village Manager
@@ -180,9 +217,9 @@ void GameLayer::OnEnable()
         grid_material->SetTexture(yoyo::MaterialTextureType::MainTexture, grid_texture);
         grid_material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
         grid_material->SetVec4("diffuse_color", yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
-        grid_material->SetVec4("specular_color", yoyo::Vec4{ 0.25, 0.0f, 0.0f, 1.0f });
+        grid_material->SetVec4("specular_color", yoyo::Vec4{ 0.0, 0.0f, 0.0f, 0.0f });
 
-        Entity floors = m_scene->Instantiate("floors", {0.0f, 0.0f, 0.0f});
+        Entity floors = m_scene->Instantiate("floors", { 0.0f, 0.0f, 0.0f });
         TransformComponent& floor_transform = floors.GetComponent<TransformComponent>();
 
         float root = 5;
@@ -198,7 +235,7 @@ void GameLayer::OnEnable()
                 transform.quat_rotation = yoyo::QuatFromAxisAngle({ 1, 0, 0 }, yoyo::DegToRad(-90));
 
                 MeshRendererComponent& mesh_renderer = plane.AddComponent<MeshRendererComponent>();
-                mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::StaticMesh>("planePlane");
+                mesh_renderer.mesh = yoyo::ResourceManager::Instance().Load<yoyo::StaticMesh>("Plane");
                 mesh_renderer.material = grid_material;
 
                 floor_transform.AddChild(plane);
@@ -252,8 +289,6 @@ void GameLayer::OnUpdate(float dt)
         AnimatorComponent& animator = e.GetComponent<AnimatorComponent>();
         animator.animator->Update(dt);
     }
-
-
     // Scripting System
     {
         m_scripting->Update(dt);
@@ -283,8 +318,8 @@ void GameLayer::OnUpdate(float dt)
         // yoyo::Vec3 up = Normalize(Cross(right, front));
 
         const yoyo::ApplicationSettings& settings = m_app->Settings();
-        float width = 16 * 4.0f;
-        float height = 9 * 4.0f;
+        float width = 16 * 6.0f;
+        float height = 9 * 6.0f;
         float half_width = static_cast<float>(width);
         float half_height = static_cast<float>(height);
 
@@ -327,6 +362,19 @@ void GameLayer::OnUpdate(float dt)
             YASSERT(res, "Failed to remove new mesh component!");
         }
 
+        for (auto& id : m_scene->Registry().view<DestroyedMeshComponent, MeshRendererComponent>())
+        {
+            Entity e{ id, m_scene };
+
+            const MeshRendererComponent& mesh_renderer = e.GetComponent<MeshRendererComponent>();
+
+            // Update Render Packet
+            m_rp->deleted_objects.push_back(mesh_renderer.mesh_object->Id());
+
+            bool res = e.RemoveComponent<DestroyedMeshComponent>();
+            YASSERT(res, "Failed to remove destroy mesh component!");
+        }
+
         // Meshes
         for (auto& id : m_scene->Registry().view<NewMeshComponent, MeshRendererComponent>())
         {
@@ -357,14 +405,19 @@ void GameLayer::OnMeshRendererComponentCreated(entt::basic_registry<entt::entity
 {
     Entity e(entity, m_scene);
     e.GetComponent<MeshRendererComponent>().mesh_object = CreateRef<yoyo::MeshPassObject>();
-    e.AddComponent<NewMeshComponent>();
+    e.AddComponent<NewMeshComponent>().time_stamp;
 
     m_rebuild_packet = true;
 }
 
 void GameLayer::OnMeshRendererComponentDestroyed(entt::basic_registry<entt::entity>&, entt::entity entity)
 {
+    Entity e(entity, m_scene);
 
+    m_rp->Clear();
+    m_rp->deleted_objects.push_back(e.GetComponent<MeshRendererComponent>().mesh_object->Id());
+
+    m_renderer_layer->SendRenderPacket(m_rp);
 }
 
 void GameLayer::OnCameraComponentCreated(entt::basic_registry<entt::entity>&, entt::entity entity)

@@ -51,6 +51,16 @@ namespace yoyo
         Vec3& operator+=(const Vec3& other);
         Vec3& operator-=(const Vec3& other);
         Vec3& operator*=(const Vec3& other);
+
+        bool operator==(const Vec3& other) const
+        {
+            return x - other.x + y - other.y + z - other.z == 0.0f;
+        };
+
+        bool operator!=(const Vec3& other) const
+        {
+            return x - other.x + y - other.y + z - other.z != 0.0f;
+        };
     };
 
     union YAPI Vec4

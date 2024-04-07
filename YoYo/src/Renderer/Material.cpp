@@ -40,7 +40,7 @@ namespace yoyo
 	{ 
 		if(m_property_data != nullptr)
 		{
-			free(m_property_data);
+			YFree(m_property_data);
 		}
 	}
 
