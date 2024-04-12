@@ -60,11 +60,6 @@ namespace yoyo
         YERROR("No layer with such name");
     }
 
-    Layer::Layer(const std::string &name)
-    {
-        m_enabled = false;
-    }
-
     Layer::Layer()
     {
         m_enabled = false;

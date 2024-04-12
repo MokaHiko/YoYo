@@ -11,7 +11,6 @@ namespace yoyo
     {
         Ref<VulkanStaticMesh> mesh = CreateRef<VulkanStaticMesh>();
         mesh->name = name;
-        mesh->m_dirty = MeshDirtyFlags::Unuploaded;
 
         EventManager::Instance().Dispatch(CreateRef<MeshCreatedEvent<StaticMesh>>(mesh));
         return mesh;
@@ -47,7 +46,7 @@ namespace yoyo
             indices.clear();
         }
 
-        m_dirty &= ~MeshDirtyFlags::Unuploaded;
+        RemoveDirtyFlags(MeshDirtyFlags::Unuploaded);
     }
 
     const std::vector<VkVertexInputAttributeDescription>& VertexAttributeDescriptions()
@@ -169,7 +168,6 @@ namespace yoyo
     {
         Ref<VulkanSkinnedMesh> mesh = CreateRef<VulkanSkinnedMesh>();
         mesh->name = name;
-        mesh->m_dirty = MeshDirtyFlags::Unuploaded;
 
         EventManager::Instance().Dispatch(CreateRef<MeshCreatedEvent<SkinnedMesh>>(mesh));
         return mesh;
@@ -247,7 +245,7 @@ namespace yoyo
 				.Build(&bones_dsets[i], &bones_ds_layout);
         }
 
-        m_dirty &= ~MeshDirtyFlags::Unuploaded;
+        RemoveDirtyFlags(MeshDirtyFlags::Unuploaded | MeshDirtyFlags::IndexDataChange | MeshDirtyFlags::VertexDataChange);
     }
 
 }

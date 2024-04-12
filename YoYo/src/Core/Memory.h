@@ -75,10 +75,34 @@ YAPI constexpr Ref<T> CreateRef(Args &&...args)
 
     return data;
 }
+
+template <typename T>
+using Scope = std::unique_ptr<T, void(*)(T*)>;
+template <typename T, typename... Args>
+YAPI constexpr Scope<T> CreateScope(Args &&...args)
+{
+    std::unique_ptr<T, void(*)(T*)> data(new T{ std::forward<Args>(args)... }, [](T* ptr) {
+        yoyo::RemoveFromMemoryMap(ptr);
+        delete ptr;
+    });
+
+	YASSERT(data, "Failed to allocate memory!");
+    yoyo::AddToMemoryMap((void*)data.get(), sizeof(T), yoyo::MemoryTag::SmartPtr);
+
+    return data;
+}
 #else
 
 #define YNEW new
 #define YDELETE delete
+
+template <typename T>
+using Scope = std::unique_ptr<T>;
+template <typename T, typename... Args>
+constexpr Scope<T> CreateScope(Args &&...args)
+{
+    return std::make_unique<T>(std::forward<Args>(args)...);
+}
 
 template <typename T>
 using Ref = std::shared_ptr<T>;

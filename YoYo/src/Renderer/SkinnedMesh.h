@@ -65,6 +65,7 @@ namespace yoyo
         virtual ~SkinnedMesh() = default;
 
         static Ref<SkinnedMesh> Create(const std::string& name = "");
+	    static Ref<SkinnedMesh> CreateFromStaticMesh(Ref<const StaticMesh> static_mesh, void* bone_buffer, int mesh_bone_count, void* vertex_bone_map_buffer);
         virtual uint64_t Hash() const override;
 
         std::vector<SkinnedMeshJoint> joints;
@@ -79,7 +80,7 @@ struct std::hash<yoyo::SkinnedMesh>
     std::size_t operator()(const yoyo::SkinnedMesh& mesh) const noexcept
     {
         // http://stackoverflow.com/a/1646913/126995
-        std::size_t res = mesh.vertices.size() + mesh.indices.size();
+        std::size_t res = mesh.GetVertices().size() + mesh.GetIndices().size();
         res = res * 31 + hash<string>()(mesh.name);
         res = res * 31 + hash<uint64_t>()(mesh.bones.size());
 

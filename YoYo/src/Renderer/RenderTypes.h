@@ -15,6 +15,8 @@ namespace yoyo
         ForwardTransparent,
         Shadow,
         PostProcess,
+
+        Max,
     };
 
     enum class Format

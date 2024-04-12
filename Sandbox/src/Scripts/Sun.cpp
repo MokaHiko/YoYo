@@ -1,5 +1,7 @@
 #include "Sun.h"
 
+#include <Renderer/Light.h>
+
 #include "ECS/Components/RenderableComponents.h"
 
 SunComponent::SunComponent(Entity e) 

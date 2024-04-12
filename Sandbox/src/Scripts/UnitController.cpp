@@ -235,7 +235,7 @@ void UnitController::BasicAttack()
 	float bullet_speed = 60.0f;
 	yoyo::Mat4x4 transform_matrix = yoyo::TranslationMat4x4(fire_point) * yoyo::ScaleMat4x4({0.5f, 0.5f, 0.5f});
 
-	Entity bullet = Instantiate("bullet", transform_matrix);
+	Entity bullet = Instantiate("Bullet", transform_matrix);
 	MeshRendererComponent& mesh_renderer = bullet.AddComponent<MeshRendererComponent>("Cube", "grenade_instanced_material");
 
 	psx::RigidBodyComponent& rb = bullet.AddComponent<psx::RigidBodyComponent>();
@@ -260,7 +260,7 @@ void UnitController::AltAttack()
 	// yoyo::Mat4x4 transform_matrix = yoyo::TranslationMat4x4(transform.position + view_transform.Forward() * 2.0f) * yoyo::ScaleMat4x4({0.25f, 0.25f, 0.25f});
 	yoyo::Mat4x4 transform_matrix = yoyo::TranslationMat4x4(fire_point) * yoyo::ScaleMat4x4({1.0f, 1.0f, 1.0f});
 
-	Entity bullet = Instantiate("bullet", transform_matrix);
+	Entity bullet = Instantiate("Turret", transform_matrix);
 	MeshRendererComponent& mesh_renderer = bullet.AddComponent<MeshRendererComponent>("Cube", "grenade_instanced_material");
 
 	psx::RigidBodyComponent& rb = bullet.AddComponent<psx::RigidBodyComponent>();

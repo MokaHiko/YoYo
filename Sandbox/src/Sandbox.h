@@ -9,6 +9,7 @@
 // TODO: Remove Forward decs
 class SceneGraph;
 class ScriptingSystem;
+class ParticleSystemManager;
 
 namespace yoyo
 {
@@ -55,10 +56,10 @@ private:
     Ref<SceneGraph> m_scene_graph;
     Ref<psx::PhysicsWorld> m_physics_world;
     Ref<ScriptingSystem> m_scripting;
+    Ref<ParticleSystemManager> m_particles;
 
     Scene* m_scene;
 
-    yoyo::RenderPacket* m_rp;
     bool m_rebuild_packet = true;
 
     yoyo::RendererLayer* m_renderer_layer;

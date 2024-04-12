@@ -4,13 +4,13 @@
 #include <Math/MatrixTransform.h>
 
 #include "ECS/Components/RenderableComponents.h"
+#include "ParticleSystem/Particles.h"
 
 #include "Projectile.h"
+#include "Process.h"
 
 Turret::Turret(Entity e)
-	:ScriptableEntity(e)
-{
-}
+	:ScriptableEntity(e) {}
 
 Turret::~Turret() {}
 
@@ -27,12 +27,18 @@ void Turret::OnStart()
 		pos = yoyo::Vec3{yoyo::Cos(radians), 0.0f, yoyo::Sin(radians)};
 		radians += yoyo::DegToRad(20);
 	}
+
+	// Ref<DelayProcess> life_time_delay_process = CreateRef<DelayProcess>(5.0f, [&](){
+	// 	QueueDestroy();
+	// });
+	// StartProcess(life_time_delay_process);
+	GameObject().AddComponent<ParticleSystemComponent>();
 }
 
 void Turret::OnUpdate(float dt) {
+	return;
 
 	m_time_elapsed += dt;
-
 	if (m_time_elapsed > (1.0f / m_attack_rate))
 	{
 		for (const yoyo::Vec3& position : positions)

@@ -3,6 +3,8 @@
 #include <ImGui/ImGuiLayer.h>
 
 #include <Renderer/Renderer.h>
+#include <Renderer/Texture.h>
+#include <Renderer/Camera.h>
 #include <Math/MatrixTransform.h>
 
 #include "ECS/Scene.h"

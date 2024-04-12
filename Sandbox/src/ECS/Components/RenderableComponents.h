@@ -2,14 +2,20 @@
 
 #include <Core/Memory.h>
 
-#include <Renderer/Material.h>
 #include <Renderer/Mesh.h>
 #include <Renderer/SkinnedMesh.h>
 #include <Renderer/Model.h>
-#include <Renderer/Light.h>
-#include <Renderer/Camera.h>
-
 #include <Renderer/RenderScene.h>
+
+// Forward declarations
+namespace yoyo
+{
+    class ParticleSystem;
+    class DirectionalLight;
+    class Camera;
+
+    class Material;
+}
 
 struct DirectionalLightComponent
 {
@@ -48,16 +54,6 @@ struct MeshRendererComponent
 struct NewMeshComponent
 {
     float time_stamp;
-};
-
-struct DestroyedMeshComponent
-{
-    float time_stamp;
-};
-
-struct ModelRendererComponent
-{
-
 };
 
 namespace yoyo{class Animator;}

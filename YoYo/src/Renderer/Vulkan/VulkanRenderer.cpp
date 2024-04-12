@@ -74,7 +74,7 @@ namespace yoyo
 
         // TODO: All uploads must be done immediately uppon creation and update
         m_screen_quad = CreateRef<VulkanStaticMesh>();
-        m_screen_quad->vertices =
+        m_screen_quad->GetVertices() =
         {
             {{-1.00, -1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {0.00,  0.00}},
             {{ 1.00, -1.00,  0.00}, {0.00, 0.00, 0.00},  {0.00,  0.00,  1.00},  {1.00,  0.00}},
@@ -85,7 +85,6 @@ namespace yoyo
         };
         m_screen_quad->UploadMeshData();
 
-        // Describe effect
         Ref<VulkanShaderEffect> lit_effect = CreateRef<VulkanShaderEffect>();
         {
             Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.vert.spv");
@@ -136,7 +135,6 @@ namespace yoyo
         }
         auto offscreen_skinned_shadow_pass = m_material_system->CreateShaderPass(m_shadow_render_pass, offscreen_skinned_shadow_lit_effect);
 
-        // Create or get shader pass from effect description
         Ref<VulkanShaderEffect> shadow_lit_instanced_effect = CreateRef<VulkanShaderEffect>();
         {
             Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/offscreen_shadow_instanced_shader.vert.spv");
@@ -147,7 +145,27 @@ namespace yoyo
         }
         auto shadow_instanced_pass = m_material_system->CreateShaderPass(m_shadow_render_pass, shadow_lit_instanced_effect);
 
-        // Create shader (Effect Template)
+        Ref<VulkanShaderEffect> unlit_particle_instanced_effect = CreateRef<VulkanShaderEffect>();
+        {
+            Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_particle_instanced_shader.vert.spv");
+            unlit_particle_instanced_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+
+            Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_particle_shader.frag.spv");
+            unlit_particle_instanced_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+        }
+        auto unlit_particle_instanced_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, unlit_particle_instanced_effect);
+
+        Ref<VulkanShaderEffect> unlit_instanced_effect = CreateRef<VulkanShaderEffect>();
+        {
+            Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_instanced_shader.vert.spv");
+            unlit_instanced_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+
+            Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_shader.frag.spv");
+            unlit_instanced_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+        }
+        auto unlit_instanced_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, unlit_instanced_effect);
+
+        // Create lit shader (Effect Template)
         Ref<Shader> lit_shader = Shader::Create("lit_shader");
         lit_shader->shader_passes[MeshPassType::Forward] = lit_shader_pass;
         lit_shader->shader_passes[MeshPassType::Shadow] = shadow_pass;
@@ -160,6 +178,12 @@ namespace yoyo
         lit_instanced_shader->shader_passes[MeshPassType::Forward] = lit_instanced_shader_pass;
         lit_instanced_shader->shader_passes[MeshPassType::Shadow] = shadow_instanced_pass;
 
+        // Unlit shaders
+        Ref<Shader> unlit_instanced_shader = Shader::Create("unlit_instanced_shader", true);
+        unlit_instanced_shader->shader_passes[MeshPassType::Forward] = unlit_instanced_shader_pass;
+
+        Ref<Shader> unlit_particle_instanced_shader = Shader::Create("unlit_particle_instanced_shader", true);
+        unlit_particle_instanced_shader->shader_passes[MeshPassType::Forward] = unlit_particle_instanced_shader_pass;
 #ifdef Y_DEBUG
     Ref<VulkanShaderEffect> skinned_lit_debug_effect = CreateRef<VulkanShaderEffect>();
     skinned_lit_debug_effect->polygon_mode = VK_POLYGON_MODE_LINE;
@@ -264,6 +288,9 @@ namespace yoyo
             VulkanResourceManager::UnmapMemory(m_directional_lights_buffer.allocation);
         }
 
+        // TODO: Dirty Checks for object and instanced data
+        // TODO: Do not unmap memory
+
         // Update ObjectData
         {
             // The mesh pass objects ID is used for the index into buffer
@@ -271,9 +298,10 @@ namespace yoyo
             VulkanResourceManager::MapMemory(m_object_data_buffers[m_frame_count].allocation, (void**)&data);
             const size_t padded_object_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(ObjectData));
 
+            const Ref<MeshPass>& forward_pass = scene->GetForwardPass();
             for (uint32_t i = 0; i < scene->GetForwardPassCount(); i++)
             {
-                const Ref<MeshPassObject>& renderable = scene->GetForwardPass()->renderables[i];
+				const Ref<MeshPassObject>& renderable = forward_pass->renderables[forward_pass->renderable_ids[i]];
 
                 ObjectData obj_data = {};
                 obj_data.model_matrix = renderable->model_matrix;
@@ -287,15 +315,15 @@ namespace yoyo
 
         // Update InstancedData
         {
-            // TODO: Dirty Check
             char* data;
             VulkanResourceManager::MapMemory(m_instanced_data_buffers[m_frame_count].allocation, (void**)&data);
             const size_t padded_instanced_data_size = VulkanResourceManager::PadToStorageBufferSize(sizeof(InstancedData));
 
             int ctr = 0;
+
             for (const auto& batch : scene->forward_flat_batches)
             {
-                if (!batch->material->instanced)
+                if (!batch->material->IsInstanced())
                 {
                     continue;
                 }
@@ -305,6 +333,24 @@ namespace yoyo
                 {
                     InstancedData instanced_data = {};
                     instanced_data.id = renderable->Id();
+
+                    memcpy(data + (ctr++ * padded_instanced_data_size), &instanced_data, sizeof(InstancedData));
+                }
+            };
+
+            for (const auto& batch : scene->shadow_flat_batches)
+            {
+                if (!batch->material->IsInstanced())
+                {
+                    continue;
+                }
+
+                batch->instance_index = ctr;
+                for (const Ref<MeshPassObject>& renderable : batch->renderables)
+                {
+                    InstancedData instanced_data = {};
+                    instanced_data.id = renderable->Id();
+
                     memcpy(data + (ctr++ * padded_instanced_data_size), &instanced_data, sizeof(InstancedData));
                 }
             };
@@ -337,7 +383,7 @@ namespace yoyo
             VkRenderPassBeginInfo shadow_pass_begin = vkinit::RenderPassBeginInfo(m_shadow_frame_buffer, m_shadow_render_pass, rect, clear_values, 1);
             vkCmdBeginRenderPass(cmd, &shadow_pass_begin, VK_SUBPASS_CONTENTS_INLINE);
 
-            for (const auto& batch : scene->forward_flat_batches)
+            for (const auto& batch : scene->shadow_flat_batches)
             {
                 // Bind material shadow pipeline
                 auto shader_pass = batch->material->shader->shader_passes[MeshPassType::Shadow];
@@ -356,7 +402,7 @@ namespace yoyo
                 // Bind mesh
                 batch->mesh->Bind(&render_context);
 
-                if (!batch->material->instanced)
+                if (!batch->material->IsInstanced())
                 {
                     for (Ref<MeshPassObject> obj : batch->renderables)
                     {
@@ -454,7 +500,7 @@ namespace yoyo
                 batch->material->Bind(&m_render_context, MeshPassType::Forward);
                 batch->mesh->Bind(&render_context);
 
-                if (!batch->material->instanced)
+                if (!batch->material->IsInstanced())
                 {
                     for (const auto& obj : batch->renderables)
                     {
@@ -538,15 +584,15 @@ namespace yoyo
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blit_pipeline_layout, 0, 1, &m_blit_output_texture_ds, 0, &dynamic_offset);
 
         m_screen_quad->Bind(&m_render_context);
-        if (!m_screen_quad->indices.empty())
+        if (m_screen_quad->GetIndexCount() > 0)
         {
             Profile().draw_calls++;
-            vkCmdDrawIndexed(cmd, m_screen_quad->indices.size(), 1, 0, 0, 0);
+            vkCmdDrawIndexed(cmd, m_screen_quad->GetIndexCount(), 1, 0, 0, 0);
         }
         else
         {
             Profile().draw_calls++;
-            vkCmdDraw(cmd, m_screen_quad->vertices.size(), 1, 0, 0);
+            vkCmdDraw(cmd, m_screen_quad->GetVertexCount(), 1, 0, 0);
         }
     }
 
@@ -1185,6 +1231,8 @@ namespace yoyo
         for(int i = 0; i < Settings().max_frames_in_flight; i++)
         {
             m_object_data_buffers[i] = VulkanResourceManager::CreateBuffer<ObjectData>(padded_object_data_size * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+
+            // TODO: Create one per mesh pass
             m_instanced_data_buffers[i] = VulkanResourceManager::CreateBuffer<InstancedData>(padded_instanced_data_size * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
         }
     }

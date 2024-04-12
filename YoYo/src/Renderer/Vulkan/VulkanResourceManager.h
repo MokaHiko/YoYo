@@ -26,39 +26,39 @@ namespace yoyo
         static bool UploadMesh(MeshType* mesh)
         {
             YASSERT(mesh, "Invalid mesh!");
-            YASSERT(!mesh->vertices.empty(), "Empty mesh!");
-            YASSERT(mesh->vertices.size() * mesh->GetVertexSize() <= MAX_MESH_VERTICES * mesh->GetVertexSize(), "Mesh exceeds max vertex buffer size!");
+            YASSERT(mesh->GetVertexCount() > 0, "Empty mesh!");
+            YASSERT(mesh->GetVertexCount() * mesh->GetVertexSize() <= MAX_MESH_VERTICES * mesh->GetVertexSize(), "Mesh exceeds max vertex buffer size!");
 
-            mesh->vertex_buffer = CreateBuffer<>(mesh->vertices.size() * mesh->GetVertexSize(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            mesh->vertex_buffer = CreateBuffer<>(mesh->GetVertexCount() * mesh->GetVertexSize(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
             void* data;
             MapMemory(m_mesh_staging_buffer.allocation, &data);
-            memcpy(data, mesh->vertices.data(), mesh->vertices.size() * mesh->GetVertexSize());
+            memcpy(data, mesh->GetVertices().data(), mesh->GetVertexCount() * mesh->GetVertexSize());
             UnmapMemory(m_mesh_staging_buffer.allocation);
 
             ImmediateSubmit([&](VkCommandBuffer cmd) {
                 VkBufferCopy region = {};
                 region.dstOffset = 0;
                 region.srcOffset = 0;
-                region.size = mesh->vertices.size() * mesh->GetVertexSize();
+                region.size = mesh->GetVertexCount() * mesh->GetVertexSize();
 
                 vkCmdCopyBuffer(cmd, m_mesh_staging_buffer.buffer, mesh->vertex_buffer.buffer, 1, &region);
             });
 
-            if (!mesh->indices.empty())
+            if (!mesh->GetIndices().empty())
             {
-                mesh->index_buffer = CreateBuffer<uint32_t>(mesh->indices.size() * mesh->GetIndexSize(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                mesh->index_buffer = CreateBuffer<uint32_t>(mesh->GetIndexCount() * mesh->GetIndexSize(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
                 void* data;
                 vmaMapMemory(m_allocator, m_mesh_staging_buffer.allocation, &data);
-                memcpy(data, mesh->indices.data(), mesh->indices.size() * mesh->GetIndexSize());
+                memcpy(data, mesh->GetIndices().data(), mesh->GetIndexCount() * mesh->GetIndexSize());
                 vmaUnmapMemory(m_allocator, m_mesh_staging_buffer.allocation);
 
                 ImmediateSubmit([&](VkCommandBuffer cmd) {
                     VkBufferCopy region = {};
                     region.dstOffset = 0;
                     region.srcOffset = 0;
-                    region.size = mesh->indices.size() * mesh->GetIndexSize();
+                    region.size = mesh->GetIndexCount() * mesh->GetIndexSize();
 
                     vkCmdCopyBuffer(cmd, m_mesh_staging_buffer.buffer, mesh->index_buffer.buffer, 1, &region);
                 });

@@ -32,40 +32,7 @@ namespace yoyo
         float fov;
     };
 
-    // Structure that sends info about updates to the scene
-    class Camera;
-    class DirectionalLight;
-
-    class MeshPassObject;
-    struct YAPI RenderPacket
-    {
-        Mat4x4 view;
-        Mat4x4 proj;
-
-        void Clear()
-        {
-            new_dir_lights.clear();
-            deleted_dir_lights.clear();
-
-            new_objects.clear();
-            deleted_objects.clear();
-
-            new_camera.reset();
-            new_camera = nullptr;
-        }
-
-        std::vector<uint32_t> deleted_dir_lights;
-        std::vector<Ref<DirectionalLight>> new_dir_lights;
-
-        std::vector<uint32_t> deleted_objects;
-        std::vector<Ref<MeshPassObject>> new_objects;
-
-        Ref<Camera> new_camera;
-
-        double dt;
-    };
-
-    const uint32_t MAX_OBJECTS = 1000;
+    const uint32_t MAX_OBJECTS = 10000;
     const int MAX_DIR_LIGHTS = 2;
     const int MAX_POINT_LIGHTS = 100;
     
@@ -110,7 +77,6 @@ namespace yoyo
         // Returns the current frame being rendered
         virtual const uint32_t GetCurrentFrame() const = 0;
     protected:
-    private:
         RendererProfile m_profile;
         RendererSettings m_settings;
         bool m_diry_flags;

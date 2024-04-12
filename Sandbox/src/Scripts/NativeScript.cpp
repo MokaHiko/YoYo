@@ -11,19 +11,19 @@ void ScriptingSystem::Init()
 		const Ref<ScriptCreatedEvent>& script_event = std::static_pointer_cast<ScriptCreatedEvent>(event);
 		OnScriptCreatedCallback(script_event->script);
 		return false;
-		});
+	});
 
 	yoyo::EventManager::Instance().Subscribe(ScriptDestroyedEvent::s_event_type, [&](Ref<yoyo::Event> event) {
 		const Ref<ScriptDestroyedEvent>& script_event = std::static_pointer_cast<ScriptDestroyedEvent>(event);
 		OnScriptDestroyedCallback(script_event->script);
 		return false;
-		});
+	});
 
 	yoyo::EventManager::Instance().Subscribe(psx::CollisionEvent::s_event_type, [&](Ref<yoyo::Event> event) {
 		const Ref<psx::CollisionEvent>& col_event = std::static_pointer_cast<psx::CollisionEvent>(event);
 		OnCollisionCallback(col_event->collision);
 		return false;
-		});
+	});
 }
 
 void ScriptingSystem::Shutdown()

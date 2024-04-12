@@ -12,7 +12,6 @@
 #include "Renderer/RendererLayer.h"
 
 #include "Events/ApplicationEvent.h"
-
 #include "ImGui/ImGuiLayer.h"
 
 namespace yoyo

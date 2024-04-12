@@ -64,12 +64,21 @@ namespace yoyo
         Material();
         virtual ~Material();
 
-        Ref<Shader> shader; // The shader used by the material.
+        Ref<Shader> shader = nullptr; // The shader used by the material.
 
-        Vec4 color;     // The main color of the Material.
-        bool receive_shadows; // Sets whether material receives shadows
-        bool instanced; // Sets whether material uses instancing.
-        MaterialRenderMode render_mode; // Render mode of material
+        const Vec4& GetColor() const {return m_color;}
+        void SetColor(const Vec4& color) {m_color = color;}
+
+        const MaterialRenderMode& GetRenderMode() const {return m_render_mode;}
+        void SetRenderMode(MaterialRenderMode render_mode) {m_render_mode = render_mode;}
+
+        const bool IsCastingShadows() const {return m_cast_shadows;}
+        const bool IsReceivingShadows() const {return m_receive_shadows;}
+        const bool IsInstanced() const {return m_instanced;}
+
+        void ToggleInstanced(bool instanced) { m_instanced = instanced;}
+        void ToggleCastShadows(bool cast_shadows) {m_cast_shadows = cast_shadows;}
+        void ToggleReceiveShadows(bool receive_shadows) {m_receive_shadows = receive_shadows;}
 
         const Ref<Texture> MainTexture() const { return textures.empty() ? nullptr : textures.front(); }// Main texture of material (textures index 0).
         const Ref<Texture> GetTexture(int index) const;
@@ -88,7 +97,7 @@ namespace yoyo
     public:
         bool operator==(const Material& other) const
         {
-            return (shader == other.shader && instanced == other.instanced && MainTexture() == other.MainTexture());
+            return (shader == other.shader && m_instanced == other.m_instanced && MainTexture() == other.MainTexture());
         };
 
         MaterialDirtyFlags& DirtyFlags() { return m_dirty; }
@@ -111,6 +120,12 @@ namespace yoyo
 
         MaterialDirtyFlags m_dirty;
         uint64_t renderpass; // The id of this material's render pass
+    private:
+        Vec4 m_color = {1.0f, 1.0f, 1.0f, 1.0f}; // The main color of the Material.
+        bool m_cast_shadows = true; // Sets whether material receives shadows
+        bool m_receive_shadows = true; // Sets whether material receives shadows
+        bool m_instanced = false; // Sets whether material uses instancing.
+        MaterialRenderMode m_render_mode = MaterialRenderMode::Uknown; // Render mode of material
     };
 }
 
@@ -124,7 +139,7 @@ struct std::hash<yoyo::Material>
 
         std::size_t res = 17;
         res = res * 31 + hash<string>()(material.name);
-        res = res * 31 + hash<bool>()(material.instanced);
+        res = res * 31 + hash<bool>()(material.IsInstanced());
 
         //if(const auto& main_texture = material.MainTexture())
         //{

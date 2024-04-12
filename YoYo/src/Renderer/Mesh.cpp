@@ -63,4 +63,16 @@ namespace yoyo
     {
         // TODO: Free resource
     } 
+
+	Ref<StaticMesh> StaticMesh::CreateFromBuffers(const std::string& name, void* vertex_buffer, uint64_t vertex_buffer_size, void* index_buffer, uint64_t index_buffer_size)
+    {
+		Ref<StaticMesh> mesh = StaticMesh::Create(name);
+		mesh->vertices.resize(vertex_buffer_size / sizeof(Vertex));
+		memcpy(mesh->vertices.data(), (char*)vertex_buffer, vertex_buffer_size);
+
+		mesh->indices.resize(index_buffer_size / sizeof(uint32_t));
+		memcpy(mesh->indices.data(), (char*)index_buffer, index_buffer_size);
+
+		return mesh;
+    }
 }

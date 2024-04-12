@@ -1,5 +1,7 @@
 #include "Unit.h"
 
+#include <Renderer/Material.h>
+
 #include "ECS/Components/RenderableComponents.h"
 #include "Process.h"
 

@@ -35,6 +35,8 @@ namespace yoyo
         LayerType(RendererLayer)
     private:
         float m_dt;
+        std::queue<RenderPacket*> m_render_packet_queue;
+
         Ref<RenderScene> m_scene;
         Ref<Renderer> m_renderer;
 

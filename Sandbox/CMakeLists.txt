@@ -41,6 +41,9 @@ add_executable(${PROJECT_NAME}
 	src/Physics/Physics3D.h
 	src/Physics/Physics3D.cpp
 
+	src/ParticleSystem/Particles.h
+	src/ParticleSystem/Particles.cpp
+
 	src/Sandbox.h
 	src/Sandbox.cpp
 

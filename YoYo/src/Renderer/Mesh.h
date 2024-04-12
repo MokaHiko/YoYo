@@ -34,8 +34,9 @@ namespace yoyo
 
     enum class MeshType
     {
+        Uknown,
         Static,
-        Skinned
+        Skinned,
     };
 
     enum class MeshDirtyFlags
@@ -79,8 +80,29 @@ namespace yoyo
     class Mesh : public IMesh, public Resource
     {
     public:
+        Mesh()
+        {
+            // Default flags
+            AddDirtyFlags(MeshDirtyFlags::Unuploaded);
+        };
+
         virtual ~Mesh() = default;
 
+        const std::vector<VertexType>& GetVertices() const { return vertices; }
+        const std::vector<IndexType>& GetIndices() const { return indices; }
+
+        std::vector<VertexType>& GetVertices()
+        {
+            m_dirty |= MeshDirtyFlags::VertexDataChange;
+            return vertices;
+        }
+
+        std::vector<IndexType>& GetIndices()
+        {
+            m_dirty |= MeshDirtyFlags::IndexDataChange;
+            return indices;
+        }
+    public:
         const virtual uint32_t GetIndexCount() const override final { return indices.size(); }
         const virtual uint32_t GetVertexCount() const override final { return vertices.size(); }
 
@@ -92,12 +114,15 @@ namespace yoyo
 
         virtual void RecalculateNormals() {}; // Recalculates normals of mesh
         MeshDirtyFlags DirtyFlags() { return m_dirty; }
-
-        std::vector<VertexType> vertices;
-        std::vector<IndexType> indices;
     protected:
-        MeshDirtyFlags m_dirty;
-        MeshType m_type;
+        void AddDirtyFlags(MeshDirtyFlags flags_bits) { m_dirty |= flags_bits; }
+        void RemoveDirtyFlags(MeshDirtyFlags flags_bits) { m_dirty &= ~flags_bits; }
+
+        std::vector<VertexType> vertices = {};
+        std::vector<IndexType> indices = {};
+    private:
+        MeshDirtyFlags m_dirty = MeshDirtyFlags::Clean;
+        MeshType m_type = MeshType::Uknown;
     };
 
     class YAPI StaticMesh : public Mesh<yoyo::Vertex, uint32_t>
@@ -111,6 +136,7 @@ namespace yoyo
         virtual ~StaticMesh() = default;
 
         static Ref<StaticMesh> Create(const std::string& name = "");
+	    static Ref<StaticMesh> CreateFromBuffers(const std::string& name, void* vertex_buffer, uint64_t vertex_buffer_size, void* index_buffer, uint64_t index_buffer_size);
         static Ref<StaticMesh> LoadFromAsset(const char* asset_path, const std::string& name = "");
 
         virtual uint64_t Hash() const override;
@@ -123,7 +149,7 @@ struct std::hash<yoyo::StaticMesh>
     std::size_t operator()(const yoyo::StaticMesh& mesh) const noexcept
     {
         // http://stackoverflow.com/a/1646913/126995
-        std::size_t res = mesh.vertices.size() + mesh.indices.size();
+        std::size_t res = mesh.GetVertices().size() + mesh.GetIndices().size();
         res = res * 31 + hash<string>()(mesh.name);
 
         return res;

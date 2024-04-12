@@ -47,9 +47,9 @@ public:
     Ref<Process> Child();
 public:
     // Accessors
-    ProcessState State() const { return m_state; }
-    bool IsAlive() const const { return m_state == Running || m_state == Paused; }
-    bool IsDead() const const { return m_state == Succeeded || m_state == Failed || m_state == Aborted; }
+    ProcessState State() { return m_state; }
+    bool IsAlive() const { return m_state == Running || m_state == Paused; }
+    bool IsDead() const { return m_state == Succeeded || m_state == Failed || m_state == Aborted; }
     bool IsRemoved() const { return m_state == Removed; }
     bool IsPaused() const { return m_state == Paused; }
 private:

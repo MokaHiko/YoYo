@@ -70,6 +70,12 @@ void Scene::QueueDestroy(Entity e)
 {
 	// TODO: Check if current entity already queued for destruction
 	m_destruction_queue.push_back(e);
+
+	// use for scripting
+	// for(auto e : *m_registry.storage(0))
+	// {
+
+	// }
 }
 
 void Scene::FlushDestructionQueue() 

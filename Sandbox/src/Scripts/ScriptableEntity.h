@@ -61,6 +61,9 @@ public:
     // Returns if current script is active
     bool IsActive() const { return m_active; }
 
+    // Returns if current scriptable entity is queued for destruction
+    bool ToDestroy() const { return m_to_destroy; }
+
     // Sets script to active or inactive
     void ToggleActive(bool active) { m_active = active; }
 

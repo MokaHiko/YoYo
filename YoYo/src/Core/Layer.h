@@ -11,7 +11,6 @@ namespace yoyo
     class YAPI Layer
     {
     public:
-        Layer(const std::string& name);
         Layer();
         virtual ~Layer() {};
 

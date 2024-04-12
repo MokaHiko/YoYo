@@ -65,21 +65,12 @@ add_library(YoYo SHARED
     src/Renderer/RenderPass.cpp
     src/Renderer/Shader.h
     src/Renderer/Shader.cpp
+    src/Renderer/Texture.h
+    src/Renderer/Texture.cpp
     src/Renderer/Material.h
     src/Renderer/Material.cpp
     src/Renderer/Mesh.h
     src/Renderer/Mesh.cpp
-    src/Renderer/SkinnedMesh.h
-    src/Renderer/SkinnedMesh.cpp
-    src/Renderer/Animation.cpp
-    src/Renderer/Animation.h
-    src/Renderer/Texture.h
-    src/Renderer/Texture.cpp
-    src/Renderer/RendererLayer.h
-    src/Renderer/RendererLayer.cpp
-
-    src/Renderer/Model.h
-    src/Renderer/Model.cpp
 
     src/Renderer/Camera.h
     src/Renderer/Camera.cpp
@@ -87,6 +78,20 @@ add_library(YoYo SHARED
     src/Renderer/Light.cpp
     src/Renderer/RenderScene.h
     src/Renderer/RenderScene.cpp
+    src/Renderer/RendererLayer.h
+    src/Renderer/RendererLayer.cpp
+
+    src/Renderer/Model.h
+    src/Renderer/Model.cpp
+    src/Renderer/SkinnedMesh.h
+    src/Renderer/SkinnedMesh.cpp
+    src/Renderer/Animation.cpp
+    src/Renderer/Animation.h
+
+    src/Renderer/Particles/ParticleSystem.h
+    src/Renderer/Particles/ParticleSystem.cpp
+    src/Renderer/Particles/ParticleSystemEvents.h
+    src/Renderer/Particles/ParticleSystemEvents.cpp
 
     src/Core/EntryPoint.h
     include/Yoyo.h
@@ -154,8 +159,8 @@ if (YRENDERERTYPE STREQUAL "VULKAN")
     add_subdirectory(vendor/VkBootstrap)
     add_subdirectory(vendor/Vma)
     
-    set(SPIRV_REFLECT_EXECUTABLE OFF)
-    set(SPIRV_REFLECT_STATIC_LIB ON)
+    set(SPIRV_REFLECT_EXECUTABLE OFF CACHE BOOL "Build spirv-reflect executable")
+    set(SPIRV_REFLECT_STATIC_LIB ON CACHE BOOL "Build a SPIRV-Reflect static library")
     add_subdirectory(vendor/SPIRVReflect)
 
     # TODO: Make spriv reflect static fork for static lib

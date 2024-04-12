@@ -1,10 +1,14 @@
 #pragma once
 
-#include "IPanel.h"
-#include <Renderer/Texture.h>
-#include <Renderer/Renderer.h>
+#include <Core/Memory.h>
 
+#include "IPanel.h"
 #include "ECS/Entity.h"
+
+namespace yoyo
+{
+    class Renderer;
+}
 
 class ViewportPanel : public IPanel
 {

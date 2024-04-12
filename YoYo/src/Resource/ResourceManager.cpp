@@ -48,6 +48,7 @@ namespace yoyo
 		{
 			Ref<StaticMesh> mesh = it.second;
 			MeshDirtyFlags flags = mesh->DirtyFlags();
+
 			if (flags == MeshDirtyFlags::Clean)
 			{
 				continue;

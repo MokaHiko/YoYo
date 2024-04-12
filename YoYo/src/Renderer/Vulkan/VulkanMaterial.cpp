@@ -10,9 +10,9 @@ namespace yoyo
         Ref<VulkanMaterial> material = CreateRef<VulkanMaterial>();
         material->name = name;
         material->shader = shader;
-        material->render_mode = MaterialRenderMode::Opaque;
-        material->instanced = shader->instanced;
-        material->receive_shadows = true;
+        material->SetRenderMode(MaterialRenderMode::Opaque);
+        material->ToggleInstanced(shader->instanced);
+        material->ToggleReceiveShadows(true);
         material->m_dirty = MaterialDirtyFlags::Clean;
 
         EventManager::Instance().Dispatch(CreateRef<MaterialCreatedEvent>(material));

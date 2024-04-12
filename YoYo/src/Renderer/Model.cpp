@@ -3,7 +3,6 @@
 #include <Hurno.h>
 
 #include "Core/Log.h"
-#include "Math/MatrixTransform.h"
 
 #include "Mesh.h"
 #include "SkinnedMesh.h"
@@ -45,56 +44,6 @@ namespace yoyo
 		// TODO: Free resource
 	}
 
-	Ref<StaticMesh> LoadStaticMesh(const std::string& mesh_name, void* vertex_buffer, uint64_t vertex_buffer_size, void* index_buffer, uint64_t index_buffer_size)
-	{
-		Ref<StaticMesh> mesh = StaticMesh::Create(mesh_name);
-		mesh->vertices.resize(vertex_buffer_size / sizeof(Vertex));
-		memcpy(mesh->vertices.data(), (char*)vertex_buffer, vertex_buffer_size);
-
-		mesh->indices.resize(index_buffer_size / sizeof(uint32_t));
-		memcpy(mesh->indices.data(), (char*)index_buffer, index_buffer_size);
-
-		return mesh;
-	}
-
-	Ref<SkinnedMesh> LoadSkinnedMesh(const std::string& mesh_name, void* bone_buffer, int mesh_bone_count, void* vertex_bone_map_buffer, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
-	{
-		Ref<SkinnedMesh> mesh = SkinnedMesh::Create(mesh_name);
-		mesh->vertices.resize(vertices.size());
-
-		hro::VertexBoneData* vertex_bone_map = (hro::VertexBoneData*)vertex_bone_map_buffer;
-		for (int i = 0; i < mesh->vertices.size(); i++)
-		{
-			memcpy(&mesh->vertices[i], &vertices[i], sizeof(Vertex));
-			memcpy(&mesh->vertices[i].bone_ids, &vertex_bone_map[i].ids, sizeof(int32_t) * MAX_BONES_PER_VERTEX);
-			memcpy(&mesh->vertices[i].bone_weights, &vertex_bone_map[i].weights, sizeof(float) * MAX_BONES_PER_VERTEX);
-		}
-
-		// Copy indices
-		mesh->indices = indices;
-
-		mesh->joints.resize(mesh_bone_count);
-		mesh->bones.resize(mesh_bone_count);
-
-		hro::Joint* hro_joints = (hro::Joint*)bone_buffer;
-		for (int i = 0; i < mesh_bone_count; i++)
-		{
-			// Insert joint
-			SkinnedMeshJoint joint = {};
-			joint.name = hro_joints[i].name_buffer;
-			joint.bone_id = i;
-			memcpy(&joint.inverse_bind_pose_transform, hro_joints[i].inverse_bind_pose_transform, sizeof(Mat4x4));
-			joint.bind_pose_transform = InverseMat4x4(joint.inverse_bind_pose_transform);
-
-			mesh->joints[i] = joint;
-
-			// Bind Pose Transform
-			mesh->bones[i] = {};
-		}
-
-		return mesh;
-	}
-
 	Ref<Model> Model::LoadFromAsset(const char* asset_path, const std::string& name)
 	{
 		hro::Model hro_model = {};
@@ -130,13 +79,11 @@ namespace yoyo
 				if (hro_mesh.bone_count > 0)
 				{
 					// Load as skinned mesh
-					Ref<SkinnedMesh> skinned_mesh = LoadSkinnedMesh(
-						FileNameFromFullPath(asset_path) + hro_mesh.name,
+					Ref<SkinnedMesh> skinned_mesh = SkinnedMesh::CreateFromStaticMesh(
+						mesh,
 						global_bone_buffer,
 						hro_mesh.bone_count,
-						global_vertex_bone_map_buffer,
-						mesh->vertices,
-						mesh->indices
+						global_vertex_bone_map_buffer
 					);
 
 					// Load skeletal data
@@ -155,7 +102,7 @@ namespace yoyo
 				const auto& hro_mat = hro_model_info.materials[i];
 				Ref<Material> material = Material::Create(ResourceManager::Instance().Load<Shader>("lit_shader"), hro_mat.name);
 
-				material->color = yoyo::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+				material->SetColor(yoyo::Vec4{1.0f, 1.0f, 1.0f, 1.0f});
 				material->SetVec4("diffuse_color", yoyo::Vec4{ hro_mat.diffuse_color[0], hro_mat.diffuse_color[1], hro_mat.diffuse_color[2], 1.0f });
 				material->SetVec4("specular_color", yoyo::Vec4{ hro_mat.specular_color[0], hro_mat.specular_color[1], hro_mat.specular_color[2], 1.0f });
 

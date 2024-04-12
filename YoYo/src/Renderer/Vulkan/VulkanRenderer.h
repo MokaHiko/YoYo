@@ -27,9 +27,12 @@ namespace yoyo
     const int SHADOW_PASS_INSTANCED_OBJECT_DATA_SET_INDEX = 1;
     const int SHADOW_PASS_INSTANCED_OBJECT_DATA_SET_BINDING = 0;
     
+    class Texture;
+    class DirectionalLight;
+    class Camera;
+
     class VulkanMaterialSystem;
     class VulkanStaticMesh;
-    class Texture;
     class VulkanRenderer : public Renderer
     {
     public:

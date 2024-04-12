@@ -36,13 +36,13 @@ void VillageManagerComponent::OnUpdate(float dt)
 	m_timer += dt;
 
 	VillageProps& props = GetComponent<VillageProps>();
-	if (m_timer > props.spawn_rate)
+	if (m_timer > props.spawn_rate) 
 	{
 		if (m_villager_count < props.max_villagers)
 		{
 			SpawnVillager();
 
-			for(int i = 0; i < 1; i++)
+			for(int i = 0; i < 0; i++)
 			{
 				SpawnEnemy();
 			}

@@ -11,6 +11,5 @@ void main()
 	vec2 out_uv = v_uv;
 	out_uv.y = 1.0f - v_uv.y;
 	frag_color = texture(input_texture, out_uv);
-
 	//frag_color = texture(input_texture, v_uv);
 }
