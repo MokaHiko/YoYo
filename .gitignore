@@ -1,8 +1,10 @@
 #build
 [Bb]uild
 
-# Assets
-.yo
+# Raw Assets
+.png
+.fbx
+.daeo
 
 #vs/vscode
 .vscode

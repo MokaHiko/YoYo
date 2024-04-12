@@ -1,9 +1,0 @@
-[submodule "Hurno/vendor/json"]
-	path = Hurno/vendor/json
-	url = https://github.com/nlohmann/json.git
-[submodule "Hurno/vendor/lz4"]
-	path = Hurno/vendor/lz4
-	url = https://github.com/lz4/lz4.git
-[submodule "Hurno/vendor/assimp"]
-	path = Hurno/vendor/assimp
-	url = https://github.com/assimp/assimp.git
