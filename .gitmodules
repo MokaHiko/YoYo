@@ -1,21 +1,21 @@
-[submodule "YoYo/vendor/SDL"]
-	path = YoYo/vendor/SDL
+[submodule "vendor/SDL"]
+	path = vendor/SDL
 	url = https://github.com/MokaHiko/SDL.git
-[submodule "YoYo/vendor/VkBootstrap"]
-	path = YoYo/vendor/VkBootstrap
+[submodule "vendor/VkBootstrap"]
+	path = vendor/VkBootstrap
 	url = https://github.com/charles-lunarg/vk-bootstrap.git
-[submodule "YoYo/vendor/Vma"]
-	path = YoYo/vendor/Vma
+[submodule "vendor/Vma"]
+	path = vendor/Vma
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
-[submodule "YoYo/vendor/SPIRVReflect"]
-	path = YoYo/vendor/SPIRVReflect
+[submodule "vendor/SPIRVReflect"]
+	path = vendor/SPIRVReflect
 	url = https://github.com/KhronosGroup/SPIRV-Reflect.git
-[submodule "YoYo/vendor/Hurno"]
-	path = YoYo/vendor/Hurno
+[submodule "vendor/Hurno"]
+	path = vendor/Hurno
 	url = https://github.com/MokaHiko/Hurno.git
-[submodule "YoYo/vendor/ImGui"]
-	path = YoYo/vendor/ImGui
+[submodule "vendor/ImGui"]
+	path = vendor/ImGui
 	url = https://github.com/ocornut/imgui.git
-[submodule "YoYo/vendor/ImGuizmo"]
-	path = YoYo/vendor/ImGuizmo
+[submodule "vendor/ImGuizmo"]
+	path = vendor/ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo.git
