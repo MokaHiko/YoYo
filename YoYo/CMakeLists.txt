@@ -108,7 +108,7 @@ add_subdirectory(vendor/Hurno)
 find_package(Vulkan REQUIRED)
 file(GLOB IMGUI_SOURCES "vendor/ImGui/*.cpp" "vendor/ImGui/backends/imgui_impl_vulkan.cpp" "vendor/ImGui/backends/imgui_impl_sdl2.cpp")
 file(GLOB IMGUI_HEADERS "vendor/ImGui/*.h" "vendor/ImGui/backends/imgui_impl_vulkan.h" "vendor/ImGui/backends/imgui_impl_sdl2.h")
-add_library(ImGui SHARED ${IMGUI_HEADERS} ${IMGUI_SOURCES})
+add_library(ImGui STATIC ${IMGUI_HEADERS} ${IMGUI_SOURCES})
 target_include_directories(ImGui PUBLIC vendor/ImGui vendor/ImGui/backends)
 target_link_libraries(ImGui PUBLIC Vulkan::Vulkan SDL2::SDL2)
 
@@ -159,8 +159,8 @@ if (YRENDERERTYPE STREQUAL "VULKAN")
     add_subdirectory(vendor/VkBootstrap)
     add_subdirectory(vendor/Vma)
     
-    set(SPIRV_REFLECT_EXECUTABLE OFF CACHE BOOL "Build spirv-reflect executable")
-    set(SPIRV_REFLECT_STATIC_LIB ON CACHE BOOL "Build a SPIRV-Reflect static library")
+    set(SPIRV_REFLECT_EXECUTABLE OFF CACHE INTERNAL "Build spirv-reflect executable")
+    set(SPIRV_REFLECT_STATIC_LIB ON CACHE INTERNAL "Build a SPIRV-Reflect static library")
     add_subdirectory(vendor/SPIRVReflect)
 
     # TODO: Make spriv reflect static fork for static lib

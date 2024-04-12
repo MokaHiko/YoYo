@@ -13,9 +13,6 @@
 [submodule "YoYo/vendor/Hurno"]
 	path = YoYo/vendor/Hurno
 	url = https://github.com/MokaHiko/Hurno.git
-[submodule "Sandbox/vendor/entt"]
-	path = Sandbox/vendor/entt
-	url = https://github.com/skypjack/entt.git
 [submodule "YoYo/vendor/ImGui"]
 	path = YoYo/vendor/ImGui
 	url = https://github.com/ocornut/imgui.git

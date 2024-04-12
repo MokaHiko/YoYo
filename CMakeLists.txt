@@ -10,5 +10,5 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+option(YOYO_BUILD_SANDBOX_PROJECT "Build sandbox project" ON)
 add_subdirectory(YoYo)
-add_subdirectory(Sandbox)
