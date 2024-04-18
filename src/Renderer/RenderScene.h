@@ -27,7 +27,7 @@ namespace yoyo
             new_camera.reset();
             new_camera = nullptr;
 
-            SetProcess(false);
+            m_processed = false;
         }
 
         std::vector<uint32_t> deleted_dir_lights;
@@ -47,7 +47,7 @@ namespace yoyo
         }
     private:
         friend class RendererLayer;
-        void SetProcess(bool is_processed)
+        void SetProcessed(bool is_processed)
         {
             // TODO: Make thread safe
             m_processed = is_processed;
@@ -56,7 +56,7 @@ namespace yoyo
         bool m_processed = false;
     };
 
-    // Render structure that is incrementally built and updated.
+    // Render structure that is incrementally built and updated. Scenes should only be updated via a render packet!
     class RenderScene
     {
     public:
@@ -98,7 +98,7 @@ namespace yoyo
         Ref<MeshPass> transparent_forward_pass = nullptr;
     private:
         virtual RenderSceneId GenerateSceneId();
-        std::set<RenderSceneId> m_free_ids = {};
+        std::queue<RenderSceneId> m_free_ids = {};
         RenderSceneId m_next_id = 0;
     };
 }

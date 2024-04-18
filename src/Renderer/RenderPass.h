@@ -17,6 +17,9 @@ namespace yoyo
         RenderSceneId Id() const { return m_id; }
         void SetId(RenderSceneId id) { m_id = id; }
 
+        // Returns whether or not a renderable object is valid within the scene
+        const bool Valid() const {return m_id != NULL_RENDER_SCENE_ID;}
+
         // How many shader passes this object is a part of
         const uint32_t ShaderPassCount() const { return m_render_pass_count; }
     private:
@@ -33,6 +36,7 @@ namespace yoyo
     {
         Ref<IMesh> mesh = nullptr;
         Ref<Material> material = nullptr;
+        Vec4 color = {1.0f, 1.0f, 1.0f, 1.0f};
         Mat4x4 model_matrix = {};
     };
 

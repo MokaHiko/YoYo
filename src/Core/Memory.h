@@ -91,6 +91,10 @@ YAPI constexpr Scope<T> CreateScope(Args &&...args)
 
     return data;
 }
+
+template <typename T>
+using WeakRef = std::weak_ptr<T>;
+
 #else
 
 #define YNEW new
@@ -111,4 +115,7 @@ YAPI constexpr Ref<T> CreateRef(Args &&...args)
 {
     return std::make_shared<T>(std::forward<Args>(args)...);
 }
+
+template <typename T>
+using WeakRef = std::weak_ptr<T>;
 #endif

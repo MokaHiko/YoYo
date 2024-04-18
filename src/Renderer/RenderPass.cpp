@@ -32,16 +32,16 @@ namespace yoyo
 
 	void MeshPass::RemoveRenderable(RenderSceneId id)
 	{
-		// Swap if index is not the end of renderable id array
+		// Release renderable from shader pass
+		renderables[id]->DecrementShaderPassCount();
+		// renderables[id].reset();
+
+		// Swap, if index is not the end of renderable id array
 		int renderable_id_index = renderable_id_to_index[id];
 		if (renderable_id_index < count - 1)
 		{
 			renderable_ids[renderable_id_index] = renderable_ids[count - 1];
 		}
-
-		// Release renderable object
-		renderables[id]->DecrementShaderPassCount();
-		renderables[id].reset();
 
 		count--;
 	}

@@ -19,7 +19,7 @@
 
 namespace yoyo
 {
-	static VulkanRenderer* s_renderer;
+	static WeakRef<VulkanRenderer> s_renderer;
 	static ImGuiContext* s_context;
 
 	// Image descriptor sets for imgui panels
@@ -46,7 +46,14 @@ namespace yoyo
 	void ImGuiLayer::OnEnable()
 	{
 		m_window = (SDL_Window*)Platform::NativeAppWindow();
-		s_renderer = static_cast<VulkanRenderer*>(m_app->FindLayer<RendererLayer>()->NativeRenderer());
+		s_renderer = std::static_pointer_cast<VulkanRenderer>(m_app->FindLayer<RendererLayer>()->GetRenderer());
+
+		auto renderer = s_renderer.lock();
+		if(!renderer)
+		{
+			Disable();
+			return;
+		}
 
 		// 1: create descriptor pool for IMGUI
 		//  the size of the pool is very oversize, but it's copied from imgui demo
@@ -72,7 +79,7 @@ namespace yoyo
 		pool_info.pPoolSizes = pool_sizes;
 
 		VkDescriptorPool imguiPool;
-		VK_CHECK(vkCreateDescriptorPool(s_renderer->Device(), &pool_info, nullptr, &imguiPool));
+		VK_CHECK(vkCreateDescriptorPool(renderer->Device(), &pool_info, nullptr, &imguiPool));
 
 		// 2: initialize imgui library
 
@@ -92,29 +99,36 @@ namespace yoyo
 
 		// this initializes imgui for Vulkan
 		ImGui_ImplVulkan_InitInfo init_info = {};
-		init_info.Instance = s_renderer->Instance();
-		init_info.PhysicalDevice = s_renderer->PhysicalDevice();
+		init_info.Instance = renderer->Instance();
+		init_info.PhysicalDevice = renderer->PhysicalDevice();
 
-		init_info.Device = s_renderer->Device();
-		init_info.Queue = s_renderer->Queues().graphics.queue;
+		init_info.Device = renderer->Device();
+		init_info.Queue = renderer->Queues().graphics.queue;
 		init_info.DescriptorPool = imguiPool;
 		init_info.MinImageCount = 3;
 		init_info.ImageCount = 3;
 		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-		init_info.RenderPass = s_renderer->SwapChainRenderPass();
+		init_info.RenderPass = renderer->SwapChainRenderPass();
 		ImGui_ImplVulkan_Init(&init_info);
 
 		SetupImGuiStyle(1, 1.0f);
 
 		// add the destroy the imgui created structures
-		s_renderer->DeletionQueue().Push([=]() {
-			vkDestroyDescriptorPool(s_renderer->Device(), imguiPool, nullptr);
-			});
+		renderer->DeletionQueue().Push([=]() {
+			vkDestroyDescriptorPool(renderer->Device(), imguiPool, nullptr);
+		});
 	}
 
 	void ImGuiLayer::OnDisable()
 	{
-		vkDeviceWaitIdle(s_renderer->Device());
+		auto renderer = s_renderer.lock();
+		if(!renderer)
+		{
+			YERROR("Invalid renderer!");
+			return;
+		}
+
+		vkDeviceWaitIdle(renderer->Device());
 
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplSDL2_Shutdown();

@@ -22,6 +22,14 @@ namespace yoyo
             std::vector<ShaderInput> inputs;
         };
 
+        VkBool32 blend_enable = false;
+        VkBlendFactor src_blend_factor = VK_BLEND_FACTOR_ZERO;
+        VkBlendFactor dst_blend_factor = VK_BLEND_FACTOR_ZERO;
+        VkBlendOp color_blend_op = VK_BLEND_OP_ZERO_EXT;
+        VkBlendFactor src_alpha_blend_factor = VK_BLEND_FACTOR_ZERO;
+        VkBlendFactor dst_alpha_blend_factor = VK_BLEND_FACTOR_ZERO;
+        VkBlendOp alpha_blend_op = VK_BLEND_OP_ZERO_EXT;
+
         VkPolygonMode polygon_mode = VK_POLYGON_MODE_FILL;
         std::vector<ShaderStage> stages;
         void PushShader(Ref<VulkanShaderModule> shader_module, VkShaderStageFlagBits stage);

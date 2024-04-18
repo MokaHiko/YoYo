@@ -403,11 +403,6 @@ namespace yoyo
         m_render_packet_queue.emplace(packet);
     }
 
-    void* RendererLayer::NativeRenderer()
-    {
-        return (void*)m_renderer.get();
-    }
-
     void RendererLayer::OnAttach()
     {
         static const char* renderer_type_strings[]
@@ -454,7 +449,7 @@ namespace yoyo
         {
             if (m_render_packet_queue.size() > 1) 
             {
-                //YINFO("RENDER PACKET SIZE %d", m_render_packet_queue.size());
+                YINFO("RENDER PACKETS IN FLIGHT: %d", m_render_packet_queue.size());
             }
 
             bool build_batches = false;
@@ -500,12 +495,12 @@ namespace yoyo
 
                 for (auto& obj : packet->new_objects)
                 {
-                    build_batches = true;
                     m_scene->AddMeshPassObject(obj);
+                    build_batches = true;
                 }
 
                 // Set process flag and remove from queue
-                packet->SetProcess(true);
+                packet->SetProcessed(true);
                 m_render_packet_queue.pop();
             }
 

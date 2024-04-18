@@ -209,6 +209,14 @@ namespace yoyo
                 Lerp(v1.z, v2.z, t), };
     }
 
+    YAPI const Vec4 Lerp(const Vec4 &v1, const Vec4 &v2, float t) 
+    {
+        return {Lerp(v1.x, v2.x, t),
+                Lerp(v1.y, v2.y, t),
+                Lerp(v1.z, v2.z, t), 
+                Lerp(v1.w, v2.w, t),};
+    }
+
     YAPI const float Dot(const Vec3& v1, const Vec3& v2)
     {
         return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;

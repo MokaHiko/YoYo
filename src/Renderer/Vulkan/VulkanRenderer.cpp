@@ -153,6 +153,13 @@ namespace yoyo
             Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_particle_shader.frag.spv");
             unlit_particle_instanced_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
         }
+        unlit_particle_instanced_effect->blend_enable = true;
+        unlit_particle_instanced_effect->color_blend_op = VK_BLEND_OP_ADD;
+        unlit_particle_instanced_effect->alpha_blend_op = VK_BLEND_OP_SUBTRACT;
+        unlit_particle_instanced_effect->src_blend_factor = VK_BLEND_FACTOR_ONE;
+        unlit_particle_instanced_effect->dst_blend_factor = VK_BLEND_FACTOR_ONE;
+        unlit_particle_instanced_effect->src_alpha_blend_factor = VK_BLEND_FACTOR_ONE;
+        unlit_particle_instanced_effect->dst_alpha_blend_factor = VK_BLEND_FACTOR_ONE;
         auto unlit_particle_instanced_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, unlit_particle_instanced_effect);
 
         Ref<VulkanShaderEffect> unlit_instanced_effect = CreateRef<VulkanShaderEffect>();
@@ -185,34 +192,34 @@ namespace yoyo
         Ref<Shader> unlit_particle_instanced_shader = Shader::Create("unlit_particle_instanced_shader", true);
         unlit_particle_instanced_shader->shader_passes[MeshPassType::Forward] = unlit_particle_instanced_shader_pass;
 #ifdef Y_DEBUG
-    Ref<VulkanShaderEffect> skinned_lit_debug_effect = CreateRef<VulkanShaderEffect>();
-    skinned_lit_debug_effect->polygon_mode = VK_POLYGON_MODE_LINE;
-    {
-        Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_skinned_debug_shader.vert.spv");
-        skinned_lit_debug_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+        Ref<VulkanShaderEffect> skinned_lit_debug_effect = CreateRef<VulkanShaderEffect>();
+        skinned_lit_debug_effect->polygon_mode = VK_POLYGON_MODE_LINE;
+        {
+            Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_skinned_debug_shader.vert.spv");
+            skinned_lit_debug_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
 
-        Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_skinned_debug_shader.frag.spv");
-        skinned_lit_debug_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
-    }
-    auto skinned_lit_debug_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, skinned_lit_debug_effect);
+            Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_skinned_debug_shader.frag.spv");
+            skinned_lit_debug_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+        }
+        auto skinned_lit_debug_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, skinned_lit_debug_effect);
 
-    Ref<Shader> skinned_lit_debug_shader = Shader::Create("skinned_lit_debug_shader");
-    skinned_lit_debug_shader->shader_passes[MeshPassType::Forward] = skinned_lit_debug_shader_pass;
-    skinned_lit_debug_shader->shader_passes[MeshPassType::Shadow] = offscreen_skinned_shadow_pass;
+        Ref<Shader> skinned_lit_debug_shader = Shader::Create("skinned_lit_debug_shader");
+        skinned_lit_debug_shader->shader_passes[MeshPassType::Forward] = skinned_lit_debug_shader_pass;
+        skinned_lit_debug_shader->shader_passes[MeshPassType::Shadow] = offscreen_skinned_shadow_pass;
 
-    Ref<VulkanShaderEffect> unlit_collider_debug_effect = CreateRef<VulkanShaderEffect>();
-    unlit_collider_debug_effect->polygon_mode = VK_POLYGON_MODE_LINE;
-    {
-        Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_collider_debug_shader.vert.spv");
-        unlit_collider_debug_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+        Ref<VulkanShaderEffect> unlit_collider_debug_effect = CreateRef<VulkanShaderEffect>();
+        unlit_collider_debug_effect->polygon_mode = VK_POLYGON_MODE_LINE;
+        {
+            Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_collider_debug_shader.vert.spv");
+            unlit_collider_debug_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
 
-        Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_collider_debug_shader.frag.spv");
-        unlit_collider_debug_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
-    }
-    auto unlit_collider_debug_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, unlit_collider_debug_effect);
+            Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_collider_debug_shader.frag.spv");
+            unlit_collider_debug_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+        }
+        auto unlit_collider_debug_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, unlit_collider_debug_effect);
 
-    Ref<Shader> unlit_collider_debug_shader = Shader::Create("unlit_collider_debug_shader");
-    unlit_collider_debug_shader->shader_passes[MeshPassType::Forward] = unlit_collider_debug_shader_pass;
+        Ref<Shader> unlit_collider_debug_shader = Shader::Create("unlit_collider_debug_shader");
+        unlit_collider_debug_shader->shader_passes[MeshPassType::Forward] = unlit_collider_debug_shader_pass;
 #endif
     }
 
@@ -301,10 +308,11 @@ namespace yoyo
             const Ref<MeshPass>& forward_pass = scene->GetForwardPass();
             for (uint32_t i = 0; i < scene->GetForwardPassCount(); i++)
             {
-				const Ref<MeshPassObject>& renderable = forward_pass->renderables[forward_pass->renderable_ids[i]];
+                const Ref<MeshPassObject>& renderable = forward_pass->renderables[forward_pass->renderable_ids[i]];
 
                 ObjectData obj_data = {};
                 obj_data.model_matrix = renderable->model_matrix;
+                obj_data.color = renderable->color;
 
                 size_t offset = static_cast<size_t>(renderable->Id()) * padded_object_data_size;
                 memcpy(data + offset, &obj_data, sizeof(ObjectData));
@@ -1228,7 +1236,7 @@ namespace yoyo
 
         m_object_data_buffers.resize(Settings().max_frames_in_flight);
         m_instanced_data_buffers.resize(Settings().max_frames_in_flight);
-        for(int i = 0; i < Settings().max_frames_in_flight; i++)
+        for (int i = 0; i < Settings().max_frames_in_flight; i++)
         {
             m_object_data_buffers[i] = VulkanResourceManager::CreateBuffer<ObjectData>(padded_object_data_size * MAX_OBJECTS, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
@@ -1263,6 +1271,6 @@ namespace yoyo
         m_deletion_queue.Push([=]() {
             vkDestroyImageView(m_device, m_forward_pass_depth_texture_view, nullptr);
             vkDestroyImageView(m_device, m_forward_pass_color_texture_view, nullptr);
-        });
+            });
     }
 };

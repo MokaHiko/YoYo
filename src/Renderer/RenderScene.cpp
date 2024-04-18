@@ -21,7 +21,7 @@ namespace yoyo
 		YASSERT(obj->Id() == NULL_RENDER_SCENE_ID, "Mesh object already added!");
 		obj->SetId(GenerateSceneId());
 
-		switch (obj->material->GetRenderMode())
+	switch (obj->material->GetRenderMode())
 		{
 		case(MaterialRenderMode::Opaque):
 		{
@@ -32,6 +32,7 @@ namespace yoyo
 			transparent_forward_pass->AddRenderable(obj);
 		}break;
 		default:
+			YERROR("Uknown Render Mode!");
 			break;
 		}
 
@@ -44,7 +45,7 @@ namespace yoyo
 	void RenderScene::RemoveMeshPassObject(Ref<MeshPassObject> obj)
 	{
 		RenderSceneId scene_id = obj->Id();
-		YASSERT(scene_id != NULL_RENDER_SCENE_ID, "Cannot process invalid mesh object scene id!");
+		YASSERT(scene_id != NULL_RENDER_SCENE_ID, "Cannot remove invalid mesh object scene id!");
 		
 		switch (obj->material->GetRenderMode())
 		{
@@ -57,6 +58,7 @@ namespace yoyo
 			YERROR("No Transparent pass!");
 		}break;
 		default:
+			YERROR("Uknown Render Mode!");
 			break;
 		}
 
@@ -153,8 +155,8 @@ namespace yoyo
 			return m_next_id++;
 		}
 
-		uint32_t free_id = *m_free_ids.begin();
-		m_free_ids.erase(m_free_ids.begin());
+		uint32_t free_id = m_free_ids.front();
+		m_free_ids.pop();
 
 		return free_id;
 	}

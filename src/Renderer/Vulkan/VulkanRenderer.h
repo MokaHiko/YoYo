@@ -120,6 +120,7 @@ namespace yoyo
         struct ObjectData
         {
             Mat4x4 model_matrix;
+            Vec4 color;
         };
 
         struct InstancedData

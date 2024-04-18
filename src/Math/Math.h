@@ -32,6 +32,7 @@ namespace yoyo
     YAPI const Vec3 Cross(const Vec3& v1, const Vec3& v2);
 
     YAPI const Vec3 Lerp(const Vec3& v1, const Vec3& v2, float t);
+    YAPI const Vec4 Lerp(const Vec4& v1, const Vec4& v2, float t);
 
     YAPI const Vec2 operator*(const Vec2& v1, const Vec2& v2);
     YAPI const Vec3 operator*(const Vec3& v1, const Vec3& v2);

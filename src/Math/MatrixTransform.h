@@ -26,7 +26,7 @@ namespace yoyo
     // Generates a rotation matrix given euler angles 
     YAPI Mat4x4 RotateEulerMat4x4(const Vec3& angles);
 
-    YAPI Mat4x4 TransposeMat4x4(Mat4x4& matrix);
+    YAPI Mat4x4 TransposeMat4x4(const Mat4x4& matrix);
 
     YAPI float Trace4x4(const Mat4x4& matrix);
 

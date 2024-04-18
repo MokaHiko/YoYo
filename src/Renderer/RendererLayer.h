@@ -20,7 +20,7 @@ namespace yoyo
         void SendRenderPacket(RenderPacket* packet);
 
         Ref<Renderer> GetRenderer() {return m_renderer;}
-        void* NativeRenderer();
+        const Ref<RenderScene> GetScene() const {return m_scene;}
 
         virtual void OnAttach() override;
         virtual void OnDetatch() override;
