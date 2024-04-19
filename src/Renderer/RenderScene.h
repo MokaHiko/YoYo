@@ -10,12 +10,20 @@ namespace yoyo
     class DirectionalLight;
     class PointLight;
 
+    // Render packet flags
+
     // Structure that sends info about updates to the scene
     // class Camera;
     // class DirectionalLight;
     class MeshPassObject;
     struct YAPI RenderPacket
     {
+        RenderPacket(bool reset_after_process = false)
+            :m_auto_reset(reset_after_process){}
+        ~RenderPacket() = default;
+
+        void ToggleAutoReset(bool reset_after_process) {m_auto_reset = reset_after_process;}
+
         void Reset()
         {
             new_dir_lights.clear();
@@ -29,6 +37,12 @@ namespace yoyo
 
             m_processed = false;
         }
+
+        void AddDeletedObject(Ref<MeshPassObject> object)
+        {
+            m_processed = false;
+            deleted_objects.push_back(object);
+        };
 
         std::vector<uint32_t> deleted_dir_lights;
         std::vector<Ref<DirectionalLight>> new_dir_lights;
@@ -51,9 +65,15 @@ namespace yoyo
         {
             // TODO: Make thread safe
             m_processed = is_processed;
+
+            if(m_auto_reset && is_processed)
+            {
+                Reset();
+            }
         }
     private:
         bool m_processed = false;
+        bool m_auto_reset = false;
     };
 
     // Render structure that is incrementally built and updated. Scenes should only be updated via a render packet!

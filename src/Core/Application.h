@@ -22,9 +22,12 @@ namespace yoyo
     class YAPI Application
     {
     public:
-        Application(const ApplicationSettings &settings);
+        Application(const ApplicationSettings& settings);
         virtual ~Application();
 
+#ifdef Y_DEBUG
+        std::unordered_map<std::string, float> d_layer_profiles;
+#endif
         void Init();
         void Run();
         void Shutdown();
@@ -32,7 +35,7 @@ namespace yoyo
         void PushLayer(Layer* layer);
         void PopLayer(Layer* layer);
 
-        LayerStack& Layers() {return m_layers;} // Returns the layers of the application
+        LayerStack& Layers() { return m_layers; } // Returns the layers of the application
 
         ApplicationSettings& Settings();
 
@@ -44,7 +47,7 @@ namespace yoyo
         {
             for (Layer* layer : m_layers)
             {
-                if(layer->Name() == T::s_name)
+                if (layer->Name() == T::s_name)
                 {
                     return (T*)(layer);
                 }
@@ -56,10 +59,9 @@ namespace yoyo
 
     private:
         ApplicationSettings m_settings;
-
         LayerStack m_layers;
         bool m_running;
     };
 }
 
-extern yoyo::Application *CreateApplication();
+extern yoyo::Application* CreateApplication();

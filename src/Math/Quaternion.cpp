@@ -20,6 +20,7 @@ namespace yoyo
 		float c = Cos(half_angle);
 
 		Quat q = { s * axis.x, s * axis.y, s * axis.z, c };
+
 		if (normalize)
 		{
 			return NormalizeQuat(q);

@@ -41,7 +41,7 @@ namespace yoyo
 
         Vec4 color{ 1.0f, 1.0f, 1.0f , 1.0f };
         Vec4 start_color{ 1.0f, 1.0f, 1.0f, 1.0f };
-        Vec4 end_color{ 0.0f, 0.0f, 0.0f, 0.0f };
+        Vec4 end_color{ 1.0f, 1.0f, 1.0f, 0.0f };
     };
 
     class MeshPassObject;

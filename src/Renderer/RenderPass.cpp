@@ -34,7 +34,7 @@ namespace yoyo
 	{
 		// Release renderable from shader pass
 		renderables[id]->DecrementShaderPassCount();
-		// renderables[id].reset();
+		//renderables[id].reset();
 
 		// Swap, if index is not the end of renderable id array
 		int renderable_id_index = renderable_id_to_index[id];

@@ -449,7 +449,7 @@ namespace yoyo
         {
             if (m_render_packet_queue.size() > 1) 
             {
-                YINFO("RENDER PACKETS IN FLIGHT: %d", m_render_packet_queue.size());
+                //YINFO("RENDER PACKETS IN FLIGHT: %d", m_render_packet_queue.size());
             }
 
             bool build_batches = false;
@@ -486,16 +486,17 @@ namespace yoyo
                     m_scene->directional_lights.push_back(light);
                 }
 
+                // Add new objects
+                for (auto& obj : packet->new_objects)
+                {
+                    m_scene->AddMeshPassObject(obj);
+                    build_batches = true;
+                }
+
                 // Remove deleted objects
                 for (auto& obj : packet->deleted_objects)
                 {
                     m_scene->RemoveMeshPassObject(obj);
-                    build_batches = true;
-                }
-
-                for (auto& obj : packet->new_objects)
-                {
-                    m_scene->AddMeshPassObject(obj);
                     build_batches = true;
                 }
 

@@ -77,6 +77,11 @@ namespace yoyo
             const float dt = Time::DeltaTime();
             for (auto rit = m_layers.rbegin(); rit != m_layers.rend(); rit++)
             {
+#ifdef Y_DEBUG
+                ScopedTimer timer([&](const ScopedTimer& timer) {
+                    d_layer_profiles[(*rit)->Name()] = timer.delta;
+                });
+#endif
                 (*rit)->OnUpdate(dt);
             }
         }

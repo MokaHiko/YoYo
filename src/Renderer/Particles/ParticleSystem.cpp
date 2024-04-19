@@ -5,8 +5,13 @@
 #include "Renderer/RenderPass.h"
 #include "Math/Random.h"
 
+#include <thread>
+
 namespace yoyo
 {
+	static PRNGenerator<int> random_sign = { -1, 1 };
+	static PRNGenerator<float> random_usign = { 0.0f, 1.0f };
+
 	ParticleSystem::ParticleSystem()
 	{
 		// Default values
@@ -32,9 +37,6 @@ namespace yoyo
 
 	void ParticleSystem::Update(float dt)
 	{
-		static PRNGenerator<int> random_sign = { -1, 1 };
-		static PRNGenerator<float> random_usign = { 0.0f, 1.0f };
-
 		m_time_alive += dt;
 		m_particles_alive = Clamp(static_cast<uint32_t>(m_time_alive * m_emission_rate), 0, m_max_particles);
 
@@ -58,7 +60,6 @@ namespace yoyo
 				particle.linear_velocity = Lerp(linear_velocity_range.first, linear_velocity_range.second, random_usign.Next());
 				particle.angular_velocity = Lerp(angular_velocity_range.first, angular_velocity_range.second, random_usign.Next());
 				particle.color = particle.start_color;
-
 				// TODO: Die
 				// return;
 			}
@@ -85,11 +86,25 @@ namespace yoyo
 		m_max_particles = max_particles;
 		m_particles.resize(max_particles);
 
-		// TODO: Check if particles are being down sized to remove renderables
-		// if(max_particles < m_max_particles)
-		// {
-		
-		// }
+		// Make particles
+		for(int i = 0; i < m_particles.size(); i++)
+		{
+			Particle& particle = m_particles[i];
+
+			// Recycle if repeating
+			particle.time_alive = 0;
+			particle.life_span = Lerp(life_span_range.first, life_span_range.second, random_sign.Next());
+			particle.position = Lerp(position_offset_range.first, position_offset_range.second, random_usign.Next());
+			particle.rotation = { 0.0f, 0.0f, 0.0f };
+
+			particle.start_scale = Vec3{1.0f, 1.0f, 1.0f} * Lerp(scale_range.first, scale_range.second, random_usign.Next());
+			particle.end_scale = Vec3{1.0f, 1.0f, 1.0f} * Lerp(scale_range.first, scale_range.second, random_usign.Next());
+			particle.scale = particle.start_scale;
+
+			particle.linear_velocity = Lerp(linear_velocity_range.first, linear_velocity_range.second, random_usign.Next());
+			particle.angular_velocity = Lerp(angular_velocity_range.first, angular_velocity_range.second, random_usign.Next());
+			particle.color = particle.start_color;
+		}
 	}
 
 }

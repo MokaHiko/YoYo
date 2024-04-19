@@ -300,6 +300,7 @@ namespace yoyo
 
 	YAPI Quat RotationFromMat4x4(const Mat4x4& matrix)
 	{
+        // TODO: This implementation is transposed 
         Mat4x4 rot_mat = matrix;
 
         // Normalize rotation
