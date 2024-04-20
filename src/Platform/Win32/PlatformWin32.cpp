@@ -102,6 +102,9 @@ namespace yoyo
                 static Ref<MouseButtonDownEvent> mouse_up_event = CreateRef<MouseButtonDownEvent>((int)event.button.button);
                 mouse_up_event->button = (int)event.button.button;
 
+                mouse_up_event->x = event.button.x;
+                mouse_up_event->y = event.button.y;
+
                 EventManager::Instance().Dispatch(mouse_up_event);
             }break;
 
@@ -111,6 +114,18 @@ namespace yoyo
                 mouse_up_event->button = (int)event.button.button;
 
                 EventManager::Instance().Dispatch(mouse_up_event);
+            }break;
+
+            case(SDL_MOUSEMOTION):
+            {
+                static Ref<MouseMoveEvent> mouse_move_event = CreateRef<MouseMoveEvent>(event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel);
+
+                mouse_move_event->x = event.motion.x;
+                mouse_move_event->y = event.motion.y;
+                mouse_move_event->x_rel = event.motion.xrel;
+                mouse_move_event->y_rel = event.motion.yrel;
+
+                EventManager::Instance().Dispatch(mouse_move_event);
             }break;
 
             default:

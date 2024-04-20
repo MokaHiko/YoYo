@@ -159,6 +159,11 @@ namespace yoyo
         return out_matrix;
     }
 
+	const float SquaredLength(const Vec3& v1)
+	{
+        return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z;
+	}
+
     const float Length(const Vec3& v1)
     {
         return sqrt(v1.x * v1.x + v1.y * v1.y + v1.z * v1.z);

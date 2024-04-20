@@ -47,6 +47,11 @@ namespace yoyo
 
 			if(particle.time_alive >= particle.life_span)
 			{
+				if(!m_repeating)
+				{
+					continue;
+				}
+
 				// Recycle if repeating
 				particle.time_alive = 0;
 				particle.life_span = Lerp(life_span_range.first, life_span_range.second, random_sign.Next());
@@ -60,8 +65,6 @@ namespace yoyo
 				particle.linear_velocity = Lerp(linear_velocity_range.first, linear_velocity_range.second, random_usign.Next());
 				particle.angular_velocity = Lerp(angular_velocity_range.first, angular_velocity_range.second, random_usign.Next());
 				particle.color = particle.start_color;
-				// TODO: Die
-				// return;
 			}
 
 			// Forces
@@ -105,6 +108,12 @@ namespace yoyo
 			particle.angular_velocity = Lerp(angular_velocity_range.first, angular_velocity_range.second, random_usign.Next());
 			particle.color = particle.start_color;
 		}
+	}
+
+	void ParticleSystem::SetParticlesAlive(uint32_t particle_count)
+	{
+		YASSERT(particle_count <= m_particles.size(), "Cannot increase particle count to more than maximum particle system capacity!");
+		m_particles_alive = particle_count;
 	}
 
 }

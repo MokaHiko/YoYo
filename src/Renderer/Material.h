@@ -93,6 +93,9 @@ namespace yoyo
         virtual void Unbind() {};
 
         static Ref<Material> Create(Ref<Shader> shader, const std::string& name = "");
+
+        // Create material from existing material
+        static Ref<Material> Create(Ref<Material> base, const std::string& name);
         const bool Dirty() const { return m_dirty != MaterialDirtyFlags::Clean; }
     public:
         bool operator==(const Material& other) const

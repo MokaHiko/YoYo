@@ -21,6 +21,7 @@ namespace yoyo
 
     YAPI bool FloatCompare(float x, float y, float epsilon = 0.01f);
 
+    YAPI const float SquaredLength(const Vec3& v1);
     YAPI const float Length(const Vec3& v1);
     YAPI const float Length(const Vec4& v1);
     YAPI const Vec3 Normalize(const Vec3& v1);

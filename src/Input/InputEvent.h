@@ -46,6 +46,24 @@ namespace yoyo
 
         int button;
 
+        int x; // relative to window
+        int y; // relative to window
+
         EVENT_TYPE(MouseButtonDownEvent)
+    };
+
+    class MouseMoveEvent: public Event
+    {
+    public:
+        MouseMoveEvent(int _x, int _y, int _x_rel, int _y_rel);
+        virtual ~MouseMoveEvent() = default;
+
+        int x; // relative to window
+        int y; // relative to window
+
+        int x_rel; // relative motion in x direction
+        int y_rel; // relative motion in y direction
+
+        EVENT_TYPE(MouseMoveEvent)
     };
 }

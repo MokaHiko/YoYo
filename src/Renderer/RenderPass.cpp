@@ -14,8 +14,12 @@ namespace yoyo
 	MeshPass::MeshPass(uint32_t max_objects)
 	{
 		renderables.resize(max_objects);
+
 		renderable_id_to_index.resize(max_objects);
+		memset(renderable_id_to_index.data(), -1, renderable_id_to_index.size() * sizeof(int));
+
 		renderable_ids.resize(max_objects);
+		memset(renderable_ids.data(), NULL_RENDER_SCENE_ID, renderable_ids.size() * sizeof(RenderSceneId));
 	}
 
 	void MeshPass::AddRenderable(Ref<MeshPassObject> obj)
@@ -34,14 +38,22 @@ namespace yoyo
 	{
 		// Release renderable from shader pass
 		renderables[id]->DecrementShaderPassCount();
-		//renderables[id].reset();
+		renderables[id].reset();
 
-		// Swap, if index is not the end of renderable id array
-		int renderable_id_index = renderable_id_to_index[id];
-		if (renderable_id_index < count - 1)
+		// Swap the last of id array, if deleted index is not the end of array
+		int to_delete_index = renderable_id_to_index[id];
+		if (to_delete_index < count - 1)
 		{
-			renderable_ids[renderable_id_index] = renderable_ids[count - 1];
+			// Update flat renderable id array
+			renderable_ids[to_delete_index] = renderable_ids[count - 1];
+
+			// Update renderable id to index mapper
+			renderable_id_to_index[renderable_ids[to_delete_index]] = to_delete_index;
 		}
+
+#ifdef Y_DEBUG
+		renderable_id_to_index[id] = -1;
+#endif
 
 		count--;
 	}

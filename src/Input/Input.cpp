@@ -4,8 +4,15 @@
 #include "Core/Log.h"
 #include "Core/Assert.h"
 
+#include "Math/Math.h"
+
 namespace yoyo
 {
+	int Input::x;
+	int Input::y;
+	int Input::x_rel;
+	int Input::y_rel;
+
 	bool Input::LastKeys[322] = { 0 };
 	bool Input::Keys[322] = { 0 };
 	bool Input::LastMouseButtons[4] = { 0 };
@@ -21,6 +28,9 @@ namespace yoyo
 
 	void InputLayer::OnEnable()
 	{
+		Input::x = 0;
+		Input::y = 0;
+
 		memset(Input::LastKeys, 0, 322);
 		memset(Input::Keys, 0, 322);
 		memset(Input::LastMouseButtons, 0, 4);
@@ -39,6 +49,10 @@ namespace yoyo
 		});
 
 		EventManager::Instance().Subscribe(MouseButtonUpEvent::s_event_type, [&](Ref<Event> event){
+			return OnEvent(event);
+		});
+
+		EventManager::Instance().Subscribe(MouseMoveEvent::s_event_type, [&](Ref<Event> event){
 			return OnEvent(event);
 		});
 	}
@@ -65,7 +79,7 @@ namespace yoyo
 		}
 		else if (event->Type() == KeyUpEvent::s_event_type)
 		{
-			Ref<KeyUpEvent> key_up_event = std::static_pointer_cast<KeyUpEvent>(event);
+			const Ref<KeyUpEvent>& key_up_event = std::static_pointer_cast<KeyUpEvent>(event);
 
 			KeyCode key = key_up_event->key;
 
@@ -76,7 +90,7 @@ namespace yoyo
 		}
 		else if (event->Type() == MouseButtonDownEvent::s_event_type)
 		{
-			Ref<MouseButtonDownEvent> mouse_button_down_event = std::static_pointer_cast<MouseButtonDownEvent>(event);
+			const Ref<MouseButtonDownEvent>& mouse_button_down_event = std::static_pointer_cast<MouseButtonDownEvent>(event);
 			int mouse_button = mouse_button_down_event->button;
 
 			if (Input::MouseButtons[(int)mouse_button])
@@ -89,12 +103,24 @@ namespace yoyo
 		}
 		else if (event->Type() == MouseButtonUpEvent::s_event_type)
 		{
-			Ref<MouseButtonUpEvent> mouse_button_up_event = std::static_pointer_cast<MouseButtonUpEvent>(event);
+			const Ref<MouseButtonUpEvent>& mouse_button_up_event = std::static_pointer_cast<MouseButtonUpEvent>(event);
 
 			int mouse_button = mouse_button_up_event->button;
 
 			Input::LastMouseButtons[mouse_button] = false;
 			Input::MouseButtons[mouse_button] = false;
+
+			return true;
+		}
+		else if (event->Type() == MouseMoveEvent::s_event_type)
+		{
+			const Ref<MouseMoveEvent>& mouse_button_up_event = std::static_pointer_cast<MouseMoveEvent>(event);
+
+			Input::x = mouse_button_up_event->x;
+			Input::y = mouse_button_up_event->y;
+
+			Input::x_rel = mouse_button_up_event->x_rel;
+			Input::y_rel = mouse_button_up_event->y_rel;
 
 			return true;
 		}
@@ -128,6 +154,11 @@ namespace yoyo
 		}
 
 		return false;
+	}
+
+	IVec2 Input::GetMousePosition()
+	{
+		return{Input::x, Input::y};
 	}
 
 	bool Input::GetKey(KeyCode key)

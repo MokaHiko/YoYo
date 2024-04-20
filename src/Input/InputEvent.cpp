@@ -16,4 +16,7 @@ namespace yoyo
 
 	MouseButtonDownEvent::MouseButtonDownEvent(int index)
 		:button(index) {}
+
+	MouseMoveEvent::MouseMoveEvent(int _x, int _y, int _x_rel, int _y_rel)
+		:x(_x), y(_y), x_rel(_x_rel), y_rel(_y_rel) {}
 };

@@ -45,6 +45,10 @@ namespace yoyo
 	void RenderScene::RemoveMeshPassObject(Ref<MeshPassObject> obj)
 	{
 		RenderSceneId scene_id = obj->Id();
+		if (!obj->Valid())
+		{
+			return;
+		}
 		YASSERT(scene_id != NULL_RENDER_SCENE_ID, "Cannot remove invalid mesh object scene id!");
 		
 		switch (obj->material->GetRenderMode())
@@ -70,6 +74,10 @@ namespace yoyo
 		// Cache if no shader passes are using it
 		if (obj->ShaderPassCount() == 0)
 		{
+			// Invalidate
+			obj->SetId(NULL_RENDER_SCENE_ID);
+
+			// Cache
 			m_free_ids.emplace(scene_id);
 		}
 	}

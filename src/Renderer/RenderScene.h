@@ -29,20 +29,14 @@ namespace yoyo
             new_dir_lights.clear();
             deleted_dir_lights.clear();
 
-            new_objects.clear();
-            deleted_objects.clear();
-
             new_camera.reset();
             new_camera = nullptr;
 
+            new_objects.clear();
+            deleted_objects.clear();
+
             m_processed = false;
         }
-
-        void AddDeletedObject(Ref<MeshPassObject> object)
-        {
-            m_processed = false;
-            deleted_objects.push_back(object);
-        };
 
         std::vector<uint32_t> deleted_dir_lights;
         std::vector<Ref<DirectionalLight>> new_dir_lights;

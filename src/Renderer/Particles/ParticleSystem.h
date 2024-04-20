@@ -70,6 +70,7 @@ namespace yoyo
         void SetMaxParticles(uint32_t max_particles);
 
         const uint32_t GetParticlesAlive() const { return m_particles_alive; }
+        void SetParticlesAlive(uint32_t particle_count);
 
         const yoyo::Vec3& GetGravityScale() const { return m_gravity_scale; }
         void SetGravityScale(const yoyo::Vec3& gravity_scale) { m_gravity_scale = gravity_scale; }
@@ -94,6 +95,8 @@ namespace yoyo
 
         // For local space particles
         Mat4x4 m_global_transform = { 1.0f };
+
+        bool m_repeating = true;
 
         uint32_t m_max_particles = 0;
         uint32_t m_particles_alive = 0;

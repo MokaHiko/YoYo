@@ -41,7 +41,7 @@ namespace yoyo
         EventManager::Instance().Subscribe(MaterialCreatedEvent::s_event_type, [&](Ref<Event> event) {
             auto material_created_event = std::static_pointer_cast<MaterialCreatedEvent>(event);
             return RegisterMaterial(std::static_pointer_cast<VulkanMaterial>(material_created_event->material));
-            });
+        });
     }
 
     void VulkanMaterialSystem::Shutdown() {}
@@ -54,7 +54,7 @@ namespace yoyo
             std::vector<VulkanDescriptorSetInformation>& shader_pass_sets = (*(pass_it->second)).effect->set_infos;
             auto property_ds = std::find_if(shader_pass_sets.begin(), shader_pass_sets.end(), [=](const VulkanDescriptorSetInformation& set) {
                 return set.index == MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX;
-                });
+            });
 
             if (property_ds == shader_pass_sets.end())
             {
@@ -116,8 +116,6 @@ namespace yoyo
 
             return true;
         }
-
-
 
         return false;
     }

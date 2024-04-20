@@ -42,14 +42,15 @@ namespace yoyo
 			float width = 16 * 6.0f;
 			float height = 9 * 6.0f;
 
-			float half_width = static_cast<float>(width) / 2.0f;
+			float half_width = static_cast<float>(width)  / 2.0f;
 			float half_height = static_cast<float>(height) / 2.0f;
-			m_proj = OrthographicProjectionMat4x4(-half_width, half_width, -half_height, half_height, -1000, 1000);
+			m_proj = OrthographicProjectionMat4x4(-half_width, half_width, -half_height, half_height, -1000.0f, 1000);
 			m_proj[5] *= 1.0f;
 		}break;
 		default:
 			break;
 		}
+
 
 		if (true)
 		{

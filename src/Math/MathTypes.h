@@ -23,6 +23,23 @@ namespace yoyo
         Vec2& operator*=(const Vec2& other);
     };
 
+    union YAPI IVec2
+    {
+        int elements[2];
+
+        struct
+        {
+            union
+            {
+                int x, r, s, u;
+            };
+            union
+            {
+                int y, g, t, v;
+            };
+        };
+    };
+
     union YAPI Vec3
     {
         float elements[3];

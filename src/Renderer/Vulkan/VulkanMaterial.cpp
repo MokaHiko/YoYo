@@ -19,6 +19,20 @@ namespace yoyo
         return material;
     }
 
+    Ref<Material> Material::Create(Ref<Material> base, const std::string& name)
+    {
+        Ref<VulkanMaterial> material = CreateRef<VulkanMaterial>();
+        material->name = name;
+        material->shader = base->shader;
+        material->SetRenderMode(MaterialRenderMode::Opaque);
+        material->ToggleInstanced(base->shader->instanced);
+        material->ToggleReceiveShadows(true);
+        material->m_dirty = MaterialDirtyFlags::Clean;
+
+        EventManager::Instance().Dispatch(CreateRef<MaterialCreatedEvent>(material));
+        return material;
+    }
+
     VulkanMaterial::VulkanMaterial()
     {
     }
