@@ -66,6 +66,9 @@ namespace yoyo
 
         const std::vector<Particle>& GetParticles() const { return m_particles; }
 
+        const bool IsRepeating() const { return m_repeating; }
+        void SetRepeating(bool is_repeating) { m_repeating = is_repeating; }
+
         const uint32_t GetMaxParticles() const { return m_max_particles; }
         void SetMaxParticles(uint32_t max_particles);
 

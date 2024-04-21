@@ -122,10 +122,14 @@ target_link_libraries(ImGuizmo PRIVATE ImGui)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC Hurno ImGui ImGuizmo)
 
-# TODO Detect build type
-if(true)
-    add_compile_definitions(Y_DEBUG)
-endif()
+# Detect build type
+target_compile_definitions(${PROJECT_NAME}
+    PUBLIC
+    $<$<CONFIG:Debug>:Y_DEBUG>
+    $<$<CONFIG:RelWithDebInfo>:Y_DEBUG>
+    $<$<CONFIG:Release>:Y_RELEASE>
+    $<$<CONFIG:MinSizeRel>:Y_RELEASE>
+)
 
 if(MSVC)
     add_compile_definitions(Y_COMPILER_MSVC)
