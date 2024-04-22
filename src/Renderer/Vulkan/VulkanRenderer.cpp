@@ -172,6 +172,25 @@ namespace yoyo
         }
         auto unlit_instanced_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, unlit_instanced_effect);
 
+        {
+            Ref<VulkanShaderEffect> lit_points_effect = CreateRef<VulkanShaderEffect>();
+            {
+                Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.vert.spv");
+                lit_points_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+
+                Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.frag.spv");
+                lit_points_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+            }
+
+            lit_points_effect->blend_enable = false;
+            lit_points_effect->primitive_topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+            auto lit_points_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_points_effect);
+
+            Ref<Shader> lit_points_shader = Shader::Create("lit_points_shader");
+            lit_points_shader->shader_passes[MeshPassType::Forward] = lit_points_shader_pass;
+            lit_points_shader->shader_passes[MeshPassType::Shadow] = shadow_pass;
+        }
+
         // Create lit shader (Effect Template)
         Ref<Shader> lit_shader = Shader::Create("lit_shader");
         lit_shader->shader_passes[MeshPassType::Forward] = lit_shader_pass;

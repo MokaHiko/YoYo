@@ -31,6 +31,7 @@ namespace yoyo
         VkBlendOp alpha_blend_op = VK_BLEND_OP_ZERO_EXT;
 
         VkPolygonMode polygon_mode = VK_POLYGON_MODE_FILL;
+        VkPrimitiveTopology primitive_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         std::vector<ShaderStage> stages;
         void PushShader(Ref<VulkanShaderModule> shader_module, VkShaderStageFlagBits stage);
     };

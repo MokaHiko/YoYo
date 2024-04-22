@@ -42,7 +42,14 @@ namespace yoyo
 
     union YAPI Vec3
     {
-        float elements[3];
+        Vec3() : x(0),y(0),z(0){}
+        Vec3(float val) : x(val), y(val), z(val) {};
+
+        Vec3(float _x, float _y, float _z)
+            :x(_x), y(_y), z(_z) {}
+        ~Vec3() = default;
+
+        float elements[3] = {0.0f};
 
         struct
         {
@@ -77,6 +84,37 @@ namespace yoyo
         bool operator!=(const Vec3& other) const
         {
             return x - other.x + y - other.y + z - other.z != 0.0f;
+        };
+    };
+
+    union YAPI IVec3
+    {
+        int elements[3];
+
+        struct
+        {
+            union
+            {
+                int x, r, s, u;
+            };
+            union
+            {
+                int y, g, t, v;
+            };
+            union
+            {
+                int z, b, p, w;
+            };
+        };
+
+        bool operator==(const IVec3& other) const
+        {
+            return x - other.x + y - other.y + z - other.z == 0;
+        };
+
+        bool operator!=(const IVec3& other) const
+        {
+            return x - other.x + y - other.y + z - other.z != 0;
         };
     };
 

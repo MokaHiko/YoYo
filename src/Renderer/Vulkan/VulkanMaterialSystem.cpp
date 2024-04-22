@@ -152,7 +152,7 @@ namespace yoyo
         builder.vertex_input_info.vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_descs.size());
         builder.vertex_input_info.pVertexBindingDescriptions = vertex_binding_descs.data();
 
-        builder.input_assembly = vkinit::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+        builder.input_assembly = vkinit::PipelineInputAssemblyStateCreateInfo(effect->primitive_topology);
 
         builder.rasterizer = vkinit::PipelineRasterizationStateCreateInfo(effect->polygon_mode);
         builder.multisampling = vkinit::PipelineMultisampleStateCreateInfo();
