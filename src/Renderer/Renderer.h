@@ -27,8 +27,8 @@ namespace yoyo
         int max_frames_in_flight;
         bool tesselation;
 
-        float width;
-        float height;
+        uint32_t width;
+        uint32_t height;
         float fov;
     };
 

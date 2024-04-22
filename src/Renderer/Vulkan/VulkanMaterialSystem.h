@@ -36,5 +36,6 @@ namespace yoyo
 
         VkDevice m_device;
         VulkanDeletionQueue* m_deletion_queue;
+        VulkanRenderer* m_renderer;
     };
 }
