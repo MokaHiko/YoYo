@@ -390,6 +390,12 @@ namespace yoyo
     RendererLayer::RendererLayer(Application* app)
         : m_renderer(nullptr)
     {
+        m_renderer = CreateRenderer();
+
+        // Renderer settings
+        m_renderer->Settings().width = app->Settings().width;
+        m_renderer->Settings().height = app->Settings().height;
+
         m_app = app;
     }
 
@@ -412,12 +418,6 @@ namespace yoyo
             "DirectX",
             "MoltenVK"
         };
-
-        m_renderer = CreateRenderer();
-
-        // Renderer settings
-        m_renderer->Settings().width = 1920;
-        m_renderer->Settings().height = 1080;
 
         YINFO("Renderer Type: %s", renderer_type_strings[(int)m_renderer->Type()]);
     }
