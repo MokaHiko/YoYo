@@ -105,6 +105,22 @@ namespace yoyo
 				texture->UploadTextureData();
 			}
 		}
+
+		for (auto it : ResourceManager::Instance().Cache<Material>())
+		{
+			Ref<Material> material = it.second;
+
+			MaterialDirtyFlags flags = material->DirtyFlags();
+			if (flags == MaterialDirtyFlags::Clean)
+			{
+				continue;
+			}
+
+			//if ((flags & MaterialDirtyFlags::Unuploaded) == MaterialDirtyFlags::Unuploaded)
+			//{
+			//	material->UploadMaterialData();
+			//}
+		}
 	}
 
 	RuntimeResourceLayer::~RuntimeResourceLayer()

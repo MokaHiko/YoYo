@@ -21,13 +21,17 @@ namespace yoyo
 
     Ref<Material> Material::Create(Ref<Material> base, const std::string& name)
     {
+        YASSERT(base, "Cannot create material from null base!");
+
         Ref<VulkanMaterial> material = CreateRef<VulkanMaterial>();
         material->name = name;
         material->shader = base->shader;
+        material->m_dirty = MaterialDirtyFlags::Clean;
+
+        material->SetTexture(MaterialTextureType::MainTexture, base->MainTexture());
         material->SetRenderMode(MaterialRenderMode::Opaque);
         material->ToggleInstanced(base->shader->instanced);
         material->ToggleReceiveShadows(true);
-        material->m_dirty = MaterialDirtyFlags::Clean;
 
         EventManager::Instance().Dispatch(CreateRef<MaterialCreatedEvent>(material));
         return material;

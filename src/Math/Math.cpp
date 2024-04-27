@@ -107,21 +107,21 @@ namespace yoyo
         return { v1.x / scalar, v1.y / scalar, v1.z / scalar , v1.w / scalar};
     }
 
-    YAPI yoyo::Vec3 operator*(Mat4x4 m, yoyo::Vec3 v)
+    YAPI yoyo::Vec3 operator*(const Mat4x4& m, const yoyo::Vec3& v)
     {
         return {
-            v.x * m.data[0] + v.y * m.data[4] + v.z * m.data[8] + m.data[12],
-            v.x * m.data[1] + v.y * m.data[5] + v.z * m.data[9] + m.data[13],
-            v.x * m.data[2] + v.y * m.data[6] + v.z * m.data[10] + m.data[14] };
+            v.x * m.data[0] + v.y * m.data[4] + v.z * m.data[8],
+            v.x * m.data[1] + v.y * m.data[5] + v.z * m.data[9],
+            v.x * m.data[2] + v.y * m.data[6] + v.z * m.data[10]};
     }
 
     YAPI const Vec4 operator*(const Mat4x4& m, const Vec4& v)
     {
         return {
-            v.x * m.data[0] + v.y * m.data[4] + v.z * m.data[8] + m.data[12],
-            v.x * m.data[1] + v.y * m.data[5] + v.z * m.data[9] + m.data[13],
-            v.x * m.data[2] + v.y * m.data[6] + v.z * m.data[10] + m.data[14],
-            v.x * m.data[3] + v.y * m.data[7] + v.z * m.data[11] + m.data[15]
+            v.x * m.data[0] + v.y * m.data[4] + v.z * m.data[8] + v.w * m.data[12],
+            v.x * m.data[1] + v.y * m.data[5] + v.z * m.data[9] + v.w * m.data[13],
+            v.x * m.data[2] + v.y * m.data[6] + v.z * m.data[10] + v.w * m.data[14],
+            v.x * m.data[3] + v.y * m.data[7] + v.z * m.data[11] + v.w * m.data[15]
         };
     }
 
