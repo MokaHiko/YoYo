@@ -23,9 +23,7 @@ namespace yoyo
 		YTRACE("Camera Created!");
 	}
 
-	Camera::~Camera()
-	{
-	}
+	Camera::~Camera() {}
 
 	void Camera::UpdateCameraVectors()
 	{

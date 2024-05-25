@@ -16,7 +16,7 @@
 
 namespace yoyo
 {
-    struct ExampleAppConsole
+    struct DefaultAppConsole
     {
         char                  InputBuf[256];
         ImVector<char*>       Items;
@@ -27,7 +27,7 @@ namespace yoyo
         bool                  AutoScroll;
         bool                  ScrollToBottom;
 
-        ExampleAppConsole()
+        DefaultAppConsole()
         {
             ClearLog();
             memset(InputBuf, 0, sizeof(InputBuf));
@@ -42,7 +42,7 @@ namespace yoyo
             ScrollToBottom = false;
             AddLog("Simulation start!");
         }
-        ~ExampleAppConsole()
+        ~DefaultAppConsole()
         {
             ClearLog();
             for (int i = 0; i < History.Size; i++)
@@ -281,7 +281,7 @@ namespace yoyo
         // In C++11 you'd be better off using lambdas for this sort of forwarding callbacks
         static int TextEditCallbackStub(ImGuiInputTextCallbackData* data)
         {
-            ExampleAppConsole* console = (ExampleAppConsole*)data->UserData;
+            DefaultAppConsole* console = (DefaultAppConsole*)data->UserData;
             return console->TextEditCallback(data);
         }
 
@@ -441,7 +441,7 @@ namespace yoyo
     {
         static ImGuiLayer* imgui_layer = m_app->FindLayer<ImGuiLayer>();
         static bool open = true;
-        static ExampleAppConsole* console = YNEW ExampleAppConsole;
+        static DefaultAppConsole* console = YNEW DefaultAppConsole;
 
         m_dt = dt;
 

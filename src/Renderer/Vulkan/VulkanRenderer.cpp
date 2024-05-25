@@ -34,7 +34,7 @@ namespace yoyo
     {
         return &m_render_context;
     }
-
+    
     void VulkanRenderer::Init()
     {
         m_frame_count = 0;
@@ -65,7 +65,7 @@ namespace yoyo
         InitShadowPass();
         InitShadowPassAttachments();
         InitShadowPassFramebufffer();
-
+        
         InitForwardPass();
         InitForwardPassAttachments();
         InitForwardPassFramebufffer();
@@ -171,25 +171,6 @@ namespace yoyo
             unlit_instanced_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
         }
         auto unlit_instanced_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, unlit_instanced_effect);
-
-        {
-            Ref<VulkanShaderEffect> lit_points_effect = CreateRef<VulkanShaderEffect>();
-            {
-                Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.vert.spv");
-                lit_points_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
-
-                Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.frag.spv");
-                lit_points_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
-            }
-
-            lit_points_effect->blend_enable = false;
-            lit_points_effect->primitive_topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-            auto lit_points_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_points_effect);
-
-            Ref<Shader> lit_points_shader = Shader::Create("lit_points_shader");
-            lit_points_shader->shader_passes[MeshPassType::Forward] = lit_points_shader_pass;
-            lit_points_shader->shader_passes[MeshPassType::Shadow] = shadow_pass;
-        }
 
         // Create lit shader (Effect Template)
         Ref<Shader> lit_shader = Shader::Create("lit_shader");
@@ -390,7 +371,7 @@ namespace yoyo
 
         // Update render context
         m_render_context.cmd = cmd;
-
+        
         VK_CHECK(vkResetCommandBuffer(cmd, 0));
         VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
 
@@ -633,7 +614,6 @@ namespace yoyo
 
     void VulkanRenderer::EndFrame()
     {
-
         VK_CHECK(vkEndCommandBuffer(m_frame_context[m_frame_count].command_buffer));
         VkSubmitInfo submit = {};
         submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -698,15 +678,24 @@ namespace yoyo
             required_features.tessellationShader = VK_TRUE;
             required_features.fillModeNonSolid = VK_TRUE;
         }
+
+        const char* required_extensions = 
+        {
+            VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME
+        };
+
         auto phys_ret = selector.set_surface(m_surface)
             .set_minimum_version(1, 2)
             .set_required_features(required_features)
+            .add_required_extension(required_extensions)
             .select();
+
         if (!phys_ret)
         {
             YERROR("Failed to select Vulkan Physical Device. Error: %s", phys_ret.error().message().c_str());
             return;
         }
+
         m_physical_device = phys_ret.value().physical_device;
         m_physical_device_properties = phys_ret.value().properties;
         YINFO("Physical Device Selected: %s", phys_ret.value().name.c_str());
@@ -717,8 +706,8 @@ namespace yoyo
         shader_draw_parameters_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
         shader_draw_parameters_features.pNext = nullptr;
         shader_draw_parameters_features.shaderDrawParameters = VK_TRUE;
-
         device_builder.add_pNext(&shader_draw_parameters_features);
+
         // automatically propagate needed data from instance & physical device
         auto dev_ret = device_builder.build();
         if (!dev_ret)
