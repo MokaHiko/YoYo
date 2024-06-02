@@ -6,7 +6,7 @@
 
 namespace yoyo
 {
-    using EventType = uint32_t;
+    using EventType = uint64_t;
 
     // Base event class
     class YAPI Event

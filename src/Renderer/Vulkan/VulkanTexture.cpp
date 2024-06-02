@@ -33,4 +33,9 @@ namespace yoyo
 		VulkanResourceManager::UploadTexture(this);
 		m_dirty &= ~TextureDirtyFlags::Unuploaded;
 	}
+
+    const bool VulkanTexture::IsInitialized() const
+    {
+        return allocated_image.allocation != VK_NULL_HANDLE && allocated_image.image != VK_NULL_HANDLE;
+    }
 }

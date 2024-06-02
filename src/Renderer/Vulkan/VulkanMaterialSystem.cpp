@@ -156,7 +156,7 @@ namespace yoyo
 
         builder.input_assembly = vkinit::PipelineInputAssemblyStateCreateInfo(effect->primitive_topology);
 
-        builder.rasterizer = vkinit::PipelineRasterizationStateCreateInfo(effect->polygon_mode);
+        builder.rasterizer = vkinit::PipelineRasterizationStateCreateInfo(effect->polygon_mode, effect->line_width);
         builder.multisampling = vkinit::PipelineMultisampleStateCreateInfo();
         builder.depth_stencil = vkinit::PipelineDepthStencilStateCreateInfo(true, true, VK_COMPARE_OP_LESS_OR_EQUAL);
         builder.color_blend_attachment = vkinit::PipelineColorBlendAttachmentState(effect->blend_enable,
@@ -217,7 +217,7 @@ namespace yoyo
         m_deletion_queue->Push([=]() {
             vkDestroyPipelineLayout(m_device, shader_pass->layout, nullptr);
             vkDestroyPipeline(m_device, shader_pass->pipeline, nullptr);
-            });
+        });
         return shader_pass;
     }
 

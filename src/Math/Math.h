@@ -22,10 +22,13 @@ namespace yoyo
     YAPI bool FloatCompare(float x, float y, float epsilon = 0.01f);
 
     YAPI const float SquaredLength(const Vec3& v1);
+    YAPI const float Length(const Vec2& v1);
     YAPI const float Length(const Vec3& v1);
     YAPI const float Length(const Vec4& v1);
+    YAPI const Vec2 Normalize(const Vec2& v1);
     YAPI const Vec3 Normalize(const Vec3& v1);
     YAPI const Vec4 Normalize(const Vec4& v1);
+    YAPI const Vec2 NormalizeOrZero(const Vec2& v1);
 
     YAPI const float Dot(const Vec3& v1, const Vec3& v2);
     YAPI const float Dot(const Vec4& v1, const Vec4& v2);
@@ -40,13 +43,16 @@ namespace yoyo
 
     YAPI const Vec2 operator+(const Vec2& v1, const Vec2& v2);
     YAPI const Vec3 operator+(const Vec3& v1, const Vec3& v2);
+    YAPI const IVec2 operator+(const IVec2& v1, const IVec2& v2);
 
     YAPI const Vec2 operator-(const Vec2& v1, const Vec2& v2);
     YAPI const Vec3 operator-(const Vec3& v1, const Vec3& v2);
+    YAPI const IVec2 operator-(const IVec2& v1, const IVec2& v2);
 
     YAPI const Vec3 operator*(const Vec3& v1, float scalar);
     YAPI const Vec4 operator*(const Vec4& v1, float scalar);
 
+    YAPI const Vec2 operator/(const Vec2& v1, float scalar);
     YAPI const Vec3 operator/(const Vec3& v1, float scalar);
     YAPI const Vec4 operator/(const Vec4& v1, float scalar);
 

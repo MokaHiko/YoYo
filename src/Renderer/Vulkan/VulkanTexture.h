@@ -13,5 +13,8 @@ namespace yoyo
         VkSampler sampler;
 
         virtual void UploadTextureData(bool free_host_memory = false) override;
+
+        // Returns true if vulkan texture has been initialized
+        const bool IsInitialized() const;
     };
 }

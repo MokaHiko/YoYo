@@ -28,23 +28,31 @@ namespace yoyo
         RGBA8
     };
 
+    constexpr char *TextureFormatStrings[] =
+        {
+            "Unknown",
+            "R8",
+            "RGB8",
+            "RGBA8"};
+
     enum class TextureDirtyFlags : uint16_t
     {
         Clean = 0,
         Unuploaded = 1 << 0,
         SamplerType = 1 << 1,
         AddressMode = 1 << 2,
+        DataChange = 1 << 3 // Data in the texture has been modified
     };
 
-    inline TextureDirtyFlags operator~ (TextureDirtyFlags a) { return (TextureDirtyFlags)~(int)a; }
-    inline TextureDirtyFlags operator| (TextureDirtyFlags a, TextureDirtyFlags b) { return (TextureDirtyFlags)((int)a | (int)b); }
-    inline TextureDirtyFlags operator& (TextureDirtyFlags a, TextureDirtyFlags b) { return (TextureDirtyFlags)((int)a & (int)b); }
-    inline TextureDirtyFlags operator^ (TextureDirtyFlags a, TextureDirtyFlags b) { return (TextureDirtyFlags)((int)a ^ (int)b); }
-    inline TextureDirtyFlags& operator|= (TextureDirtyFlags& a, TextureDirtyFlags b) { return (TextureDirtyFlags&)((int&)a |= (int)b); }
-    inline TextureDirtyFlags& operator&= (TextureDirtyFlags& a, TextureDirtyFlags b) { return (TextureDirtyFlags&)((int&)a &= (int)b); }
-    inline TextureDirtyFlags& operator^= (TextureDirtyFlags& a, TextureDirtyFlags b) { return (TextureDirtyFlags&)((int&)a ^= (int)b); }
+    inline TextureDirtyFlags operator~(TextureDirtyFlags a) { return (TextureDirtyFlags) ~(int)a; }
+    inline TextureDirtyFlags operator|(TextureDirtyFlags a, TextureDirtyFlags b) { return (TextureDirtyFlags)((int)a | (int)b); }
+    inline TextureDirtyFlags operator&(TextureDirtyFlags a, TextureDirtyFlags b) { return (TextureDirtyFlags)((int)a & (int)b); }
+    inline TextureDirtyFlags operator^(TextureDirtyFlags a, TextureDirtyFlags b) { return (TextureDirtyFlags)((int)a ^ (int)b); }
+    inline TextureDirtyFlags &operator|=(TextureDirtyFlags &a, TextureDirtyFlags b) { return (TextureDirtyFlags &)((int &)a |= (int)b); }
+    inline TextureDirtyFlags &operator&=(TextureDirtyFlags &a, TextureDirtyFlags b) { return (TextureDirtyFlags &)((int &)a &= (int)b); }
+    inline TextureDirtyFlags &operator^=(TextureDirtyFlags &a, TextureDirtyFlags b) { return (TextureDirtyFlags &)((int &)a ^= (int)b); }
 
-    // The base texture class 
+    // The base texture class
     class YAPI Texture : public Resource
     {
     public:
@@ -61,17 +69,19 @@ namespace yoyo
 
         virtual void UploadTextureData(bool free_host_memory = false) = 0;
 
-        static Ref<Texture> Create(const std::string& name = "");
-        static Ref<Texture> LoadFromAsset(const char* asset_path);
+        static Ref<Texture> Create(const std::string &name = "");
+        static Ref<Texture> LoadFromAsset(const char *asset_path);
 
+        // TODO: Change to IVec2
         float width;
         float height;
 
-        const TextureDirtyFlags& DirtyFlags() { return m_dirty; }
+        const TextureDirtyFlags &DirtyFlags() { return m_dirty; }
 
         TextureFormat format;
         std::vector<char> raw_data;
         friend class ResourceManager;
+
     protected:
         TextureSamplerType m_sampler_type;
         TextureAddressMode m_sampler_address_mode;
@@ -81,10 +91,10 @@ namespace yoyo
     };
 }
 
-template<>
+template <>
 struct std::hash<yoyo::Texture>
 {
-    std::size_t operator()(const yoyo::Texture& texture) const noexcept
+    std::size_t operator()(const yoyo::Texture &texture) const noexcept
     {
         // Compute individual hash values for first, second and third
         // http://stackoverflow.com/a/1646913/126995

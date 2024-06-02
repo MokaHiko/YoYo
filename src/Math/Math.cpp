@@ -45,6 +45,15 @@ namespace yoyo
         return sum;
     }
 
+    YAPI const IVec2 operator+(const IVec2 &v1, const IVec2 &v2)
+    {
+        IVec2 sum = {};
+        sum.x = v1.x + v2.x;
+        sum.y = v1.y + v2.y;
+
+        return sum;
+    }
+
     YAPI const Vec2 operator-(const Vec2& v1, const Vec2& v2)
     {
         Vec2 dif = {};
@@ -60,6 +69,15 @@ namespace yoyo
         dif.x = v1.x - v2.x;
         dif.y = v1.y - v2.y;
         dif.z = v1.z - v2.z;
+
+        return dif;
+    }
+
+    YAPI const IVec2 operator-(const IVec2 &v1, const IVec2 &v2)
+    {
+        IVec2 dif = {};
+        dif.x = v1.x - v2.x;
+        dif.y = v1.y - v2.y;
 
         return dif;
     }
@@ -95,7 +113,13 @@ namespace yoyo
         return out;
     }
 
-    const Vec3 operator/(const Vec3& v1, float scalar)
+    YAPI const Vec2 operator/(const Vec2 &v1, float scalar)
+    {
+        YASSERT(scalar != 0, "Cannot divide by 0!");
+        return { v1.x / scalar, v1.y / scalar};
+    }
+
+    const Vec3 operator/(const Vec3 &v1, float scalar)
     {
         YASSERT(scalar != 0, "Cannot divide by 0!");
         return { v1.x / scalar, v1.y / scalar, v1.z / scalar };
@@ -174,6 +198,24 @@ namespace yoyo
         return sqrt(v1.x * v1.x + v1.y * v1.y + v1.z * v1.z + v1.w * v1.w);
     }
 
+    const float Length(const Vec2& v1)
+    {
+        return sqrt(v1.x * v1.x + v1.y * v1.y);
+    }
+
+    YAPI const Vec2 Normalize(const Vec2 &v1)
+    {
+        float l = Length(v1);
+
+        if (l <= 0)
+        {
+            YWARN("Cannot normalize a vector with 0 length");
+            return { 0.0f, 0.0f};
+        }
+
+        return v1 / l;
+    }
+
     const Vec3 Normalize(const Vec3& v1)
     {
         float l = Length(v1);
@@ -195,6 +237,18 @@ namespace yoyo
         {
             YWARN("Cannot normalize a vector with 0 length");
             return { 0.0f, 0.0f, 0.0f };
+        }
+
+        return v1 / l;
+    }
+
+    YAPI const Vec2 NormalizeOrZero(const Vec2 &v1)
+    {
+        float l = Length(v1);
+
+        if (l <= 0)
+        {
+            return { 0.0f, 0.0f};
         }
 
         return v1 / l;

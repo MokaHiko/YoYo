@@ -30,8 +30,11 @@ namespace yoyo
         VkBlendFactor dst_alpha_blend_factor = VK_BLEND_FACTOR_ZERO;
         VkBlendOp alpha_blend_op = VK_BLEND_OP_ZERO_EXT;
 
+        // Topology
         VkPolygonMode polygon_mode = VK_POLYGON_MODE_FILL;
         VkPrimitiveTopology primitive_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        float line_width = 1.0f;
+
         std::vector<ShaderStage> stages;
         void PushShader(Ref<VulkanShaderModule> shader_module, VkShaderStageFlagBits stage);
     };

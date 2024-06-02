@@ -139,17 +139,17 @@ namespace yoyo
 		return false;
 	}
 
-	bool Input::GetMouseButton(int index)
+    bool Input::GetMouseButton(MouseButton mouse_button)
 	{
-		YASSERT(index >= 0 && index < 4);
-		return Input::MouseButtons[index];
+		YASSERT((int)mouse_button>= 0 && (int)mouse_button < 4);
+		return Input::MouseButtons[(int)(mouse_button)];
 	}
 
-	bool Input::GetMouseButtonDown(KeyCode key)
+	bool Input::GetMouseButtonDown(MouseButton mouse_button)
 	{
-		if(Input::MouseButtons[(int)key] && !(Input::LastMouseButtons[(int)(key)]))
+		if(Input::MouseButtons[(int)mouse_button] && !(Input::LastMouseButtons[(int)(mouse_button)]))
 		{
-			Input::LastMouseButtons[(int)(key)] = true;
+			Input::LastMouseButtons[(int)(mouse_button)] = true;
 			return true;
 		}
 

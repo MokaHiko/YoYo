@@ -8,6 +8,21 @@
 
 namespace yoyo
 {
+	enum class RendererDirtyFlags
+	{
+		Clean = 0,
+		WindowResize = 1,
+		FormatChange= 1 << 1,
+	};
+
+	inline RendererDirtyFlags operator~ (RendererDirtyFlags a) { return (RendererDirtyFlags)~(int)a; }
+	inline RendererDirtyFlags operator| (RendererDirtyFlags a, RendererDirtyFlags b) { return (RendererDirtyFlags)((int)a | (int)b); }
+	inline RendererDirtyFlags operator& (RendererDirtyFlags a, RendererDirtyFlags b) { return (RendererDirtyFlags)((int)a & (int)b); }
+	inline RendererDirtyFlags operator^ (RendererDirtyFlags a, RendererDirtyFlags b) { return (RendererDirtyFlags)((int)a ^ (int)b); }
+	inline RendererDirtyFlags& operator|= (RendererDirtyFlags& a, RendererDirtyFlags b) { return (RendererDirtyFlags&)((int&)a |= (int)b); }
+	inline RendererDirtyFlags& operator&= (RendererDirtyFlags& a, RendererDirtyFlags b) { return (RendererDirtyFlags&)((int&)a &= (int)b); }
+	inline RendererDirtyFlags& operator^= (RendererDirtyFlags& a, RendererDirtyFlags b) { return (RendererDirtyFlags&)((int&)a ^= (int)b); }
+
     enum class RendererType
     {
         Uknown = 0,
@@ -42,7 +57,7 @@ namespace yoyo
     {
     public:
         Renderer(const RendererSettings& settings) 
-            :m_settings(settings) {}
+            :m_settings(settings), m_diry_flags(RendererDirtyFlags::Clean) {}
         virtual ~Renderer() {};
 
         const RendererType Type() const {return m_settings.type;}
@@ -50,7 +65,6 @@ namespace yoyo
 
         RendererSettings& Settings()
         {
-            m_diry_flags = true;
             return m_settings;
         }
 
@@ -79,7 +93,7 @@ namespace yoyo
     protected:
         RendererProfile m_profile;
         RendererSettings m_settings;
-        bool m_diry_flags;
+        RendererDirtyFlags m_diry_flags;
     };
 
     extern Ref<Renderer> CreateRenderer();

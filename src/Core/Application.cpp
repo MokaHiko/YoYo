@@ -17,6 +17,7 @@
 namespace yoyo
 {
     Application::Application(const ApplicationSettings& settings)
+        :m_running(false)
     {
         m_settings = settings;
     }

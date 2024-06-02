@@ -9,6 +9,8 @@
 
 namespace yoyo
 {
+    const int FRAMES_IN_FLIGHT = 2;
+
     const int SCENE_DATA_DESCRIPTOR_SET_INDEX = 1;
     const int SCENE_DATA_DESCRIPTOR_SET_BINDING = 0;
 

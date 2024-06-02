@@ -10,7 +10,10 @@ namespace yoyo
 {
     enum class MouseButton : uint8_t
     {
-
+        None = 0,
+        LeftMouseButton = 1,
+        MiddleMouseButton = 2,
+        RightMouseButton = 3
     };
 
     enum class KeyCode : uint16_t
@@ -103,10 +106,10 @@ namespace yoyo
         static bool GetKeyDown(KeyCode key);
 
         // Returns true key is currently pressed 
-        static bool GetMouseButton(int index);
+        static bool GetMouseButton(MouseButton mouse_button);
 
         // Returns true during the frame the user starts pressing down the key
-        static bool GetMouseButtonDown(KeyCode key);
+        static bool GetMouseButtonDown(MouseButton mouse_button);
 
         // Returns the current mouse position in screen coordinates
         static IVec2 GetMousePosition();

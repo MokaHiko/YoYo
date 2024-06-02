@@ -89,7 +89,7 @@ namespace yoyo
         return info;
     }
 
-    VkPipelineRasterizationStateCreateInfo vkinit::PipelineRasterizationStateCreateInfo(VkPolygonMode polygonMode)
+    VkPipelineRasterizationStateCreateInfo vkinit::PipelineRasterizationStateCreateInfo(VkPolygonMode polygonMode, float line_width)
     {
         VkPipelineRasterizationStateCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -97,7 +97,7 @@ namespace yoyo
         info.rasterizerDiscardEnable = VK_FALSE;
 
         info.polygonMode = polygonMode;
-        info.lineWidth = 1.0f;
+        info.lineWidth = line_width;
 
         // TODO: CULL Particles
         // info.cullMode = VK_CULL_MODE_NONE;
@@ -210,6 +210,9 @@ namespace yoyo
         info.tiling = VK_IMAGE_TILING_OPTIMAL;
         info.usage = usage;
 
+        info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
         return info;
     }
 
@@ -231,6 +234,12 @@ namespace yoyo
         info.subresourceRange.baseArrayLayer = 0;
         info.subresourceRange.levelCount = 1;
         info.subresourceRange.baseMipLevel = 0;
+
+        // No swizzle
+        info.components.r = VK_COMPONENT_SWIZZLE_R;
+        info.components.g = VK_COMPONENT_SWIZZLE_G;
+        info.components.b = VK_COMPONENT_SWIZZLE_B;
+        info.components.a = VK_COMPONENT_SWIZZLE_A;
 
         return info;
     }

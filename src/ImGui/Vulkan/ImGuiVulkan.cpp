@@ -150,7 +150,7 @@ namespace yoyo
 		ImGuizmo::BeginFrame();
 
 #ifdef Y_DEBUG
-		ImGui::Begin("Layer Profiler: ");
+		ImGui::Begin("Profiler: ");
 		for(auto it: m_app->d_layer_profiles)
 		{
 			ImGui::Text("%s: %.4f ms", it.first.c_str(), it.second * 1000.0f);

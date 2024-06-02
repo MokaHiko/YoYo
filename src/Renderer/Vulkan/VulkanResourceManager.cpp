@@ -11,7 +11,7 @@
 
 namespace yoyo
 {
-	VkFormat ConvertTextureFormat(TextureFormat format)
+	static VkFormat ConvertTextureFormat(TextureFormat format)
 	{
 		switch (format)
 		{
@@ -20,6 +20,9 @@ namespace yoyo
 			break;
 		case(TextureFormat::RGB8):
 			return VK_FORMAT_R8G8B8A8_UNORM;
+			break;
+		case(TextureFormat::R8):
+			return VK_FORMAT_R8_UNORM;
 			break;
 		default:
 			return VK_FORMAT_UNDEFINED;
@@ -103,73 +106,81 @@ namespace yoyo
 		extent.height = texture->height;
 		extent.depth = 1;
 
-		texture->allocated_image = CreateImage(extent, ConvertTextureFormat(texture->format), VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+		// Check if texture already allocated
+		if(!texture->IsInitialized());
+		{
+			texture->allocated_image = CreateImage(extent, ConvertTextureFormat(texture->format), VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+		}
 
 		// Copy data to texture via immediate mode submit
-		ImmediateSubmit([&](VkCommandBuffer cmd)
-			{
-				// ~ Transition to transfer optimal
-				VkImageSubresourceRange range = {};
-				range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				range.layerCount = 1;
-				range.baseArrayLayer = 0;
-				range.levelCount = 1;
-				range.baseMipLevel = 0;
+		ImmediateSubmit([&](VkCommandBuffer cmd) {
+			// ~ Transition to transfer optimal
+			VkImageSubresourceRange range = {};
+			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			range.layerCount = 1;
+			range.baseArrayLayer = 0;
+			range.levelCount = 1;
+			range.baseMipLevel = 0;
 
-				VkImageMemoryBarrier image_to_transfer_barrier = {};
-				image_to_transfer_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-				image_to_transfer_barrier.pNext = nullptr;
+			VkImageMemoryBarrier image_to_transfer_barrier = {};
+			image_to_transfer_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			image_to_transfer_barrier.pNext = nullptr;
 
-				image_to_transfer_barrier.image = texture->allocated_image.image;
-				image_to_transfer_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				image_to_transfer_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			image_to_transfer_barrier.image = texture->allocated_image.image;
+			image_to_transfer_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			image_to_transfer_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
-				image_to_transfer_barrier.srcAccessMask = 0;
-				image_to_transfer_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			image_to_transfer_barrier.srcAccessMask = 0;
+			image_to_transfer_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-				image_to_transfer_barrier.subresourceRange = range;
+			image_to_transfer_barrier.subresourceRange = range;
 
-				vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_to_transfer_barrier);
+			vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_to_transfer_barrier);
 
-				// ~ Copy to from staging to texture
-				VkBufferImageCopy region = {};
-				region.bufferImageHeight = 0;
-				region.bufferRowLength = 0;
-				region.bufferOffset = 0;
+			// ~ Copy to from staging to texture
+			VkBufferImageCopy region = {};
+			region.bufferImageHeight = 0;
+			region.bufferRowLength = 0;
+			region.bufferOffset = 0;
 
-				region.imageExtent = extent;
-				region.imageOffset = { 0 };
-				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				region.imageSubresource.baseArrayLayer = 0;
-				region.imageSubresource.layerCount = 1;
-				region.imageSubresource.mipLevel = 0;
+			region.imageExtent = extent;
+			region.imageOffset = { 0 };
+			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			region.imageSubresource.baseArrayLayer = 0;
+			region.imageSubresource.layerCount = 1;
+			region.imageSubresource.mipLevel = 0;
 
-				vkCmdCopyBufferToImage(cmd, staging_buffer.buffer, texture->allocated_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+			vkCmdCopyBufferToImage(cmd, staging_buffer.buffer, texture->allocated_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-				// ~ Transition to from shader read only 
-				VkImageMemoryBarrier image_to_shader_barrier = image_to_transfer_barrier;
-				image_to_shader_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-				image_to_shader_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			// ~ Transition to from shader read only 
+			VkImageMemoryBarrier image_to_shader_barrier = image_to_transfer_barrier;
+			image_to_shader_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			image_to_shader_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-				image_to_shader_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-				image_to_shader_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			image_to_shader_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			image_to_shader_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-				vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_to_shader_barrier); });
+			vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_to_shader_barrier); 
+		});
 
-		// Create image view
-		VkImageViewCreateInfo image_view_info = vkinit::ImageViewCreateInfo(texture->allocated_image.image, ConvertTextureFormat(texture->format), VK_IMAGE_ASPECT_COLOR_BIT);
-		VK_CHECK(vkCreateImageView(m_device, &image_view_info, nullptr, &texture->image_view));
-
-		// Create Sampler
-		VkSamplerCreateInfo sampler_info = vkinit::SamplerCreateInfo((VkFilter)texture->GetSamplerType(), (VkSamplerAddressMode)texture->GetAddressMode());
-		VK_CHECK(vkCreateSampler(m_device, &sampler_info, nullptr, &texture->sampler));
-
-		// Clean up
+		// Destroy staging buffer
 		vmaDestroyBuffer(m_allocator, staging_buffer.buffer, staging_buffer.allocation);
-		m_deletion_queue->Push([=]() {
-			vkDestroySampler(m_device, texture->sampler, nullptr);
-			vkDestroyImageView(m_device, texture->image_view, nullptr);
+
+		if(!texture->IsInitialized());
+		{
+			// Create image view
+			VkImageViewCreateInfo image_view_info = vkinit::ImageViewCreateInfo(texture->allocated_image.image, ConvertTextureFormat(texture->format), VK_IMAGE_ASPECT_COLOR_BIT);
+			VK_CHECK(vkCreateImageView(m_device, &image_view_info, nullptr, &texture->image_view));
+
+			// Create Sampler
+			VkSamplerCreateInfo sampler_info = vkinit::SamplerCreateInfo((VkFilter)texture->GetSamplerType(), (VkSamplerAddressMode)texture->GetAddressMode());
+			VK_CHECK(vkCreateSampler(m_device, &sampler_info, nullptr, &texture->sampler));
+
+			m_deletion_queue->Push([=]() {
+				vkDestroySampler(m_device, texture->sampler, nullptr);
+				vkDestroyImageView(m_device, texture->image_view, nullptr);
 			});
+		}
 
 		return true;
 	}
@@ -230,10 +241,9 @@ namespace yoyo
 
 		if (manage_memory)
 		{
-			m_deletion_queue->Push([=]()
-				{
+			m_deletion_queue->Push([=]() {
 					vmaDestroyImage(m_allocator, image.image, image.allocation);
-				});
+			});
 		}
 
 		return image;

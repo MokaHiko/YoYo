@@ -39,6 +39,21 @@ namespace yoyo
         pipeline_info.renderPass = renderPass;
         pipeline_info.subpass = 0;
 
+        std::vector<VkDynamicState> dynamic_states;
+        if (rasterizer.lineWidth > 1.0f) {dynamic_states.push_back(VkDynamicState::VK_DYNAMIC_STATE_LINE_WIDTH);}
+
+        // TODO: Dynamic States
+        if (!dynamic_states.empty())
+        {
+			VkPipelineDynamicStateCreateInfo dynamic_state_info = {};
+			dynamic_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+			dynamic_state_info.pNext = nullptr;
+			dynamic_state_info.pDynamicStates = dynamic_states.data();
+			dynamic_state_info.dynamicStateCount = static_cast<uint32_t>(dynamic_states.size());
+
+			pipeline_info.pDynamicState = &dynamic_state_info;
+        }
+
         VkPipeline new_pipeline;
         if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &new_pipeline) != VK_SUCCESS)
         {

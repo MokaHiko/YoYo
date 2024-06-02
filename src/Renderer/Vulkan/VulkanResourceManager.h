@@ -96,7 +96,7 @@ namespace yoyo
             {
                 m_deletion_queue->Push([=]() {
                     vmaDestroyBuffer(m_allocator, buffer.buffer, buffer.allocation);
-                    });
+                });
             }
 
             return buffer;

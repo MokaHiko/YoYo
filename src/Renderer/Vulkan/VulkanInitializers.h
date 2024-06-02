@@ -16,7 +16,7 @@ namespace yoyo
         VkPipelineShaderStageCreateInfo PipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule, const char* entrypoint = "main");
         VkPipelineVertexInputStateCreateInfo PipelineVertexInputStateCreateInfo();
         VkPipelineInputAssemblyStateCreateInfo PipelineInputAssemblyStateCreateInfo(VkPrimitiveTopology topology);
-        VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo(VkPolygonMode polygonMode);
+        VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo(VkPolygonMode polygonMode, float line_width = 1.0f);
         VkPipelineMultisampleStateCreateInfo PipelineMultisampleStateCreateInfo();
         VkPipelineColorBlendAttachmentState PipelineColorBlendAttachmentState(
             VkBool32 blend_enable = false,

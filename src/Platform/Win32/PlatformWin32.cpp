@@ -245,6 +245,17 @@ namespace yoyo
         return true;
     }
 
+    bool Platform::IsBigEndian()
+    {
+        union
+        {
+            uint32_t i;
+            char c[4];
+        } bint = {0x01020304};
+
+        return bint.c[0] == 1;
+    }
+
     uint64_t Platform::GenerateUUIDV4()
     {
         UUID uuid;

@@ -62,7 +62,7 @@ namespace yoyo
 
     // TODO: Change name to shader pass
     // Ex. forward pass, shadow pass, 
-    struct MeshPass
+    class MeshPass
     {
     public:
         MeshPass(uint32_t max_objects);
