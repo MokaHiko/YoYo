@@ -18,10 +18,11 @@ namespace yoyo
 		m_dirty |= TextureDirtyFlags::AddressMode;
 	}
 
-	Ref<Texture> Texture::Create(const std::string& name)
+    Ref<Texture> Texture::Create(const std::string &name, TextureType type)
 	{
 		Ref<VulkanTexture> texture = CreateRef<VulkanTexture>();
 		texture->name = name;
+		texture->m_type = type;
 		texture->m_dirty |= TextureDirtyFlags::Unuploaded;
 
 		EventManager::Instance().Dispatch(CreateRef<TextureCreatedEvent>(texture));
@@ -30,12 +31,15 @@ namespace yoyo
 
 	void VulkanTexture::UploadTextureData(bool free_host_memory)
 	{
+		YASSERT(raw_data.size() > 0, "Attempting to upload texture with 0 data");
+		YASSERT((width + height) > 0 , "Texture must have non zero width and/or height");
+
 		VulkanResourceManager::UploadTexture(this);
 		m_dirty &= ~TextureDirtyFlags::Unuploaded;
 	}
 
     const bool VulkanTexture::IsInitialized() const
     {
-        return allocated_image.allocation != VK_NULL_HANDLE && allocated_image.image != VK_NULL_HANDLE;
+        return (allocated_image.image != VK_NULL_HANDLE) && (image_view != VK_NULL_HANDLE) && (allocated_image.allocation != VK_NULL_HANDLE);
     }
 }

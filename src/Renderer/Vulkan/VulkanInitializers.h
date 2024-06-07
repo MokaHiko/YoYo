@@ -31,7 +31,7 @@ namespace yoyo
         VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo();
 
         // Resources
-        VkImageCreateInfo ImageCreateInfo(VkFormat format, VkExtent3D extent, VkImageUsageFlags usage);
+        VkImageCreateInfo ImageCreateInfo(VkFormat format, VkExtent3D extent, VkImageUsageFlags usage, uint32_t layer_count);
         VkImageViewCreateInfo ImageViewCreateInfo(VkImage image, VkFormat format, VkImageAspectFlags aspect);
 
         VkSamplerCreateInfo SamplerCreateInfo(VkFilter filter, VkSamplerAddressMode sampler_address_mode);

@@ -44,7 +44,7 @@ namespace yoyo
         Vec4 end_color{ 1.0f, 1.0f, 1.0f, 0.0f };
     };
 
-    class MeshPassObject;
+    struct MeshPassObject;
     class YAPI ParticleSystem : public Resource
     {
     public:

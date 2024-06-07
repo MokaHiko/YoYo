@@ -199,7 +199,7 @@ namespace yoyo
                 lit_points_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
             }
             lit_points_effect->blend_enable = false;
-            //lit_points_effect->primitive_topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+            // lit_points_effect->primitive_topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
             lit_points_effect->primitive_topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
             auto lit_points_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_points_effect);
 
@@ -247,35 +247,59 @@ namespace yoyo
         Ref<Shader> unlit_particle_instanced_shader = Shader::Create("unlit_particle_instanced_shader", true);
         unlit_particle_instanced_shader->shader_passes[MeshPassType::Forward] = unlit_particle_instanced_shader_pass;
 #ifdef Y_DEBUG
-        Ref<VulkanShaderEffect> skinned_lit_debug_effect = CreateRef<VulkanShaderEffect>();
-        skinned_lit_debug_effect->polygon_mode = VK_POLYGON_MODE_LINE;
+        // Skinned debug shader
         {
-            Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_skinned_debug_shader.vert.spv");
-            skinned_lit_debug_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+            Ref<VulkanShaderEffect> skinned_lit_debug_effect = CreateRef<VulkanShaderEffect>();
+            skinned_lit_debug_effect->polygon_mode = VK_POLYGON_MODE_LINE;
+            {
+                Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_skinned_debug_shader.vert.spv");
+                skinned_lit_debug_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
 
-            Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_skinned_debug_shader.frag.spv");
-            skinned_lit_debug_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+                Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_skinned_debug_shader.frag.spv");
+                skinned_lit_debug_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+            }
+            auto skinned_lit_debug_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, skinned_lit_debug_effect);
+
+            Ref<Shader> skinned_lit_debug_shader = Shader::Create("skinned_lit_debug_shader");
+            skinned_lit_debug_shader->shader_passes[MeshPassType::Forward] = skinned_lit_debug_shader_pass;
+            skinned_lit_debug_shader->shader_passes[MeshPassType::Shadow] = offscreen_skinned_shadow_pass;
         }
-        auto skinned_lit_debug_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, skinned_lit_debug_effect);
 
-        Ref<Shader> skinned_lit_debug_shader = Shader::Create("skinned_lit_debug_shader");
-        skinned_lit_debug_shader->shader_passes[MeshPassType::Forward] = skinned_lit_debug_shader_pass;
-        skinned_lit_debug_shader->shader_passes[MeshPassType::Shadow] = offscreen_skinned_shadow_pass;
-
-        Ref<VulkanShaderEffect> unlit_collider_debug_effect = CreateRef<VulkanShaderEffect>();
-        unlit_collider_debug_effect->polygon_mode = VK_POLYGON_MODE_LINE;
+        // Wireframe shader
         {
-            Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_collider_debug_shader.vert.spv");
-            unlit_collider_debug_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+            Ref<VulkanShaderEffect> unlit_wireframe_effect = CreateRef<VulkanShaderEffect>();
+            unlit_wireframe_effect->polygon_mode = VK_POLYGON_MODE_LINE;
+            {
+                Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_collider_debug_shader.vert.spv");
+                unlit_wireframe_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
 
-            Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_collider_debug_shader.frag.spv");
-            unlit_collider_debug_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+                Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_collider_debug_shader.frag.spv");
+                unlit_wireframe_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+            }
+
+            auto shader_pass = m_material_system->CreateShaderPass(m_forward_pass, unlit_wireframe_effect);
+            Ref<Shader> shader = Shader::Create(DEFAULT_WIREFRAME_SHADER_NAME);
+            shader->shader_passes[MeshPassType::Forward] = shader_pass;
         }
-        auto unlit_collider_debug_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, unlit_collider_debug_effect);
-
-        Ref<Shader> unlit_collider_debug_shader = Shader::Create("unlit_collider_debug_shader");
-        unlit_collider_debug_shader->shader_passes[MeshPassType::Forward] = unlit_collider_debug_shader_pass;
 #endif
+        // TODO: Move to Game Layer
+        // Global Block Shader
+        {
+            Ref<VulkanShaderEffect> lit_block_effect = CreateRef<VulkanShaderEffect>();
+            {
+                Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_block_shader.vert.spv");
+                lit_block_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+
+                Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_block_shader.frag.spv");
+                lit_block_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+            }
+            lit_block_effect->primitive_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            auto lit_block_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_block_effect);
+
+            Ref<Shader> lit_block_shader = Shader::Create("lit_block_shader");
+            lit_block_shader->shader_passes[MeshPassType::Forward] = lit_block_shader_pass;
+            lit_block_shader->shader_passes[MeshPassType::Shadow] = shadow_pass;
+        }
     }
 
     void VulkanRenderer::Shutdown()

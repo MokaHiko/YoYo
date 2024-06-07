@@ -5,6 +5,23 @@
 
 namespace yoyo
 {
+    enum class TextureType : uint8_t
+    {
+        Uknown = 0,
+        Color = 1 << 0,
+        Depth = 1 << 1,
+        Array = 1 << 2,
+        CubeMap = 1 << 3
+    };
+
+    inline TextureType operator~(TextureType a) { return (TextureType) ~(int)a; }
+    inline TextureType operator|(TextureType a, TextureType b) { return (TextureType)((int)a | (int)b); }
+    inline TextureType operator&(TextureType a, TextureType b) { return (TextureType)((int)a & (int)b); }
+    inline TextureType operator^(TextureType a, TextureType b) { return (TextureType)((int)a ^ (int)b); }
+    inline TextureType &operator|=(TextureType &a, TextureType b) { return (TextureType &)((int &)a |= (int)b); }
+    inline TextureType &operator&=(TextureType &a, TextureType b) { return (TextureType &)((int &)a &= (int)b); }
+    inline TextureType &operator^=(TextureType &a, TextureType b) { return (TextureType &)((int &)a ^= (int)b); }
+
     enum class TextureSamplerType
     {
         Nearest = 0,
@@ -41,7 +58,8 @@ namespace yoyo
         Unuploaded = 1 << 0,
         SamplerType = 1 << 1,
         AddressMode = 1 << 2,
-        DataChange = 1 << 3 // Data in the texture has been modified
+        DataChange = 1 << 3, // Data in the texture has been modified
+        TypeChange = 1 << 4 // The type of texture 
     };
 
     inline TextureDirtyFlags operator~(TextureDirtyFlags a) { return (TextureDirtyFlags) ~(int)a; }
@@ -58,8 +76,11 @@ namespace yoyo
     public:
         RESOURCE_TYPE(Texture)
 
-        Texture() = default;
-        ~Texture() = default;
+        Texture();
+        ~Texture();
+
+        const TextureType GetTextureType() const { return m_type; }
+        void SetTextureType(TextureType type);
 
         const TextureSamplerType GetSamplerType() const { return m_sampler_type; }
         void SetSamplerType(TextureSamplerType type);
@@ -69,20 +90,23 @@ namespace yoyo
 
         virtual void UploadTextureData(bool free_host_memory = false) = 0;
 
-        static Ref<Texture> Create(const std::string &name = "");
+        // Creates a texture of type
+        static Ref<Texture> Create(const std::string &name = "", TextureType type = TextureType::Color);
         static Ref<Texture> LoadFromAsset(const char *asset_path);
 
-        // TODO: Change to IVec2
-        float width;
-        float height;
+        int width;
+        int height;
+
+        // Used for array textures if greater than 1
+        int layers;
 
         const TextureDirtyFlags &DirtyFlags() { return m_dirty; }
 
         TextureFormat format;
         std::vector<char> raw_data;
         friend class ResourceManager;
-
     protected:
+        TextureType m_type;
         TextureSamplerType m_sampler_type;
         TextureAddressMode m_sampler_address_mode;
 

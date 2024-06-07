@@ -6,7 +6,7 @@ namespace yoyo
 {
     // The unique identifier of resource instance
     using ResourceId = uint64_t;
-    const ResourceId INVALID_RESOURCE_ID = -1;
+    constexpr ResourceId INVALID_RESOURCE_ID = -1;
 
     // The unique identifier of resource type
     using ResourceType = uint64_t;

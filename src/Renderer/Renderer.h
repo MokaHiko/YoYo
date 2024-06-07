@@ -47,7 +47,7 @@ namespace yoyo
         float fov;
     };
 
-    const uint32_t MAX_OBJECTS = 10000;
+    const uint32_t MAX_OBJECTS = 100000;
     const int MAX_DIR_LIGHTS = 2;
     const int MAX_POINT_LIGHTS = 100;
     

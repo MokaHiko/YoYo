@@ -15,13 +15,13 @@ namespace yoyo
 	{
 		switch (format)
 		{
-		case(TextureFormat::RGBA8):
+		case (TextureFormat::RGBA8):
 			return VK_FORMAT_R8G8B8A8_UNORM;
 			break;
-		case(TextureFormat::RGB8):
+		case (TextureFormat::RGB8):
 			return VK_FORMAT_R8G8B8A8_UNORM;
 			break;
-		case(TextureFormat::R8):
+		case (TextureFormat::R8):
 			return VK_FORMAT_R8_UNORM;
 			break;
 		default:
@@ -29,7 +29,7 @@ namespace yoyo
 		}
 	}
 
-	void VulkanResourceManager::Init(VulkanRenderer* renderer)
+	void VulkanResourceManager::Init(VulkanRenderer *renderer)
 	{
 		// Grab Handles
 		m_device = renderer->Device();
@@ -73,9 +73,8 @@ namespace yoyo
 		}
 
 		// Subscribe to vulkan resource events
-		EventManager::Instance().Subscribe(MeshCreatedEvent<Vertex>::s_event_type, [&](Ref<Event> event) {
-			return false;
-			});
+		EventManager::Instance().Subscribe(MeshCreatedEvent<Vertex>::s_event_type, [&](Ref<Event> event)
+										   { return false; });
 	}
 
 	void VulkanResourceManager::Shutdown()
@@ -90,34 +89,41 @@ namespace yoyo
 		vmaDestroyAllocator(m_allocator);
 	}
 
-	bool VulkanResourceManager::UploadTexture(VulkanTexture* texture)
+	bool VulkanResourceManager::UploadTexture(VulkanTexture *texture)
 	{
+		YASSERT(texture->layers <= 1 != ((texture->GetTextureType() & TextureType::Array) == TextureType::Array),
+				"Cannot have layer count greater than 1 that is not TextureType::Array or TextureType::CubeMap!");
+
 		// Copy to staging buffer
 		AllocatedBuffer staging_buffer = CreateBuffer(texture->raw_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, false);
 
-		void* pixel_ptr;
+		void *pixel_ptr;
 		MapMemory(staging_buffer.allocation, &pixel_ptr);
 		memcpy(pixel_ptr, texture->raw_data.data(), texture->raw_data.size());
 		UnmapMemory(staging_buffer.allocation);
 
 		// Create texture
 		VkExtent3D extent;
-		extent.width = texture->width;
-		extent.height = texture->height;
+		extent.width = static_cast<uint32_t>(texture->width);
+		extent.height = static_cast<uint32_t>(texture->height);
 		extent.depth = 1;
 
+		YASSERT(extent.width % texture->layers == 0, "Multiple layer texture data is not square");
+		YASSERT(extent.height % texture->layers == 0, "Multiple layer texture data is not square");
+
 		// Check if texture already allocated
-		if(!texture->IsInitialized());
+		if (!texture->IsInitialized())
 		{
-			texture->allocated_image = CreateImage(extent, ConvertTextureFormat(texture->format), VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+			texture->allocated_image = CreateImage(extent, ConvertTextureFormat(texture->format), VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, texture->layers);
 		}
 
 		// Copy data to texture via immediate mode submit
-		ImmediateSubmit([&](VkCommandBuffer cmd) {
+		ImmediateSubmit([&](VkCommandBuffer cmd)
+						{
 			// ~ Transition to transfer optimal
 			VkImageSubresourceRange range = {};
 			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			range.layerCount = 1;
+			range.layerCount = texture->layers;
 			range.baseArrayLayer = 0;
 			range.levelCount = 1;
 			range.baseMipLevel = 0;
@@ -138,19 +144,28 @@ namespace yoyo
 			vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_to_transfer_barrier);
 
 			// ~ Copy to from staging to texture
-			VkBufferImageCopy region = {};
-			region.bufferImageHeight = 0;
-			region.bufferRowLength = 0;
-			region.bufferOffset = 0;
+			std::vector<VkBufferImageCopy> copy_regions(texture->layers);
+			for(int layer = 0; layer < texture->layers; layer++)
+			{
+				VkBufferImageCopy region = {};
+				region.bufferImageHeight = 0;
+				region.bufferRowLength = 0;
+				region.bufferOffset = layer * (texture->raw_data.size() / texture->layers);
 
-			region.imageExtent = extent;
-			region.imageOffset = { 0 };
-			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			region.imageSubresource.baseArrayLayer = 0;
-			region.imageSubresource.layerCount = 1;
-			region.imageSubresource.mipLevel = 0;
+				VkExtent3D sub_extent = extent;
+				sub_extent.width /= texture->layers;
+				sub_extent.height /= texture->layers;
 
-			vkCmdCopyBufferToImage(cmd, staging_buffer.buffer, texture->allocated_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+				region.imageExtent = sub_extent;
+				region.imageOffset = { 0 , 0, 0};
+				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				region.imageSubresource.baseArrayLayer = layer;
+				region.imageSubresource.layerCount = 1;
+				region.imageSubresource.mipLevel = 0;
+
+				copy_regions[layer] = region;
+			}
+			vkCmdCopyBufferToImage(cmd, staging_buffer.buffer, texture->allocated_image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<uint32_t>(copy_regions.size()), copy_regions.data());
 
 			// ~ Transition to from shader read only 
 			VkImageMemoryBarrier image_to_shader_barrier = image_to_transfer_barrier;
@@ -160,13 +175,12 @@ namespace yoyo
 			image_to_shader_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			image_to_shader_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-			vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_to_shader_barrier); 
-		});
+			vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_to_shader_barrier); });
 
 		// Destroy staging buffer
 		vmaDestroyBuffer(m_allocator, staging_buffer.buffer, staging_buffer.allocation);
 
-		if(!texture->IsInitialized());
+		if (!texture->IsInitialized())
 		{
 			// Create image view
 			VkImageViewCreateInfo image_view_info = vkinit::ImageViewCreateInfo(texture->allocated_image.image, ConvertTextureFormat(texture->format), VK_IMAGE_ASPECT_COLOR_BIT);
@@ -176,16 +190,16 @@ namespace yoyo
 			VkSamplerCreateInfo sampler_info = vkinit::SamplerCreateInfo((VkFilter)texture->GetSamplerType(), (VkSamplerAddressMode)texture->GetAddressMode());
 			VK_CHECK(vkCreateSampler(m_device, &sampler_info, nullptr, &texture->sampler));
 
-			m_deletion_queue->Push([=]() {
+			m_deletion_queue->Push([=]()
+								   {
 				vkDestroySampler(m_device, texture->sampler, nullptr);
-				vkDestroyImageView(m_device, texture->image_view, nullptr);
-			});
+				vkDestroyImageView(m_device, texture->image_view, nullptr); });
 		}
 
 		return true;
 	}
 
-	void VulkanResourceManager::MapMemory(VmaAllocation allocation, void** data)
+	void VulkanResourceManager::MapMemory(VmaAllocation allocation, void **data)
 	{
 		vmaMapMemory(m_allocator, allocation, data);
 	}
@@ -195,19 +209,19 @@ namespace yoyo
 		vmaUnmapMemory(m_allocator, allocation);
 	}
 
-	Ref<VulkanShaderModule> VulkanResourceManager::CreateShaderModule(const std::string& shader_path)
+	Ref<VulkanShaderModule> VulkanResourceManager::CreateShaderModule(const std::string &shader_path)
 	{
 		// TODO: cache shader module code
 		Ref<VulkanShaderModule> shader_module = CreateRef<VulkanShaderModule>();
 		shader_module->source_path = shader_path.substr(shader_path.find_last_of("/\\") + 1);
 
-		char* buffer;
+		char *buffer;
 		size_t buffer_size;
 		if (Platform::FileRead(shader_path.c_str(), &buffer, &buffer_size))
 		{
 			VkShaderModuleCreateInfo shader_info = {};
 			shader_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-			shader_info.pCode = reinterpret_cast<uint32_t*>(buffer);
+			shader_info.pCode = reinterpret_cast<uint32_t *>(buffer);
 			shader_info.codeSize = buffer_size;
 
 			VK_CHECK(vkCreateShaderModule(m_device, &shader_info, nullptr, &shader_module->module));
@@ -216,9 +230,8 @@ namespace yoyo
 			memcpy(shader_module->code.data(), buffer, buffer_size);
 			delete buffer;
 
-			m_deletion_queue->Push([=]() {
-				vkDestroyShaderModule(m_device, shader_module->module, nullptr);
-			});
+			m_deletion_queue->Push([=]()
+								   { vkDestroyShaderModule(m_device, shader_module->module, nullptr); });
 		}
 		else
 		{
@@ -228,10 +241,10 @@ namespace yoyo
 		return shader_module;
 	}
 
-	AllocatedImage VulkanResourceManager::CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool manage_memory, bool mipmapped)
+	AllocatedImage VulkanResourceManager::CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, uint32_t layer_count, bool manage_memory, bool mipmapped)
 	{
 		AllocatedImage image = {};
-		VkImageCreateInfo image_info = vkinit::ImageCreateInfo(format, extent, usage);
+		VkImageCreateInfo image_info = vkinit::ImageCreateInfo(format, extent, usage, layer_count);
 
 		VmaAllocationCreateInfo alloc_info = {};
 		alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -241,9 +254,8 @@ namespace yoyo
 
 		if (manage_memory)
 		{
-			m_deletion_queue->Push([=]() {
-					vmaDestroyImage(m_allocator, image.image, image.allocation);
-			});
+			m_deletion_queue->Push([=]()
+								   { vmaDestroyImage(m_allocator, image.image, image.allocation); });
 		}
 
 		return image;
@@ -273,8 +285,7 @@ namespace yoyo
 		return aligned_size;
 	}
 
-
-	void VulkanResourceManager::ImmediateSubmit(std::function<void(VkCommandBuffer)>&& fn)
+	void VulkanResourceManager::ImmediateSubmit(std::function<void(VkCommandBuffer)> &&fn)
 	{
 		VkCommandBuffer cmd = m_upload_context.command_buffer;
 
@@ -303,6 +314,6 @@ namespace yoyo
 
 	DescriptorBuilder VulkanResourceManager::AllocateDescriptor()
 	{
-        return DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get());
+		return DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get());
 	}
 }

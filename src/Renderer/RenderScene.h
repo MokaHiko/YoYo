@@ -15,7 +15,7 @@ namespace yoyo
     // Structure that sends info about updates to the scene
     // class Camera;
     // class DirectionalLight;
-    class MeshPassObject;
+    struct MeshPassObject;
     struct YAPI RenderPacket
     {
         RenderPacket(bool reset_after_process = false)

@@ -47,8 +47,8 @@ namespace yoyo
         window = SDL_CreateWindow(app_name.c_str(),
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
-            width,
-            height,
+            static_cast<int>(width),
+            static_cast<int>(height),
             SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
         if (!window)
         {

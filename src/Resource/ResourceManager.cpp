@@ -65,7 +65,7 @@ namespace yoyo
 			}
 		}
 
-		for (auto it : ResourceManager::Instance().Cache<SkinnedMesh>())
+		for (auto& it : ResourceManager::Instance().Cache<SkinnedMesh>())
 		{
 			Ref<SkinnedMesh> mesh = it.second;
 			MeshDirtyFlags flags = mesh->DirtyFlags();
@@ -98,6 +98,11 @@ namespace yoyo
 			if (flags == TextureDirtyFlags::Clean)
 			{
 				continue;
+			}
+
+			if (flags == TextureDirtyFlags::TypeChange)
+			{
+				// TODO: Rebuild texture
 			}
 
 			if (flags == TextureDirtyFlags::SamplerType)
@@ -199,7 +204,22 @@ namespace yoyo
 
 		ResourceManager &rm = ResourceManager::Instance();
 
-		ImGui::Text("Meshes: %d", rm.Cache<StaticMesh>().size());
+		const std::string static_mesh_node_node = "Static Meshes(" + std::to_string(rm.Cache<StaticMesh>().size()) + ")";
+		if (ImGui::TreeNode(static_mesh_node_node.c_str()))
+		{
+			// Texture View
+			for (const auto &it : rm.Cache<StaticMesh>())
+			{
+				if (ImGui::TreeNode(it.second->name.c_str()))
+				{
+					ImGui::Text("vertices: %d", it.second->GetVertexCount());
+					ImGui::Text("indices: %d", it.second->GetIndexCount());
+					ImGui::TreePop();
+				}
+			}
+
+			ImGui::TreePop();
+		}
 
 		const std::string material_node_name = "Materials (" + std::to_string(rm.Cache<Material>().size()) + ")";
 		if (ImGui::TreeNode(material_node_name.c_str()))
@@ -332,7 +352,7 @@ namespace yoyo
 			{
 				if (ImGui::TreeNode(it.second->name.c_str()))
 				{
-					ImGui::Text("w: %.2f h : %.2f", it.second->width, it.second->height);
+					ImGui::Text("w: %d h : %d", it.second->width, it.second->height);
 					ImGui::Text("format: %s", TextureFormatStrings[(int)it.second->format]);
 					ImGui::Image(it.second, ImVec2{150.0f, 150.0f});
 					ImGui::TreePop();

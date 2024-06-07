@@ -82,7 +82,16 @@ namespace yoyo
         return dif;
     }
 
-    const Vec3 operator*(const Vec3& v1, float scalar)
+    YAPI const IVec2 operator*(const IVec2 &v1, int scalar)
+    {
+        IVec2 out = {};
+        out.x = v1.x * scalar;
+        out.y = v1.y * scalar;
+
+        return out;
+    }
+
+    const Vec3 operator*(const Vec3 &v1, float scalar)
     {
         Vec3 out = {};
         out.x = v1.x * scalar;

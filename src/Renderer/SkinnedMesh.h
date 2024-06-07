@@ -25,7 +25,7 @@ namespace yoyo
         Mat4x4 inverse_bind_pose_transform = {};
 
         // Index into skinned mesh bones vector
-        uint32_t bone_id;
+        uint32_t bone_id = -1;
     };
 
     struct YAPI SkeletalNode

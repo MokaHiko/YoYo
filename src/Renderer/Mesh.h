@@ -18,6 +18,7 @@ namespace yoyo
         Maximum
     };
 
+    // Default Vertex_PCNV used for static meshes.
     struct YAPI Vertex
     {
         Vec3 position;
@@ -25,11 +26,6 @@ namespace yoyo
         Vec3 normal;
 
         Vec2 uv;
-    };
-
-    struct sample
-    {
-        int nums[4];
     };
 
     enum class MeshType
@@ -57,7 +53,7 @@ namespace yoyo
     inline MeshDirtyFlags& operator&= (MeshDirtyFlags& a, MeshDirtyFlags b) { return (MeshDirtyFlags&)((int&)a &= (int)b); }
     inline MeshDirtyFlags& operator^= (MeshDirtyFlags& a, MeshDirtyFlags b) { return (MeshDirtyFlags&)((int&)a ^= (int)b); }
 
-    class IMesh
+    class YAPI IMesh
     {
     public:
         virtual void Bind(void* render_context) = 0;
@@ -77,7 +73,7 @@ namespace yoyo
     };
 
     template<typename VertexType, typename IndexType = uint32_t>
-    class Mesh : public IMesh, public Resource
+    class YAPI Mesh : public IMesh, public Resource
     {
     public:
         Mesh()
@@ -103,8 +99,8 @@ namespace yoyo
             return indices;
         }
     public:
-        const virtual uint32_t GetIndexCount() const override final { return indices.size(); }
-        const virtual uint32_t GetVertexCount() const override final { return vertices.size(); }
+        const virtual uint32_t GetIndexCount() const override final { return static_cast<uint32_t>(static_cast<uint32_t>(indices.size())); }
+        const virtual uint32_t GetVertexCount() const override final { return static_cast<uint32_t>(static_cast<uint32_t>(vertices.size())); }
 
         virtual void SetMeshType(MeshType type) override final { m_type = type; }
         virtual const MeshType GetMeshType() const override final { return m_type; }

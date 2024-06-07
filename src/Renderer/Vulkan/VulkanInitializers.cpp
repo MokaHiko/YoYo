@@ -100,8 +100,8 @@ namespace yoyo
         info.lineWidth = line_width;
 
         // TODO: CULL Particles
-        // info.cullMode = VK_CULL_MODE_NONE;
-        info.cullMode = VK_CULL_MODE_BACK_BIT;
+        info.cullMode = VK_CULL_MODE_NONE;
+        //info.cullMode = VK_CULL_MODE_BACK_BIT;
         info.frontFace = VK_FRONT_FACE_CLOCKWISE;
 
         info.depthBiasEnable = VK_FALSE;
@@ -193,7 +193,7 @@ namespace yoyo
         return info;
     }
 
-    VkImageCreateInfo vkinit::ImageCreateInfo(VkFormat format, VkExtent3D extent, VkImageUsageFlags usage)
+    VkImageCreateInfo vkinit::ImageCreateInfo(VkFormat format, VkExtent3D extent, VkImageUsageFlags usage, uint32_t layer_count)
     {
         VkImageCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -205,7 +205,7 @@ namespace yoyo
         info.extent = extent;
 
         info.mipLevels = 1;
-        info.arrayLayers = 1;
+        info.arrayLayers = layer_count;
         info.samples = VK_SAMPLE_COUNT_1_BIT;
         info.tiling = VK_IMAGE_TILING_OPTIMAL;
         info.usage = usage;

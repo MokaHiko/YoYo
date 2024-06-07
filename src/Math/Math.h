@@ -49,6 +49,7 @@ namespace yoyo
     YAPI const Vec3 operator-(const Vec3& v1, const Vec3& v2);
     YAPI const IVec2 operator-(const IVec2& v1, const IVec2& v2);
 
+    YAPI const IVec2 operator*(const IVec2& v1, int scalar);
     YAPI const Vec3 operator*(const Vec3& v1, float scalar);
     YAPI const Vec4 operator*(const Vec4& v1, float scalar);
 

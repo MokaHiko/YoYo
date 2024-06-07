@@ -7,7 +7,20 @@
 
 namespace yoyo
 {
-	template<>
+	Texture::Texture()
+		:width(0), height(0), layers(1), format(TextureFormat::Unknown), 
+		m_type(TextureType::Uknown), m_sampler_type(TextureSamplerType::Linear), m_sampler_address_mode(TextureAddressMode::Repeat),
+		m_dirty(TextureDirtyFlags::Clean), m_live(false){}
+
+	Texture::~Texture(){}
+
+    void Texture::SetTextureType(TextureType type)
+	{
+		m_type = type;
+		m_dirty |= TextureDirtyFlags::TypeChange;
+    }
+
+    template<>
 	YAPI Ref<Texture> ResourceManager::Load<Texture>(const std::string& path)
 	{
 		const std::string name = FileNameFromFullPath(path);
@@ -34,8 +47,8 @@ namespace yoyo
 		return texture;
 	}
 
-	Ref<Texture> Texture::LoadFromAsset(const char* asset_path)
-	{
+    Ref<Texture> Texture::LoadFromAsset(const char *asset_path)
+    {
 		hro::Texture hro_texture = {};
 		hro::TextureInfo hro_texture_info = {};
 
