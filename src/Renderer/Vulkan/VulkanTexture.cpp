@@ -29,7 +29,7 @@ namespace yoyo
 		return texture;
 	}
 
-	void VulkanTexture::UploadTextureData(bool free_host_memory)
+    void VulkanTexture::UploadTextureData(bool free_host_memory)
 	{
 		YASSERT(raw_data.size() > 0, "Attempting to upload texture with 0 data");
 		YASSERT((width + height) > 0 , "Texture must have non zero width and/or height");

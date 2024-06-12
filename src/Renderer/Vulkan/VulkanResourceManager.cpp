@@ -102,14 +102,17 @@ namespace yoyo
 		memcpy(pixel_ptr, texture->raw_data.data(), texture->raw_data.size());
 		UnmapMemory(staging_buffer.allocation);
 
+		YASSERT(texture->layers > 0, "Cannot have texture with 0 layers!");
+		YASSERT(texture->width %  texture->layers == 0, "Multiple layer texture data is not square");
+		YASSERT(texture->height % texture->layers == 0, "Multiple layer texture data is not square");
+
 		// Create texture
-		VkExtent3D extent;
+		VkExtent3D extent = {};
 		extent.width = static_cast<uint32_t>(texture->width);
 		extent.height = static_cast<uint32_t>(texture->height);
 		extent.depth = 1;
 
-		YASSERT(extent.width % texture->layers == 0, "Multiple layer texture data is not square");
-		YASSERT(extent.height % texture->layers == 0, "Multiple layer texture data is not square");
+		VkDeviceSize texture_size = texture->raw_data.size() / texture->layers;
 
 		// Check if texture already allocated
 		if (!texture->IsInitialized())
@@ -118,8 +121,7 @@ namespace yoyo
 		}
 
 		// Copy data to texture via immediate mode submit
-		ImmediateSubmit([&](VkCommandBuffer cmd)
-						{
+		ImmediateSubmit([&](VkCommandBuffer cmd) {
 			// ~ Transition to transfer optimal
 			VkImageSubresourceRange range = {};
 			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -150,14 +152,10 @@ namespace yoyo
 				VkBufferImageCopy region = {};
 				region.bufferImageHeight = 0;
 				region.bufferRowLength = 0;
-				region.bufferOffset = layer * (texture->raw_data.size() / texture->layers);
+				region.bufferOffset = layer * texture_size;
 
-				VkExtent3D sub_extent = extent;
-				sub_extent.width /= texture->layers;
-				sub_extent.height /= texture->layers;
-
-				region.imageExtent = sub_extent;
-				region.imageOffset = { 0 , 0, 0};
+				region.imageExtent = { extent.width, extent.height, 1 };
+				region.imageOffset = { 0, 0, 0};
 				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				region.imageSubresource.baseArrayLayer = layer;
 				region.imageSubresource.layerCount = 1;
@@ -183,7 +181,20 @@ namespace yoyo
 		if (!texture->IsInitialized())
 		{
 			// Create image view
-			VkImageViewCreateInfo image_view_info = vkinit::ImageViewCreateInfo(texture->allocated_image.image, ConvertTextureFormat(texture->format), VK_IMAGE_ASPECT_COLOR_BIT);
+
+			VkImageViewType view_type = {};
+			switch(texture->GetTextureType())
+			{
+				case(TextureType::Array):
+				{
+					view_type = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+				}break;
+				default:
+					view_type = VK_IMAGE_VIEW_TYPE_2D;
+					break;
+			}
+
+			VkImageViewCreateInfo image_view_info = vkinit::ImageViewCreateInfo(texture->allocated_image.image, ConvertTextureFormat(texture->format), VK_IMAGE_ASPECT_COLOR_BIT, texture->layers, view_type);
 			VK_CHECK(vkCreateImageView(m_device, &image_view_info, nullptr, &texture->image_view));
 
 			// Create Sampler

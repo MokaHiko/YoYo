@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <functional>
+#include <map>
 #include <unordered_map>
 #include <queue>
 #include <set>

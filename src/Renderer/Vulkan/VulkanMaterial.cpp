@@ -49,10 +49,16 @@ namespace yoyo
     {
         const VulkanRenderContext* ctx = static_cast<VulkanRenderContext*>(render_context);
 
-        // Bind main texture
-        vkCmdBindDescriptorSets(ctx->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->shader_passes[mesh_pass_type]->layout, MATERIAL_TEXTURE_SET_INDEX, 1, &descriptors[mesh_pass_type][MATERIAL_TEXTURE_SET_INDEX].set, 0, nullptr);
+        // Bind material descriptors
+        for(size_t i = 0; i < descriptors[mesh_pass_type].size(); i++)
+        {
+            const VulkanDescriptorSet& descriptor = descriptors[mesh_pass_type][i];
+            if (descriptor.set == VK_NULL_HANDLE)
+            {
+                continue;
+            }
 
-        // Bind material descriptor properties (floats, textures, etc)
-        vkCmdBindDescriptorSets(ctx->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->shader_passes[mesh_pass_type]->layout, MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX, 1, &descriptors[mesh_pass_type][MATERIAL_PROPERTIES_DESCRIPTOR_SET_INDEX].set, 0, nullptr);
+            vkCmdBindDescriptorSets(ctx->cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->shader_passes[mesh_pass_type]->layout, i, 1, &descriptor.set, 0, nullptr);
+        }
     }
 };

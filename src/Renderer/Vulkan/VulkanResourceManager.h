@@ -13,10 +13,8 @@ namespace yoyo
     class VulkanTexture;
     class VulkanRenderer;
 
-    class VulkanStaticMesh;
-
     // Manages runtime vulkan resources
-    class VulkanResourceManager
+    class YAPI VulkanResourceManager
     {
     public:
         static void Init(VulkanRenderer* renderer);

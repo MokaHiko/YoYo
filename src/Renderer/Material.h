@@ -12,9 +12,11 @@ namespace yoyo
 {
     enum class MaterialTextureType : uint8_t
     {
-        MainTexture,
+        MainTexture = 0,
         SpecularMap,
         NormalMap,
+
+        Max
     };
 
     enum class MaterialPropertyType
@@ -42,9 +44,9 @@ namespace yoyo
 
     enum class MaterialRenderMode
     {
-        Uknown,
+        Uknown = 0,
         Opaque,
-        Transparent
+        Transparent,
     };
 
     inline MaterialDirtyFlags operator~ (MaterialDirtyFlags a) { return (MaterialDirtyFlags)~(int)a; }

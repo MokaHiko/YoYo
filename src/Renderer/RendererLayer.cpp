@@ -22,9 +22,7 @@ namespace yoyo
         m_app = app;
     }
 
-    RendererLayer::~RendererLayer()
-    {
-    }
+    RendererLayer::~RendererLayer() {}
 
     void RendererLayer::SendRenderPacket(RenderPacket* packet)
     {
@@ -150,6 +148,7 @@ namespace yoyo
 
         m_renderer->EndFrame();
     }
+
     void RendererLayer::OnImGuiRender()
     {
         ImGui::Begin("Renderer");

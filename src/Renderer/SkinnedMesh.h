@@ -35,7 +35,7 @@ namespace yoyo
         std::string name = "";
 
         // The transform of the node relative to the parent
-        yoyo::Mat4x4 transform;
+        Mat4x4 transform;
     };
 
     // A hierarchy of joints

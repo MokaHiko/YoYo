@@ -47,7 +47,7 @@ namespace yoyo
 		return texture;
 	}
 
-    Ref<Texture> Texture::LoadFromAsset(const char *asset_path)
+    Ref<Texture> Texture::LoadFromAsset(const char *asset_path, TextureType type)
     {
 		hro::Texture hro_texture = {};
 		hro::TextureInfo hro_texture_info = {};
@@ -56,7 +56,7 @@ namespace yoyo
 		{
 			hro_texture.ParseInfo(&hro_texture_info);
 
-			Ref<Texture> texture = Texture::Create(FileNameFromFullPath(asset_path));
+			Ref<Texture> texture = Texture::Create(FileNameFromFullPath(asset_path), type);
 			texture->width = hro_texture_info.pixel_size[0];
 			texture->height = hro_texture_info.pixel_size[1];
 			texture->format = (TextureFormat)((int)hro_texture_info.format);

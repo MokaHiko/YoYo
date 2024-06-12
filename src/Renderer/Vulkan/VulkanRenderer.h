@@ -32,9 +32,9 @@ namespace yoyo
     class Texture;
     class DirectionalLight;
     class Camera;
+    class StaticMesh;
 
     class VulkanMaterialSystem;
-    class VulkanStaticMesh;
     class VulkanRenderer : public Renderer
     {
     public:
@@ -88,7 +88,7 @@ namespace yoyo
         VkDescriptorSet m_blit_output_texture_ds;
         VkDescriptorSetLayout m_blit_pass_ds_layout;
 
-        Ref<VulkanStaticMesh> m_screen_quad;
+        Ref<StaticMesh> m_screen_quad;
 
         // TODO: Encapsulate as render targets
         VkRenderPass m_post_process_render_pass;

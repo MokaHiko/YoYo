@@ -72,7 +72,7 @@ namespace yoyo
 
         InitBlitPipeline();
 
-        m_screen_quad = CreateRef<VulkanStaticMesh>();
+        m_screen_quad = StaticMesh::Create("screen_quad");
         m_screen_quad->GetVertices() = {
             {{-1.00, -1.00, 0.00}, {0.00, 0.00, 0.00}, {0.00, 0.00, 1.00}, {0.00, 0.00}},
             {{1.00, -1.00, 0.00}, {0.00, 0.00, 0.00}, {0.00, 0.00, 1.00}, {1.00, 0.00}},
@@ -81,7 +81,8 @@ namespace yoyo
             {{1.00, 1.00, 0.00}, {0.00, 0.00, 0.00}, {0.00, 0.00, 1.00}, {1.00, 1.00}},
             {{-1.00, 1.00, 0.00}, {0.00, 0.00, 0.00}, {0.00, 0.00, 1.00}, {0.00, 1.00}},
         };
-        m_screen_quad->UploadMeshData(); // Manual upload
+        // Immediate manual upload
+        m_screen_quad->UploadMeshData(); 
 
         Ref<VulkanShaderEffect> lit_effect = CreateRef<VulkanShaderEffect>();
         {
@@ -199,7 +200,6 @@ namespace yoyo
                 lit_points_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
             }
             lit_points_effect->blend_enable = false;
-            // lit_points_effect->primitive_topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
             lit_points_effect->primitive_topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
             auto lit_points_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_points_effect);
 
@@ -582,7 +582,7 @@ namespace yoyo
                 render_context.mesh_pass_type = MeshPassType::Forward;
                 render_context.frame = m_frame_count;
 
-                // Bind batch material and mesh
+                // Bind batch material descriptors and mesh
                 if (batch->material->Dirty())
                 {
                     m_material_system->UpdateMaterial(std::static_pointer_cast<VulkanMaterial>(batch->material));

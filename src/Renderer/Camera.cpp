@@ -33,7 +33,7 @@ namespace yoyo
 		case(CameraType::Perspective):
 		{
 			m_proj = PerspectiveProjectionMat4x4(DegToRad(m_fov), m_aspect_ratio, m_near, m_far);
-			m_proj[5] *= 1; // Reconfigure y values as positive for vulkan
+			m_proj[5] *= -1; // Reconfigure y values as positive for vulkan
 		}break;
 		case(CameraType::Orthographic):
 		{

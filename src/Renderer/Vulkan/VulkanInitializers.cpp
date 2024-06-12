@@ -216,7 +216,7 @@ namespace yoyo
         return info;
     }
 
-    VkImageViewCreateInfo vkinit::ImageViewCreateInfo(VkImage image, VkFormat format, VkImageAspectFlags aspect)
+    VkImageViewCreateInfo vkinit::ImageViewCreateInfo(VkImage image, VkFormat format, VkImageAspectFlags aspect, uint32_t layer_count, VkImageViewType view_type)
     {
         VkImageViewCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -227,10 +227,9 @@ namespace yoyo
         info.image = image;
         info.subresourceRange.aspectMask = aspect;
 
-        // 2D image defaults
-        info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        info.viewType = view_type;
 
-        info.subresourceRange.layerCount = 1;
+        info.subresourceRange.layerCount = layer_count;
         info.subresourceRange.baseArrayLayer = 0;
         info.subresourceRange.levelCount = 1;
         info.subresourceRange.baseMipLevel = 0;

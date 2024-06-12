@@ -125,7 +125,7 @@ namespace yoyo
         VkDescriptorSetLayout descriptor_set_layout;
 
         uint32_t index;
-        std::unordered_map<uint32_t, VulkanBinding> bindings;
+        std::map<uint32_t, VulkanBinding> bindings;
 
         void AddBinding(uint32_t index, VkShaderStageFlagBits stage, const VulkanBinding& binding)
         {

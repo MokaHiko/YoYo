@@ -11,6 +11,11 @@ namespace yoyo
     // TODO: Abstract to general ShaderPass
     struct VulkanShaderPass;
 
+    struct ShaderPass
+    {
+        
+    };
+
     struct ShaderInput
     {
         std::string name;

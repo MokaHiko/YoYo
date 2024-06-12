@@ -5,6 +5,8 @@
 #include "Resource/ResourceManager.h"
 #include "Core/Log.h"
 
+#include "Resource/ResourceEvent.h"
+
 namespace yoyo
 {
     template<>
@@ -34,7 +36,18 @@ namespace yoyo
 		return mesh;
     }
 
-    Ref<StaticMesh> StaticMesh::LoadFromAsset(const char* asset_path, const std::string& name)
+    template<>
+    YAPI void ResourceManager::Free<StaticMesh>(Ref<StaticMesh> resource)
+    {
+        // TODO: Free resource
+    }
+
+    Ref<StaticMesh> StaticMesh::Create(const std::string &name)
+    {
+        return std::static_pointer_cast<StaticMesh>(CreateImpl("StaticMesh", name));
+    }
+
+    Ref<StaticMesh> StaticMesh::LoadFromAsset(const char *asset_path, const std::string &name)
     {
         hro::Mesh hro_mesh;
 
@@ -44,35 +57,18 @@ namespace yoyo
 
 			// Create and copy mesh
             const std::string static_mesh_name = name.empty() ? FileNameFromFullPath(asset_path) : name;
-            Ref<StaticMesh> static_mesh = StaticMesh::Create(static_mesh_name);
+            auto static_mesh = StaticMesh::Create(static_mesh_name);
 
-            static_mesh->vertices.resize(hro_mesh.vertices.size());
-            memcpy(static_mesh->vertices.data(), hro_mesh.vertices.data(), hro_mesh.vertices.size() * sizeof(Vertex));
+            static_mesh->GetVertices().resize(hro_mesh.vertices.size());
+            memcpy(static_mesh->GetVertices().data(), hro_mesh.vertices.data(), hro_mesh.vertices.size() * sizeof(Vertex));
 
-            static_mesh->indices.resize(hro_mesh.indices.size());
-            memcpy(static_mesh->indices.data(), hro_mesh.indices.data(), hro_mesh.indices.size() * sizeof(uint32_t));
+            static_mesh->GetIndices().resize(hro_mesh.indices.size());
+            memcpy(static_mesh->GetIndices().data(), hro_mesh.indices.data(), hro_mesh.indices.size() * sizeof(uint32_t));
 
-            return static_mesh;
+            return std::static_pointer_cast<StaticMesh>(static_mesh);
         }
 
         return nullptr;
     }
 
-    template<>
-    YAPI void ResourceManager::Free<StaticMesh>(Ref<StaticMesh> resource)
-    {
-        // TODO: Free resource
-    } 
-
-	Ref<StaticMesh> StaticMesh::CreateFromBuffers(const std::string& name, void* vertex_buffer, uint64_t vertex_buffer_size, void* index_buffer, uint64_t index_buffer_size)
-    {
-		Ref<StaticMesh> mesh = StaticMesh::Create(name);
-		mesh->vertices.resize(vertex_buffer_size / sizeof(Vertex));
-		memcpy(mesh->vertices.data(), (char*)vertex_buffer, vertex_buffer_size);
-
-		mesh->indices.resize(index_buffer_size / sizeof(uint32_t));
-		memcpy(mesh->indices.data(), (char*)index_buffer, index_buffer_size);
-
-		return mesh;
-    }
 }

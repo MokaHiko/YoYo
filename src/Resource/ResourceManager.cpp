@@ -13,13 +13,9 @@
 
 namespace yoyo
 {
-	ResourceManager::ResourceManager()
-	{
-	}
+	ResourceManager::ResourceManager() {}
 
-	ResourceManager::~ResourceManager()
-	{
-	}
+	ResourceManager::~ResourceManager() {}
 
 	ResourceManager &ResourceManager::Instance()
 	{
@@ -44,31 +40,11 @@ namespace yoyo
 	void ResourceManager::Update()
 	{
 		// TODO: Move to dirty list
-		for (auto it : ResourceManager::Instance().Cache<StaticMesh>())
+		for (auto& it : ResourceManager::Instance().Cache<IMesh>())
 		{
-			Ref<StaticMesh> mesh = it.second;
+			auto& mesh = it.second;
 			MeshDirtyFlags flags = mesh->DirtyFlags();
 
-			if (flags == MeshDirtyFlags::Clean)
-			{
-				continue;
-			}
-
-			if ((flags & MeshDirtyFlags::Unuploaded) == MeshDirtyFlags::Unuploaded)
-			{
-				mesh->UploadMeshData();
-			}
-
-			if ((flags & MeshDirtyFlags::VertexDataChange) == MeshDirtyFlags::VertexDataChange)
-			{
-				// TODO: Update vertex data in gpu
-			}
-		}
-
-		for (auto& it : ResourceManager::Instance().Cache<SkinnedMesh>())
-		{
-			Ref<SkinnedMesh> mesh = it.second;
-			MeshDirtyFlags flags = mesh->DirtyFlags();
 			if (flags == MeshDirtyFlags::Clean)
 			{
 				continue;
@@ -90,7 +66,27 @@ namespace yoyo
 			}
 		}
 
-		for (auto it : ResourceManager::Instance().Cache<Texture>())
+		for (auto &it : ResourceManager::Instance().Cache<SkinnedMesh>())
+		{
+			Ref<SkinnedMesh> mesh = it.second;
+			MeshDirtyFlags flags = mesh->DirtyFlags();
+			if (flags == MeshDirtyFlags::Clean)
+			{
+				continue;
+			}
+
+			if ((flags & MeshDirtyFlags::Unuploaded) == MeshDirtyFlags::Unuploaded)
+			{
+				mesh->UploadMeshData();
+			}
+
+			if ((flags & MeshDirtyFlags::VertexDataChange) == MeshDirtyFlags::VertexDataChange)
+			{
+				// TODO: Update vertex data in gpu
+			}
+		}
+
+		for (auto& it : ResourceManager::Instance().Cache<Texture>())
 		{
 			Ref<Texture> texture = it.second;
 
@@ -100,12 +96,12 @@ namespace yoyo
 				continue;
 			}
 
-			if (flags == TextureDirtyFlags::TypeChange)
+			if ((flags & TextureDirtyFlags::TypeChange) == TextureDirtyFlags::TypeChange)
 			{
 				// TODO: Rebuild texture
 			}
 
-			if (flags == TextureDirtyFlags::SamplerType)
+			if ((flags & TextureDirtyFlags::SamplerType) == TextureDirtyFlags::SamplerType)
 			{
 				// TODO:
 			}
@@ -121,7 +117,7 @@ namespace yoyo
 			}
 		}
 
-		for (auto it : ResourceManager::Instance().Cache<Material>())
+		for (auto& it : ResourceManager::Instance().Cache<Material>())
 		{
 			Ref<Material> material = it.second;
 
@@ -155,17 +151,17 @@ namespace yoyo
 	{
 		ResourceManager::Instance().Init();
 
-		EventManager::Instance().Subscribe(MeshCreatedEvent<StaticMesh>::s_event_type, [](Ref<Event> event)
-										   {
-			const auto& mesh_created_event = std::static_pointer_cast<MeshCreatedEvent<StaticMesh>>(event);
-			Ref<StaticMesh> mesh = std::static_pointer_cast<StaticMesh>(mesh_created_event->mesh);
-			return ResourceManager::Instance().OnResourceCreated<StaticMesh>(mesh); });
+		EventManager::Instance().Subscribe(MeshCreatedEvent<IMesh>::s_event_type, [](Ref<Event> event){
+			const auto& mesh_created_event = std::static_pointer_cast<MeshCreatedEvent<IMesh>>(event);
+			Ref<IMesh> mesh = std::static_pointer_cast<IMesh>(mesh_created_event->mesh);
+			return ResourceManager::Instance().OnResourceCreated<IMesh>(mesh); 
+		});
 
-		EventManager::Instance().Subscribe(MeshCreatedEvent<SkinnedMesh>::s_event_type, [](Ref<Event> event)
-										   {
+		EventManager::Instance().Subscribe(MeshCreatedEvent<SkinnedMesh>::s_event_type, [](Ref<Event> event){
 			const auto& mesh_created_event = std::static_pointer_cast<MeshCreatedEvent<SkinnedMesh>>(event);
 			Ref<SkinnedMesh> mesh = std::static_pointer_cast<SkinnedMesh>(mesh_created_event->mesh);
-			return ResourceManager::Instance().OnResourceCreated<SkinnedMesh>(mesh); });
+			return ResourceManager::Instance().OnResourceCreated<SkinnedMesh>(mesh);
+		});
 
 		EventManager::Instance().Subscribe(ShaderCreatedEvent::s_event_type, [](Ref<Event> event)
 										   {
@@ -182,8 +178,7 @@ namespace yoyo
 			const auto& material_created_event = std::static_pointer_cast<MaterialCreatedEvent>(event);
 			return ResourceManager::Instance().OnResourceCreated<Material>(material_created_event->material); });
 
-		EventManager::Instance().Subscribe(SkeletalHierarchyCreatedEvent::s_event_type, [](Ref<Event> event)
-										   {
+		EventManager::Instance().Subscribe(SkeletalHierarchyCreatedEvent::s_event_type, [](Ref<Event> event){
 			const auto& skeletal_hierarchy_created_event = std::static_pointer_cast<SkeletalHierarchyCreatedEvent>(event);
 			return ResourceManager::Instance().OnResourceCreated<SkeletalHierarchy>(skeletal_hierarchy_created_event->skeletal_hierarchy); });
 
@@ -204,11 +199,11 @@ namespace yoyo
 
 		ResourceManager &rm = ResourceManager::Instance();
 
-		const std::string static_mesh_node_node = "Static Meshes(" + std::to_string(rm.Cache<StaticMesh>().size()) + ")";
+		const std::string static_mesh_node_node = "Meshes(" + std::to_string(rm.Cache<IMesh>().size()) + ")";
 		if (ImGui::TreeNode(static_mesh_node_node.c_str()))
 		{
 			// Texture View
-			for (const auto &it : rm.Cache<StaticMesh>())
+			for (const auto &it : rm.Cache<IMesh>())
 			{
 				if (ImGui::TreeNode(it.second->name.c_str()))
 				{
@@ -322,6 +317,20 @@ namespace yoyo
 					if (ImGui::TreeNode(shader_name.c_str()))
 					{
 						ImGui::Checkbox("Instanced", &material->shader->instanced);
+						ImGui::Text("shader passes: %u", material->shader->shader_passes.size());
+
+						static const char* MeshPassTypeNames[4] =
+						{
+							"Forward",
+							"ForwardTransparent",
+							"Shadow",
+							"PostProcess"
+						};
+
+						for (auto it = material->shader->shader_passes.begin(); it != material->shader->shader_passes.end(); it++)
+						{
+							ImGui::Text("%s", MeshPassTypeNames[(int)it->first]);
+						}
 						ImGui::TreePop();
 					}
 					ImGui::EndChild();

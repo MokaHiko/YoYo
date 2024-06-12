@@ -5,31 +5,75 @@
 #include "Renderer/SkinnedMesh.h"
 
 #include "VulkanStructures.h"
+#include "VulkanResourceManager.h"
 
-const int MESH_SKINNED_BONES_SET_INDEX = 3;
-const int MESH_SKINNED_BONES_DESCRIPTOR_SET_BINDING = 0;
+#include "Resource/ResourceEvent.h"
 
 namespace yoyo
 {
-    const std::vector<VkVertexInputAttributeDescription>& VertexAttributeDescriptions();
-    const std::vector<VkVertexInputBindingDescription>& VertexBindingDescriptions();
+    const std::vector<VkVertexInputAttributeDescription> &VertexAttributeDescriptions();
+    const std::vector<VkVertexInputBindingDescription> &VertexBindingDescriptions();
 
-    std::vector<VkVertexInputBindingDescription> GenerateVertexBindingDescriptions(const std::vector<ShaderInput>& inputs, VkVertexInputRate input_rate);
-    std::vector<VkVertexInputAttributeDescription> GenerateVertexAttributeDescriptions(const std::vector<ShaderInput>& inputs);
+    std::vector<VkVertexInputBindingDescription> GenerateVertexBindingDescriptions(const std::vector<ShaderInput> &inputs, VkVertexInputRate input_rate);
+    std::vector<VkVertexInputAttributeDescription> GenerateVertexAttributeDescriptions(const std::vector<ShaderInput> &inputs);
 
-    class VulkanStaticMesh : public StaticMesh
+    template <typename VertexType, typename IndexType>
+    class VulkanStaticMesh : public Mesh<VertexType, IndexType>
     {
     public:
         VulkanStaticMesh() = default;
         virtual ~VulkanStaticMesh() = default;
 
-        virtual void Bind(void* render_context) override;
-        virtual void Unbind() override;
+        virtual void Bind(void *render_context) override
+        {
+            const VulkanRenderContext *ctx = static_cast<VulkanRenderContext *>(render_context);
+            VkDeviceSize offset = 0;
 
-        virtual void UploadMeshData(bool free_host_memory = false) override;
+            if (!indices.empty())
+            {
+                vkCmdBindIndexBuffer(ctx->cmd, index_buffer.buffer, offset, VK_INDEX_TYPE_UINT32);
+            }
+
+            vkCmdBindVertexBuffers(ctx->cmd, 0, 1, &vertex_buffer.buffer, &offset);
+        }
+
+        virtual void Unbind() override {}
+
+        virtual void UploadMeshData(bool free_host_memory = false) override
+        {
+            VulkanResourceManager::UploadMesh(this);
+
+            if (free_host_memory)
+            {
+                vertices.clear();
+                indices.clear();
+            }
+
+            RemoveDirtyFlags(MeshDirtyFlags::Unuploaded);
+        }
+
     public:
         AllocatedBuffer<> vertex_buffer = {};
         AllocatedBuffer<uint32_t> index_buffer = {};
+    };
+
+    template <typename VertexType, typename IndexType>
+    std::shared_ptr<Mesh<VertexType, IndexType>> CreateVulkanStaticMesh(const std::string &name)
+    {
+        auto mesh = CreateRef<VulkanStaticMesh<VertexType, IndexType>>();
+        mesh->name = name;
+
+        EventManager::Instance().Dispatch(CreateRef<MeshCreatedEvent<IMesh>>(mesh));
+        return mesh;
+    }
+
+    template <typename VertexType, typename IndexType>
+    struct VulkanMeshRegistrar
+    {
+        VulkanMeshRegistrar()
+        {
+            MeshFactory::Register<VertexType, IndexType>("StaticMesh", CreateVulkanStaticMesh<VertexType, IndexType>);
+        }
     };
 
     class VulkanSkinnedMesh : public SkinnedMesh
@@ -38,7 +82,7 @@ namespace yoyo
         VulkanSkinnedMesh() = default;
         virtual ~VulkanSkinnedMesh() = default;
 
-        virtual void Bind(void* render_context) override;
+        virtual void Bind(void *render_context) override;
         virtual void Unbind() override;
 
         virtual void UploadMeshData(bool free_host_memory = false) override;
@@ -51,4 +95,4 @@ namespace yoyo
 
         std::vector<AllocatedBuffer<Mat4x4>> bone_buffers = {};
     };
-};
+}

@@ -98,5 +98,3 @@ namespace yoyo
 
     extern Ref<Renderer> CreateRenderer();
 };
-
- 

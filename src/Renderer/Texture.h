@@ -92,7 +92,7 @@ namespace yoyo
 
         // Creates a texture of type
         static Ref<Texture> Create(const std::string &name = "", TextureType type = TextureType::Color);
-        static Ref<Texture> LoadFromAsset(const char *asset_path);
+        static Ref<Texture> LoadFromAsset(const char *asset_path, TextureType type = TextureType::Color);
 
         int width;
         int height;
