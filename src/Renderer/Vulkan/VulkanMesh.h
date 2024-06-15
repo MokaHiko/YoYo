@@ -7,8 +7,6 @@
 #include "VulkanStructures.h"
 #include "VulkanResourceManager.h"
 
-#include "Resource/ResourceEvent.h"
-
 namespace yoyo
 {
     const std::vector<VkVertexInputAttributeDescription> &VertexAttributeDescriptions();
@@ -17,8 +15,18 @@ namespace yoyo
     std::vector<VkVertexInputBindingDescription> GenerateVertexBindingDescriptions(const std::vector<ShaderInput> &inputs, VkVertexInputRate input_rate);
     std::vector<VkVertexInputAttributeDescription> GenerateVertexAttributeDescriptions(const std::vector<ShaderInput> &inputs);
 
+    void YAPI DispatchMeshCreatedEvent(Ref<IMesh> mesh);
+
     template <typename VertexType, typename IndexType>
-    class VulkanStaticMesh : public Mesh<VertexType, IndexType>
+    class VulkanMesh : public Mesh<VertexType, IndexType>
+    {
+    public:
+        AllocatedBuffer<> vertex_buffer = {};
+        AllocatedBuffer<uint32_t> index_buffer = {};
+    };
+
+    template <typename VertexType, typename IndexType>
+    class VulkanStaticMesh : public VulkanMesh<VertexType, IndexType>
     {
     public:
         VulkanStaticMesh() = default;
@@ -41,7 +49,7 @@ namespace yoyo
 
         virtual void UploadMeshData(bool free_host_memory = false) override
         {
-            VulkanResourceManager::UploadMesh(this);
+            VulkanResourceManager::UploadMesh<VertexType, IndexType>(this);
 
             if (free_host_memory)
             {
@@ -49,12 +57,8 @@ namespace yoyo
                 indices.clear();
             }
 
-            RemoveDirtyFlags(MeshDirtyFlags::Unuploaded);
+            RemoveDirtyFlags(MeshDirtyFlags::Unuploaded | MeshDirtyFlags::IndexDataChange | MeshDirtyFlags::VertexDataChange);
         }
-
-    public:
-        AllocatedBuffer<> vertex_buffer = {};
-        AllocatedBuffer<uint32_t> index_buffer = {};
     };
 
     template <typename VertexType, typename IndexType>
@@ -63,7 +67,8 @@ namespace yoyo
         auto mesh = CreateRef<VulkanStaticMesh<VertexType, IndexType>>();
         mesh->name = name;
 
-        EventManager::Instance().Dispatch(CreateRef<MeshCreatedEvent<IMesh>>(mesh));
+        DispatchMeshCreatedEvent(mesh);
+
         return mesh;
     }
 

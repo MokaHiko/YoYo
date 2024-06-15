@@ -2,6 +2,9 @@
 
 namespace yoyo
 {
+    // Render pass
+    using ShaderPassId = uint64_t;
+    
     // Unique identifier of a renderable object in a RenderScene.
     using RenderSceneId = uint32_t;
     const RenderSceneId NULL_RENDER_SCENE_ID = -1;
@@ -15,6 +18,7 @@ namespace yoyo
         ForwardTransparent,
         Shadow,
         PostProcess,
+        Compute,
 
         Max,
     };

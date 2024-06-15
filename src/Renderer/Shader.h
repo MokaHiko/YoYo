@@ -13,7 +13,7 @@ namespace yoyo
 
     struct ShaderPass
     {
-        
+        ShaderPassId id;
     };
 
     struct ShaderInput

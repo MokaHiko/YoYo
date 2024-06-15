@@ -28,17 +28,7 @@ namespace yoyo
     class YAPI EventManager
     {
     public:
-        static EventManager& Instance()
-        {
-            static EventManager* event_manager;
-
-            if (!event_manager)
-            {
-                event_manager = YNEW EventManager;
-            }
-
-            return *event_manager;
-        }
+        static EventManager& Instance();
 
         void Subscribe(const EventType& type, const EventHandler& handler);
         void Unsubscribe(const EventType& type, EventHandler& handler);

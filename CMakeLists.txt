@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.5.0)
 project(YoYo VERSION 0.1.0 LANGUAGES C CXX)
 
 include(CTest)
@@ -93,8 +93,8 @@ add_library(YoYo SHARED
     src/Renderer/Particles/ParticleSystemEvents.h
     src/Renderer/Particles/ParticleSystemEvents.cpp
 
-    src/Renderer/Voxel/BlockMesh.h
-    src/Renderer/Voxel/BlockMesh.cpp
+    # src/Renderer/Voxel/BlockMesh.h
+    # src/Renderer/Voxel/BlockMesh.cpp
 
     src/Core/EntryPoint.h
     include/Yoyo.h
@@ -147,7 +147,7 @@ if (WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE SDL2 vulkan-1)
 
     target_include_directories(${PROJECT_NAME} PRIVATE vendor/SDL/include $ENV{VULKAN_SDK}/include)
-    target_link_directories(${PROJECT_NAME} PRIVATE $ENV{VULKAN_SDK}/Lib)
+    target_link_directories(${PROJECT_NAME} PUBLIC $ENV{VULKAN_SDK}/Lib)
 
     set(YRENDERERTYPE "VULKAN")
 elseif (APPLE)
@@ -171,7 +171,7 @@ if (YRENDERERTYPE STREQUAL "VULKAN")
     add_subdirectory(vendor/SPIRVReflect)
 
     # TODO: Make spriv reflect static fork for static lib
-    target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator vk-bootstrap spirv-reflect-static)
+    target_link_libraries(${PROJECT_NAME} PUBLIC GPUOpen::VulkanMemoryAllocator vk-bootstrap spirv-reflect-static)
     target_sources(${PROJECT_NAME} PRIVATE 
         src/Renderer/Vulkan/VulkanStructures.cpp
         src/Renderer/Vulkan/VulkanStructures.h

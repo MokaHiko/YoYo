@@ -11,6 +11,22 @@
 
 namespace yoyo
 {
+	// General purpose staging buffer for mesh uploads
+    static AllocatedBuffer<> s_mesh_staging_buffer = {}; 
+    static VulkanUploadContext s_upload_context = {};
+
+    static VkDevice s_device = VK_NULL_HANDLE;
+    static VkPhysicalDeviceProperties s_physical_device_props = {};
+    static VkPhysicalDevice s_physical_device = VK_NULL_HANDLE;
+    static VkInstance s_instance = VK_NULL_HANDLE;
+
+    static VulkanDeletionQueue *s_deletion_queue = nullptr;
+    static VulkanQueues *s_queues = nullptr;
+
+    static VmaAllocator s_allocator = VK_NULL_HANDLE;
+    static Ref<DescriptorAllocator> s_descriptor_allocator = nullptr;
+    static Ref<DescriptorLayoutCache> s_descriptor_layout_cache = nullptr;
+
 	static VkFormat ConvertTextureFormat(TextureFormat format)
 	{
 		switch (format)
@@ -32,44 +48,44 @@ namespace yoyo
 	void VulkanResourceManager::Init(VulkanRenderer *renderer)
 	{
 		// Grab Handles
-		m_device = renderer->Device();
-		m_physical_device = renderer->PhysicalDevice();
-		m_physical_device_props = renderer->PhysicalDeviceProperties();
-		m_instance = renderer->Instance();
+		s_device = renderer->Device();
+		s_physical_device = renderer->PhysicalDevice();
+		s_physical_device_props = renderer->PhysicalDeviceProperties();
+		s_instance = renderer->Instance();
 
 		// TODO: Create cache and allocator for resource manager
-		m_descriptor_allocator = renderer->DescAllocator();
-		m_descriptor_layout_cache = renderer->DescLayoutCache();
+		s_descriptor_allocator = renderer->DescAllocator();
+		s_descriptor_layout_cache = renderer->DescLayoutCache();
 
-		m_queues = &renderer->Queues();
-		m_deletion_queue = &renderer->DeletionQueue();
+		s_queues = &renderer->Queues();
+		s_deletion_queue = &renderer->DeletionQueue();
 
 		// Init vmaAllocator
 		VmaAllocatorCreateInfo allocator_info = {};
-		allocator_info.physicalDevice = m_physical_device;
-		allocator_info.device = m_device;
-		allocator_info.instance = m_instance;
+		allocator_info.physicalDevice = s_physical_device;
+		allocator_info.device = s_device;
+		allocator_info.instance = s_instance;
 
-		VK_CHECK(vmaCreateAllocator(&allocator_info, &m_allocator));
+		VK_CHECK(vmaCreateAllocator(&allocator_info, &s_allocator));
 
 		// Create immediate submit context
 		{
 			VkCommandPoolCreateInfo graphics_cp_info = vkinit::CommandPoolCreateInfo(renderer->Queues().graphics.index, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
-			vkCreateCommandPool(m_device, &graphics_cp_info, nullptr, &m_upload_context.command_pool);
-			VkCommandBufferAllocateInfo alloc_info = vkinit::CommandBufferAllocInfo(m_upload_context.command_pool);
-			vkAllocateCommandBuffers(m_device, &alloc_info, &m_upload_context.command_buffer);
+			vkCreateCommandPool(s_device, &graphics_cp_info, nullptr, &s_upload_context.command_pool);
+			VkCommandBufferAllocateInfo alloc_info = vkinit::CommandBufferAllocInfo(s_upload_context.command_pool);
+			vkAllocateCommandBuffers(s_device, &alloc_info, &s_upload_context.command_buffer);
 
 			VkFenceCreateInfo fence_info = {};
 			fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 			fence_info.flags = 0;
 
-			VK_CHECK(vkCreateFence(m_device, &fence_info, nullptr, &m_upload_context.fence));
+			VK_CHECK(vkCreateFence(s_device, &fence_info, nullptr, &s_upload_context.fence));
 		}
 
 		// Init staging buffers
 		{
-			m_mesh_staging_buffer = CreateBuffer(sizeof(Vertex) * MAX_MESH_VERTICES, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+			s_mesh_staging_buffer = CreateBuffer<>(STAGING_BUFFER_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 		}
 
 		// Subscribe to vulkan resource events
@@ -82,20 +98,36 @@ namespace yoyo
 		// TODO: Unsubscribe to resource events
 
 		// Destroy immediate upload context
-		vkDestroyCommandPool(m_device, m_upload_context.command_pool, nullptr);
-		vkDestroyFence(m_device, m_upload_context.fence, nullptr);
+		vkDestroyCommandPool(s_device, s_upload_context.command_pool, nullptr);
+		vkDestroyFence(s_device, s_upload_context.fence, nullptr);
 
 		// Destroy allocator
-		vmaDestroyAllocator(m_allocator);
+		vmaDestroyAllocator(s_allocator);
 	}
 
-	bool VulkanResourceManager::UploadTexture(VulkanTexture *texture)
+    AllocatedBuffer<> &VulkanResourceManager::StagingBuffer()
+    {
+		return s_mesh_staging_buffer;
+    }
+
+	const VmaAllocator VulkanResourceManager::Allocator()
 	{
+		return s_allocator;
+	}
+
+    VulkanDeletionQueue &VulkanResourceManager::DeletionQueue()
+    {
+		YASSERT(s_deletion_queue != nullptr);
+		return *s_deletion_queue;
+    }
+
+    bool VulkanResourceManager::UploadTexture(VulkanTexture *texture)
+    {
 		YASSERT(texture->layers <= 1 != ((texture->GetTextureType() & TextureType::Array) == TextureType::Array),
 				"Cannot have layer count greater than 1 that is not TextureType::Array or TextureType::CubeMap!");
 
 		// Copy to staging buffer
-		AllocatedBuffer staging_buffer = CreateBuffer(texture->raw_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, false);
+		AllocatedBuffer<uint8_t> staging_buffer = CreateBuffer<uint8_t>(texture->raw_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, false);
 
 		void *pixel_ptr;
 		MapMemory(staging_buffer.allocation, &pixel_ptr);
@@ -103,8 +135,6 @@ namespace yoyo
 		UnmapMemory(staging_buffer.allocation);
 
 		YASSERT(texture->layers > 0, "Cannot have texture with 0 layers!");
-		YASSERT(texture->width %  texture->layers == 0, "Multiple layer texture data is not square");
-		YASSERT(texture->height % texture->layers == 0, "Multiple layer texture data is not square");
 
 		// Create texture
 		VkExtent3D extent = {};
@@ -121,7 +151,8 @@ namespace yoyo
 		}
 
 		// Copy data to texture via immediate mode submit
-		ImmediateSubmit([&](VkCommandBuffer cmd) {
+		ImmediateSubmit([&](VkCommandBuffer cmd)
+						{
 			// ~ Transition to transfer optimal
 			VkImageSubresourceRange range = {};
 			range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -176,35 +207,36 @@ namespace yoyo
 			vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_to_shader_barrier); });
 
 		// Destroy staging buffer
-		vmaDestroyBuffer(m_allocator, staging_buffer.buffer, staging_buffer.allocation);
+		vmaDestroyBuffer(s_allocator, staging_buffer.buffer, staging_buffer.allocation);
 
 		if (!texture->IsInitialized())
 		{
 			// Create image view
 
 			VkImageViewType view_type = {};
-			switch(texture->GetTextureType())
+			switch (texture->GetTextureType())
 			{
-				case(TextureType::Array):
-				{
-					view_type = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-				}break;
-				default:
-					view_type = VK_IMAGE_VIEW_TYPE_2D;
-					break;
+			case (TextureType::Array):
+			{
+				view_type = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+			}
+			break;
+			default:
+				view_type = VK_IMAGE_VIEW_TYPE_2D;
+				break;
 			}
 
 			VkImageViewCreateInfo image_view_info = vkinit::ImageViewCreateInfo(texture->allocated_image.image, ConvertTextureFormat(texture->format), VK_IMAGE_ASPECT_COLOR_BIT, texture->layers, view_type);
-			VK_CHECK(vkCreateImageView(m_device, &image_view_info, nullptr, &texture->image_view));
+			VK_CHECK(vkCreateImageView(s_device, &image_view_info, nullptr, &texture->image_view));
 
 			// Create Sampler
 			VkSamplerCreateInfo sampler_info = vkinit::SamplerCreateInfo((VkFilter)texture->GetSamplerType(), (VkSamplerAddressMode)texture->GetAddressMode());
-			VK_CHECK(vkCreateSampler(m_device, &sampler_info, nullptr, &texture->sampler));
+			VK_CHECK(vkCreateSampler(s_device, &sampler_info, nullptr, &texture->sampler));
 
-			m_deletion_queue->Push([=]()
+			s_deletion_queue->Push([=]()
 								   {
-				vkDestroySampler(m_device, texture->sampler, nullptr);
-				vkDestroyImageView(m_device, texture->image_view, nullptr); });
+				vkDestroySampler(s_device, texture->sampler, nullptr);
+				vkDestroyImageView(s_device, texture->image_view, nullptr); });
 		}
 
 		return true;
@@ -212,12 +244,12 @@ namespace yoyo
 
 	void VulkanResourceManager::MapMemory(VmaAllocation allocation, void **data)
 	{
-		vmaMapMemory(m_allocator, allocation, data);
+		vmaMapMemory(s_allocator, allocation, data);
 	}
 
 	void VulkanResourceManager::UnmapMemory(VmaAllocation allocation)
 	{
-		vmaUnmapMemory(m_allocator, allocation);
+		vmaUnmapMemory(s_allocator, allocation);
 	}
 
 	Ref<VulkanShaderModule> VulkanResourceManager::CreateShaderModule(const std::string &shader_path)
@@ -235,14 +267,14 @@ namespace yoyo
 			shader_info.pCode = reinterpret_cast<uint32_t *>(buffer);
 			shader_info.codeSize = buffer_size;
 
-			VK_CHECK(vkCreateShaderModule(m_device, &shader_info, nullptr, &shader_module->module));
+			VK_CHECK(vkCreateShaderModule(s_device, &shader_info, nullptr, &shader_module->module));
 
 			shader_module->code.resize(buffer_size / sizeof(uint32_t));
 			memcpy(shader_module->code.data(), buffer, buffer_size);
 			delete buffer;
 
-			m_deletion_queue->Push([=]()
-								   { vkDestroyShaderModule(m_device, shader_module->module, nullptr); });
+			s_deletion_queue->Push([=]()
+								   { vkDestroyShaderModule(s_device, shader_module->module, nullptr); });
 		}
 		else
 		{
@@ -261,12 +293,12 @@ namespace yoyo
 		alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 		alloc_info.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-		VK_CHECK(vmaCreateImage(m_allocator, &image_info, &alloc_info, &image.image, &image.allocation, nullptr));
+		VK_CHECK(vmaCreateImage(s_allocator, &image_info, &alloc_info, &image.image, &image.allocation, nullptr));
 
 		if (manage_memory)
 		{
-			m_deletion_queue->Push([=]()
-								   { vmaDestroyImage(m_allocator, image.image, image.allocation); });
+			s_deletion_queue->Push([=]()
+								   { vmaDestroyImage(s_allocator, image.image, image.allocation); });
 		}
 
 		return image;
@@ -274,7 +306,7 @@ namespace yoyo
 
 	const size_t VulkanResourceManager::PadToUniformBufferSize(size_t original_size)
 	{
-		size_t min_ubo_allignment = m_physical_device_props.limits.minUniformBufferOffsetAlignment;
+		size_t min_ubo_allignment = s_physical_device_props.limits.minUniformBufferOffsetAlignment;
 		size_t aligned_size = original_size;
 
 		if (min_ubo_allignment > 0)
@@ -286,7 +318,7 @@ namespace yoyo
 
 	const size_t VulkanResourceManager::PadToStorageBufferSize(size_t original_size)
 	{
-		size_t min_ubo_allignment = m_physical_device_props.limits.minStorageBufferOffsetAlignment;
+		size_t min_ubo_allignment = s_physical_device_props.limits.minStorageBufferOffsetAlignment;
 		size_t aligned_size = original_size;
 
 		if (min_ubo_allignment > 0)
@@ -298,7 +330,7 @@ namespace yoyo
 
 	void VulkanResourceManager::ImmediateSubmit(std::function<void(VkCommandBuffer)> &&fn)
 	{
-		VkCommandBuffer cmd = m_upload_context.command_buffer;
+		VkCommandBuffer cmd = s_upload_context.command_buffer;
 
 		VkCommandBufferBeginInfo begin_info = vkinit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 		vkBeginCommandBuffer(cmd, &begin_info);
@@ -313,18 +345,18 @@ namespace yoyo
 		submit_info.pNext = nullptr;
 
 		submit_info.commandBufferCount = 1;
-		submit_info.pCommandBuffers = &m_upload_context.command_buffer;
-		vkQueueSubmit(m_queues->graphics.queue, 1, &submit_info, m_upload_context.fence);
+		submit_info.pCommandBuffers = &s_upload_context.command_buffer;
+		vkQueueSubmit(s_queues->graphics.queue, 1, &submit_info, s_upload_context.fence);
 
-		vkWaitForFences(m_device, 1, &m_upload_context.fence, VK_TRUE, 1000000000);
-		vkResetFences(m_device, 1, &m_upload_context.fence);
+		vkWaitForFences(s_device, 1, &s_upload_context.fence, VK_TRUE, 1000000000);
+		vkResetFences(s_device, 1, &s_upload_context.fence);
 
 		// Reset command pool
-		vkResetCommandPool(m_device, m_upload_context.command_pool, 0);
+		vkResetCommandPool(s_device, s_upload_context.command_pool, 0);
 	}
 
 	DescriptorBuilder VulkanResourceManager::AllocateDescriptor()
 	{
-		return DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get());
+		return DescriptorBuilder::Begin(s_descriptor_layout_cache.get(), s_descriptor_allocator.get());
 	}
 }

@@ -6,7 +6,7 @@
 namespace yoyo
 {
     template<typename MeshType>
-    class MeshCreatedEvent : public Event
+    class YAPI MeshCreatedEvent : public Event
     {
     public:
         EVENT_TYPE(MeshCreatedEvent)

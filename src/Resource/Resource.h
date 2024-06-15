@@ -14,14 +14,13 @@ namespace yoyo
     // ex. some_folder/my_file.extension => my_file.extension
     const std::string FileNameFromFullPath(const std::string& full_path);
 
-    // TODO: Change from string to const char*
     #define RESOURCE_TYPE(type) const ResourceType Type() const override {return s_resource_type;}\
                                 inline static const ResourceType s_resource_type = Platform::GenerateUUIDV4();\
                                 inline static const std::string s_resource_type_name = #type;\
                                 inline static const std::string TypeName() {return s_resource_type_name;}\
 
     // Base class for all resources in the engine
-    class Resource
+    class YAPI Resource
     {
     public:
         Resource() = default;

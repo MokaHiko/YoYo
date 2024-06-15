@@ -282,24 +282,6 @@ namespace yoyo
             shader->shader_passes[MeshPassType::Forward] = shader_pass;
         }
 #endif
-        // TODO: Move to Game Layer
-        // Global Block Shader
-        {
-            Ref<VulkanShaderEffect> lit_block_effect = CreateRef<VulkanShaderEffect>();
-            {
-                Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_block_shader.vert.spv");
-                lit_block_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
-
-                Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_block_shader.frag.spv");
-                lit_block_effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
-            }
-            lit_block_effect->primitive_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            auto lit_block_shader_pass = m_material_system->CreateShaderPass(m_forward_pass, lit_block_effect);
-
-            Ref<Shader> lit_block_shader = Shader::Create("lit_block_shader");
-            lit_block_shader->shader_passes[MeshPassType::Forward] = lit_block_shader_pass;
-            lit_block_shader->shader_passes[MeshPassType::Shadow] = shadow_pass;
-        }
     }
 
     void VulkanRenderer::Shutdown()
@@ -555,8 +537,7 @@ namespace yoyo
             rect.extent.height = Settings().height;
 
             VkClearValue color_clear = {};
-            // color_clear.color = { 0.0f, 1.0f, 1.0f, 1.0f };
-            color_clear.color = {0.0f, 0.0f, 0.0f, 0.0f};
+            color_clear.color = {0.25f, 0.25f, 0.25f, 1.0f};
             VkClearValue depth_clear = {};
             depth_clear.depthStencil = {1.0f, 0};
 

@@ -116,7 +116,7 @@ namespace yoyo
                         uint32_t binding_index = 0;
 
                         size_t padded_material_property_size = VulkanResourceManager::PadToUniformBufferSize(binding.Size());
-                        material->m_properties_buffer = VulkanResourceManager::CreateBuffer(padded_material_property_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+                        material->m_properties_buffer = VulkanResourceManager::CreateBuffer<>(padded_material_property_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
                         // 0 out property buffer
                         void *property_data;

@@ -1,7 +1,7 @@
 #include "VulkanMesh.h"
 
-#include "Resource/ResourceEvent.h"
 #include "VulkanResourceManager.h"
+#include "Resource/ResourceEvent.h"
 
 namespace yoyo
 {
@@ -118,6 +118,11 @@ namespace yoyo
         return attributes;
     }
 
+    void YAPI DispatchMeshCreatedEvent(Ref<IMesh> mesh)
+    {
+        EventManager::Instance().Dispatch(CreateRef<MeshCreatedEvent<IMesh>>(mesh));
+    }
+
     Ref<SkinnedMesh> SkinnedMesh::Create(const std::string &name)
     {
         Ref<VulkanSkinnedMesh> mesh = CreateRef<VulkanSkinnedMesh>();
@@ -167,7 +172,9 @@ namespace yoyo
 
     void VulkanSkinnedMesh::UploadMeshData(bool free_host_memory)
     {
-        VulkanResourceManager::UploadMesh<VulkanSkinnedMesh>(this);
+        return;
+        // TODO: Implement skinned mesh
+        // VulkanResourceManager::UploadMesh<VulkanSkinnedMesh>(this);
 
         if (free_host_memory)
         {
