@@ -11,7 +11,7 @@
 namespace yoyo
 {
     RendererLayer::RendererLayer(Application* app)
-        : m_renderer(nullptr)
+        : m_renderer(nullptr), m_dt(0)
     {
         m_renderer = CreateRenderer();
 

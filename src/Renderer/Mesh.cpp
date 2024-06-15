@@ -14,14 +14,14 @@ namespace yoyo
     {
 		const std::string name = FileNameFromFullPath(path);
 
-        auto& mesh_cache = Cache<StaticMesh>();
-		auto mesh_it = std::find_if(mesh_cache.begin(), mesh_cache.end(), [&](const auto& it){
+        auto& mesh_cache = Cache<IMesh>();
+		auto mesh_it = std::find_if(mesh_cache.begin(), mesh_cache.end(), [&](const auto& it) {
 			return it.second->name == name;
 		});
 		
 		if(mesh_it != mesh_cache.end())
 		{
-			return mesh_it->second;
+			return std::static_pointer_cast<StaticMesh>(mesh_it->second);
 		}
 
         YWARN("[Cache Miss][StaticMesh]: %s", name.c_str());
