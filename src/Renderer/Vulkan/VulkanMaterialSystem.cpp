@@ -45,10 +45,10 @@ namespace yoyo
             vkDestroySampler(m_device, m_nearest_sampler, nullptr);
             vkDestroySampler(m_device, m_linear_sampler, nullptr); });
 
-        EventManager::Instance().Subscribe(MaterialCreatedEvent::s_event_type, [&](Ref<Event> event) {
+        EventManager::Instance().Subscribe(MaterialCreatedEvent::s_event_type, [&](Ref<Event> event)
+                                           {
             auto material_created_event = std::static_pointer_cast<MaterialCreatedEvent>(event);
-            return RegisterMaterial(std::static_pointer_cast<VulkanMaterial>(material_created_event->material)); 
-        });
+            return RegisterMaterial(std::static_pointer_cast<VulkanMaterial>(material_created_event->material)); });
     }
 
     void VulkanMaterialSystem::Shutdown() {}
@@ -69,8 +69,8 @@ namespace yoyo
             // Map to textures
             for (const VulkanDescriptorSetInformation &set : shader_pass_sets)
             {
-                constexpr char* MAIN_TEXTURE_NAME = "main_texture";
-                constexpr char* SPECULAR_TEXTURE_NAME = "specular_texture";
+                constexpr char *MAIN_TEXTURE_NAME = "main_texture";
+                constexpr char *SPECULAR_TEXTURE_NAME = "specular_texture";
 
                 for (auto &it = set.bindings.begin(); it != set.bindings.end(); it++)
                 {
@@ -179,7 +179,17 @@ namespace yoyo
 
         builder.rasterizer = vkinit::PipelineRasterizationStateCreateInfo(effect->polygon_mode, effect->line_width);
         builder.multisampling = vkinit::PipelineMultisampleStateCreateInfo();
-        builder.depth_stencil = vkinit::PipelineDepthStencilStateCreateInfo(true, true, VK_COMPARE_OP_LESS_OR_EQUAL);
+        builder.depth_stencil = vkinit::PipelineDepthStencilStateCreateInfo(true,
+                                                                            true,
+                                                                            VK_COMPARE_OP_LESS_OR_EQUAL,
+                                                                            effect->stencil_test_enabled,
+                                                                            effect->stencil_fail_op,
+                                                                            effect->stencil_pass_op,
+                                                                            effect->stencil_depth_fail_op,
+                                                                            effect->stencil_compare_op,
+                                                                            effect->stencil_compare_mask,
+                                                                            effect->stencil_write_mask,
+                                                                            effect->stencil_reference);
         builder.color_blend_attachment = vkinit::PipelineColorBlendAttachmentState(effect->blend_enable,
                                                                                    effect->src_blend_factor,
                                                                                    effect->dst_blend_factor,
@@ -234,10 +244,10 @@ namespace yoyo
         // TODO: Cache Shader passes (pipelines)
         shader_pass->pipeline = builder.Build(m_device, render_pass, offscreen);
 
-        m_deletion_queue->Push([=]() {
+        m_deletion_queue->Push([=]()
+                               {
             vkDestroyPipelineLayout(m_device, shader_pass->layout, nullptr);
-            vkDestroyPipeline(m_device, shader_pass->pipeline, nullptr); 
-        });
+            vkDestroyPipeline(m_device, shader_pass->pipeline, nullptr); });
 
         return shader_pass;
     }

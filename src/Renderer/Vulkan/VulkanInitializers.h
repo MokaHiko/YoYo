@@ -10,10 +10,10 @@ namespace yoyo
         VkCommandBufferAllocateInfo CommandBufferAllocInfo(VkCommandPool cmd_pool, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
         VkCommandBufferBeginInfo CommandBufferBeginInfo(VkCommandBufferUsageFlags usage);
-        VkRenderPassBeginInfo RenderPassBeginInfo(VkFramebuffer frame_buffer, VkRenderPass render_pass, VkRect2D& render_area, VkClearValue* clear_value, uint32_t clear_value_count);
+        VkRenderPassBeginInfo RenderPassBeginInfo(VkFramebuffer frame_buffer, VkRenderPass render_pass, VkRect2D &render_area, VkClearValue *clear_value, uint32_t clear_value_count);
 
         // Pipelines configuration
-        VkPipelineShaderStageCreateInfo PipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule, const char* entrypoint = "main");
+        VkPipelineShaderStageCreateInfo PipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule, const char *entrypoint = "main");
         VkPipelineVertexInputStateCreateInfo PipelineVertexInputStateCreateInfo();
         VkPipelineInputAssemblyStateCreateInfo PipelineInputAssemblyStateCreateInfo(VkPrimitiveTopology topology);
         VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo(VkPolygonMode polygonMode, float line_width = 1.0f);
@@ -26,7 +26,17 @@ namespace yoyo
             VkBlendFactor srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
             VkBlendFactor dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
             VkBlendOp alphaBlendOp = VK_BLEND_OP_ZERO_EXT);
-        VkPipelineDepthStencilStateCreateInfo PipelineDepthStencilStateCreateInfo(bool bDepthTest, bool bDepthWrite, VkCompareOp compareOp);
+        VkPipelineDepthStencilStateCreateInfo PipelineDepthStencilStateCreateInfo(bool depth_test_enable,
+                                                                                  bool depth_write_enable,
+                                                                                  VkCompareOp depth_compare_op,
+                                                                                  VkBool32 stencil_test_enabled = VK_FALSE,
+                                                                                  VkStencilOp stencil_fail_op = VK_STENCIL_OP_KEEP,
+                                                                                  VkStencilOp stencil_pass_op = VK_STENCIL_OP_KEEP,
+                                                                                  VkStencilOp stencil_depth_fail_op = VK_STENCIL_OP_KEEP,
+                                                                                  VkCompareOp stencil_compare_op = VK_COMPARE_OP_ALWAYS,
+                                                                                  uint32_t stencil_compare_mask = 0xFF,
+                                                                                  uint32_t stencil_write_mask = 0xFF,
+                                                                                  uint32_t stencil_reference = 1);
         VkPipelineTessellationStateCreateInfo PipelineTesselationStateCreateInfo(int patchControlPoints);
         VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo();
 

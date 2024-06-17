@@ -82,10 +82,12 @@ namespace yoyo
             {{-1.00, 1.00, 0.00}, {0.00, 0.00, 0.00}, {0.00, 0.00, 1.00}, {0.00, 1.00}},
         };
         // Immediate manual upload
-        m_screen_quad->UploadMeshData(); 
+        m_screen_quad->UploadMeshData();
 
         Ref<VulkanShaderEffect> lit_effect = CreateRef<VulkanShaderEffect>();
         {
+            lit_effect->stencil_test_enabled = VK_TRUE;
+
             Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/lit_shader.vert.spv");
             lit_effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
 
@@ -281,6 +283,27 @@ namespace yoyo
             Ref<Shader> shader = Shader::Create(DEFAULT_WIREFRAME_SHADER_NAME);
             shader->shader_passes[MeshPassType::Forward] = shader_pass;
         }
+
+        // Outline shader
+        {
+            Ref<VulkanShaderEffect> effect = CreateRef<VulkanShaderEffect>();
+            effect->stencil_test_enabled = VK_TRUE;
+            effect->stencil_compare_op = VK_COMPARE_OP_NOT_EQUAL;
+            effect->stencil_write_mask = 0x00;
+            effect->stencil_reference = 1;
+
+            {
+                Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_outline_shader.vert.spv");
+                effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+
+                Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/unlit_shader.frag.spv");
+                effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+            }
+
+            auto shader_pass = m_material_system->CreateShaderPass(m_forward_pass, effect);
+            Ref<Shader> shader = Shader::Create(DEFAULT_OUTLINE_SHADER_NAME);
+            shader->shader_passes[MeshPassType::Forward] = shader_pass;
+        }
 #endif
     }
 
@@ -307,13 +330,15 @@ namespace yoyo
 
     bool VulkanRenderer::BeginFrame(const Ref<RenderScene> scene)
     {
-        vkWaitForFences(m_device, 1, &m_frame_context[m_frame_count].render_fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+        constexpr uint64_t time_out = 1000000000;
+
+        vkWaitForFences(m_device, 1, &m_frame_context[m_frame_count].render_fence, VK_TRUE, time_out);
         vkResetFences(m_device, 1, &m_frame_context[m_frame_count].render_fence);
 
         m_swapchain_index = -1;
         VK_CHECK(vkAcquireNextImageKHR(m_device,
                                        m_swapchain,
-                                       std::numeric_limits<uint64_t>::max(),
+                                       time_out,
                                        m_frame_context[m_frame_count].present_semaphore,
                                        VK_NULL_HANDLE,
                                        &m_swapchain_index));
@@ -427,13 +452,13 @@ namespace yoyo
             VulkanResourceManager::UnmapMemory(m_instanced_data_buffers[m_frame_count].allocation);
         }
 
-        VkCommandBufferBeginInfo cmd_begin_info = vkinit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        VkCommandBuffer cmd = m_frame_context[m_frame_count].command_buffer;
-
         // Update render context
+        VkCommandBuffer cmd = m_frame_context[m_frame_count].command_buffer;
         m_render_context.cmd = cmd;
 
         VK_CHECK(vkResetCommandBuffer(cmd, 0));
+
+        VkCommandBufferBeginInfo cmd_begin_info = vkinit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
 
         // Bind shadow pass and draw shadow mesh passes
@@ -510,23 +535,25 @@ namespace yoyo
             vkCmdEndRenderPass(cmd);
         }
 
-        // Blit output_texture barrier
-        VkImageMemoryBarrier shadow_map_barrier = {};
-        shadow_map_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        shadow_map_barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        shadow_map_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        shadow_map_barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        shadow_map_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        shadow_map_barrier.image = m_shadow_pass_depth_texture.image;
+        // Shadow map barrier
+        {
+            VkImageMemoryBarrier shadow_map_barrier = {};
+            shadow_map_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            shadow_map_barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            shadow_map_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            shadow_map_barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            shadow_map_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            shadow_map_barrier.image = m_shadow_pass_depth_texture.image;
 
-        VkImageSubresourceRange shadow_map_range = {};
-        shadow_map_range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        shadow_map_range.layerCount = 1;
-        shadow_map_range.baseArrayLayer = 0;
-        shadow_map_range.levelCount = 1;
+            VkImageSubresourceRange shadow_map_range = {};
+            shadow_map_range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+            shadow_map_range.layerCount = 1;
+            shadow_map_range.baseArrayLayer = 0;
+            shadow_map_range.levelCount = 1;
 
-        shadow_map_barrier.subresourceRange = shadow_map_range;
-        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &shadow_map_barrier);
+            shadow_map_barrier.subresourceRange = shadow_map_range;
+            vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &shadow_map_barrier);
+        }
 
         // Bind forward render pass and draw mesh passes
         {
@@ -678,15 +705,18 @@ namespace yoyo
     void VulkanRenderer::EndFrame()
     {
         VK_CHECK(vkEndCommandBuffer(m_frame_context[m_frame_count].command_buffer));
+
         VkSubmitInfo submit = {};
         submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submit.pCommandBuffers = &m_frame_context[m_frame_count].command_buffer;
+
         submit.commandBufferCount = 1;
+        submit.pCommandBuffers = &m_frame_context[m_frame_count].command_buffer;
 
         VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        submit.pWaitDstStageMask = &waitStage;
+
         submit.waitSemaphoreCount = 1;
         submit.pWaitSemaphores = &m_frame_context[m_frame_count].present_semaphore;
-        submit.pWaitDstStageMask = &waitStage;
 
         submit.signalSemaphoreCount = 1;
         submit.pSignalSemaphores = &m_frame_context[m_frame_count].render_semaphore;
@@ -1018,6 +1048,14 @@ namespace yoyo
         VkAttachmentDescription attachments[] = {color_attachment};
         VkSubpassDescription subpasses[] = {subpass};
 
+        VkSubpassDependency dependency = {};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
         VkRenderPassCreateInfo render_pass_info = {};
         render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         render_pass_info.pNext = nullptr;
@@ -1025,6 +1063,8 @@ namespace yoyo
         render_pass_info.pAttachments = attachments;
         render_pass_info.subpassCount = 1;
         render_pass_info.pSubpasses = subpasses;
+        render_pass_info.dependencyCount = 1;
+        render_pass_info.pDependencies = &dependency;
 
         VK_CHECK(vkCreateRenderPass(m_device, &render_pass_info, nullptr, &m_swapchain_render_pass));
         m_deletion_queue.Push([=]()
@@ -1056,7 +1096,7 @@ namespace yoyo
     void VulkanRenderer::InitShadowPass()
     {
         VkAttachmentDescription depth_attachment = {};
-        depth_attachment.format = VK_FORMAT_D32_SFLOAT;
+        depth_attachment.format = m_depth_pass_format;
         depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
         depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1078,10 +1118,10 @@ namespace yoyo
         VkSubpassDependency dependency = {};
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        dependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
         VkAttachmentDescription attachments[] = {depth_attachment};
         VkRenderPassCreateInfo render_pass_info = {};
@@ -1091,6 +1131,9 @@ namespace yoyo
         render_pass_info.pAttachments = attachments;
         render_pass_info.subpassCount = 1;
         render_pass_info.pSubpasses = &subpass;
+
+        render_pass_info.dependencyCount = 1;
+        render_pass_info.pDependencies = &dependency;
 
         VK_CHECK(vkCreateRenderPass(m_device, &render_pass_info, nullptr, &m_shadow_render_pass));
 
@@ -1132,8 +1175,8 @@ namespace yoyo
         extent.height = Settings().height;
         extent.depth = 1;
 
-        m_shadow_pass_depth_texture = VulkanResourceManager::CreateImage(extent, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-        VkImageViewCreateInfo depth_info = vkinit::ImageViewCreateInfo(m_shadow_pass_depth_texture.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        m_shadow_pass_depth_texture = VulkanResourceManager::CreateImage(extent, m_depth_pass_format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+        VkImageViewCreateInfo depth_info = vkinit::ImageViewCreateInfo(m_shadow_pass_depth_texture.image, m_depth_pass_format, VK_IMAGE_ASPECT_DEPTH_BIT);
 
         VK_CHECK(vkCreateImageView(m_device, &depth_info, nullptr, &m_shadow_pass_depth_texture_view));
 
@@ -1177,7 +1220,7 @@ namespace yoyo
         color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentDescription depth_attachment = {};
-        depth_attachment.format = VK_FORMAT_D32_SFLOAT;
+        depth_attachment.format = m_depth_pass_format;
         depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
         depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1199,19 +1242,23 @@ namespace yoyo
         VkSubpassDependency dependency = {};
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        dependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
         VkAttachmentDescription attachments[2] = {color_attachment, depth_attachment};
+        VkSubpassDescription subpasses[] = {subpass};
         VkRenderPassCreateInfo render_pass_info = {};
         render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 
         render_pass_info.attachmentCount = 2;
         render_pass_info.pAttachments = attachments;
         render_pass_info.subpassCount = 1;
-        render_pass_info.pSubpasses = &subpass;
+        render_pass_info.pSubpasses = subpasses;
+
+        render_pass_info.dependencyCount = 1;
+        render_pass_info.pDependencies = &dependency;
 
         VK_CHECK(vkCreateRenderPass(m_device, &render_pass_info, nullptr, &m_forward_pass));
 
@@ -1319,10 +1366,10 @@ namespace yoyo
         extent.depth = 1;
 
         m_forward_pass_color_texture = VulkanResourceManager::CreateImage(extent, m_forward_pass_format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-        m_forward_pass_depth_texture = VulkanResourceManager::CreateImage(extent, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        m_forward_pass_depth_texture = VulkanResourceManager::CreateImage(extent, m_depth_pass_format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
         VkImageViewCreateInfo color_info = vkinit::ImageViewCreateInfo(m_forward_pass_color_texture.image, m_forward_pass_format, VK_IMAGE_ASPECT_COLOR_BIT);
-        VkImageViewCreateInfo depth_info = vkinit::ImageViewCreateInfo(m_forward_pass_depth_texture.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        VkImageViewCreateInfo depth_info = vkinit::ImageViewCreateInfo(m_forward_pass_depth_texture.image, m_depth_pass_format, VK_IMAGE_ASPECT_DEPTH_BIT);
 
         VK_CHECK(vkCreateImageView(m_device, &color_info, nullptr, &m_forward_pass_color_texture_view));
         VK_CHECK(vkCreateImageView(m_device, &depth_info, nullptr, &m_forward_pass_depth_texture_view));

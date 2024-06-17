@@ -61,7 +61,6 @@ namespace yoyo
     void RendererLayer::OnUpdate(float dt)
     {
         static ImGuiLayer* imgui_layer = m_app->FindLayer<ImGuiLayer>();
-        static bool open = true;
 
         m_dt = dt;
 
@@ -135,16 +134,24 @@ namespace yoyo
         m_renderer->BeginFrame(m_scene);
         void* ctx = m_renderer->RenderContext();
 
-        m_renderer->BeginBlitPass();
-        imgui_layer->OnMainPassBegin(ctx);
 
-        for (auto rit = m_app->Layers().rbegin(); rit != m_app->Layers().rend(); rit++)
         {
-            (*rit)->OnImGuiRender();
-        }
+			m_renderer->BeginBlitPass();
 
-        imgui_layer->OnMainPassEnd(ctx);
-        m_renderer->EndBlitPass();
+			// ImGui
+			{
+				imgui_layer->OnMainPassBegin(ctx);
+
+				for (auto rit = m_app->Layers().rbegin(); rit != m_app->Layers().rend(); rit++)
+				{
+					(*rit)->OnImGuiRender();
+				}
+
+				imgui_layer->OnMainPassEnd(ctx);
+			}
+
+			m_renderer->EndBlitPass();
+        }
 
         m_renderer->EndFrame();
     }

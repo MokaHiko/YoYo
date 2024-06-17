@@ -26,6 +26,7 @@ namespace yoyo
 
     // Default shaders that are guaranteed to be implemented
     constexpr char* DEFAULT_WIREFRAME_SHADER_NAME = "unlit_wireframe_shader";
+    constexpr char* DEFAULT_OUTLINE_SHADER_NAME = "unlit_outline_shader";
     constexpr char* DEFAULT_UNLIT_SHADER_NAME = "unlit_shader";
     constexpr char* DEFAULT_LINE_SHADER_NAME = "lit_line_shader";
     constexpr char* DEFAULT_POINT_SHADER_NAME = "lit_point_shader";

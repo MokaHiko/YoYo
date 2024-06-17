@@ -150,18 +150,30 @@ namespace yoyo
         return colorBlendAttachment;
     }
 
-    VkPipelineDepthStencilStateCreateInfo vkinit::PipelineDepthStencilStateCreateInfo(bool bDepthTest, bool bDepthWrite, VkCompareOp compareOp)
+    VkPipelineDepthStencilStateCreateInfo vkinit::PipelineDepthStencilStateCreateInfo(bool depth_test_enable, bool depth_write_enable, VkCompareOp depth_compare_op, VkBool32 stencil_test_enabled, VkStencilOp stencil_fail_op, VkStencilOp stencil_pass_op, VkStencilOp stencil_depth_fail_op, VkCompareOp stencil_compare_op, uint32_t stencil_compare_mask, uint32_t stencil_write_mask, uint32_t stencil_reference)
     {
         VkPipelineDepthStencilStateCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 
-        info.depthTestEnable = bDepthTest ? VK_TRUE : VK_FALSE;
-        info.depthWriteEnable = bDepthWrite ? VK_TRUE : VK_FALSE;
-        info.depthCompareOp = bDepthTest ? compareOp : VK_COMPARE_OP_ALWAYS;
+        info.depthTestEnable =  depth_test_enable ? VK_TRUE : VK_FALSE;
+        info.depthWriteEnable = depth_write_enable ? VK_TRUE : VK_FALSE;
+        info.depthCompareOp = depth_test_enable ?  depth_compare_op : VK_COMPARE_OP_ALWAYS;
         info.depthBoundsTestEnable = VK_FALSE;
         info.minDepthBounds = 0.0f; // Optional
         info.maxDepthBounds = 1.0f; // Optional
-        info.stencilTestEnable = VK_FALSE;
+
+        VkStencilOpState stencil_op_state = {};
+        stencil_op_state.failOp = stencil_fail_op;
+        stencil_op_state.passOp = stencil_pass_op;
+        stencil_op_state.depthFailOp = stencil_depth_fail_op;
+        stencil_op_state.compareOp = stencil_compare_op;
+        stencil_op_state.compareMask = stencil_compare_mask;
+        stencil_op_state.writeMask = stencil_write_mask;
+        stencil_op_state.reference = stencil_reference;
+
+        info.stencilTestEnable = VK_TRUE;
+        info.back = stencil_op_state;
+        info.front = stencil_op_state;
 
         return info;
     }

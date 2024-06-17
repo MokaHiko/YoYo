@@ -134,6 +134,7 @@ namespace yoyo
         void InitForwardPassAttachments();
         void InitForwardPassFramebufffer();
         VkFormat m_forward_pass_format = VK_FORMAT_B8G8R8A8_UNORM;
+        VkFormat m_depth_pass_format = VK_FORMAT_D32_SFLOAT_S8_UINT;
 
         AllocatedImage m_forward_pass_color_texture;
         AllocatedImage m_forward_pass_depth_texture;

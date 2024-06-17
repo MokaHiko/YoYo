@@ -22,7 +22,18 @@ namespace yoyo
             std::vector<ShaderInput> inputs;
         };
 
-        VkBool32 blend_enable = false;
+        // Stencil test
+        VkBool32 stencil_test_enabled = VK_FALSE;
+        VkStencilOp stencil_fail_op = VK_STENCIL_OP_KEEP;
+        VkStencilOp stencil_pass_op = VK_STENCIL_OP_REPLACE;
+        VkStencilOp stencil_depth_fail_op = VK_STENCIL_OP_KEEP;
+        VkCompareOp stencil_compare_op = VK_COMPARE_OP_ALWAYS;
+        uint32_t stencil_compare_mask = 0xFF;
+        uint32_t stencil_write_mask = 0xFF;
+        uint32_t stencil_reference = 1;
+
+        // Blend state
+        VkBool32 blend_enable = VK_FALSE;
         VkBlendFactor src_blend_factor = VK_BLEND_FACTOR_ZERO;
         VkBlendFactor dst_blend_factor = VK_BLEND_FACTOR_ZERO;
         VkBlendOp color_blend_op = VK_BLEND_OP_ZERO_EXT;
