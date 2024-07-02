@@ -11,7 +11,7 @@ namespace yoyo
     class Material;
 
     // The base class for all renderable objects in a scene
-    class RenderableObject
+    class YAPI RenderableObject
     {
     public:
         RenderSceneId Id() const { return m_id; }
@@ -32,7 +32,7 @@ namespace yoyo
     };
 
     // A renderable object that has a 3d location in a scene
-    struct MeshPassObject : public RenderableObject
+    struct YAPI MeshPassObject : public RenderableObject
     {
         Ref<IMesh> mesh = nullptr;
         Ref<Material> material = nullptr;
@@ -43,7 +43,7 @@ namespace yoyo
     const RenderableBatchId GenerateBatchId(Ref<IMesh>& mesh, const Ref<Material>& material);
 
     // A renderable batch is a grouping of renderable objects that share the same Mesh and Material.
-    struct RenderableBatch
+    struct YAPI RenderableBatch
     {
         RenderableBatch(Ref<IMesh> mesh_, Ref<Material> material_)
             :material(material_), mesh(mesh_), id(GenerateBatchId(mesh, material)){}

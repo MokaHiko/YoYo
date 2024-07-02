@@ -205,11 +205,12 @@ namespace yoyo
         return info;
     }
 
-    VkImageCreateInfo vkinit::ImageCreateInfo(VkFormat format, VkExtent3D extent, VkImageUsageFlags usage, uint32_t layer_count)
+    VkImageCreateInfo vkinit::ImageCreateInfo(VkFormat format, VkExtent3D extent, VkImageUsageFlags usage, uint32_t layer_count, VkImageCreateFlags flags)
     {
         VkImageCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         info.pNext = nullptr;
+        info.flags = flags;
 
         info.imageType = VK_IMAGE_TYPE_2D;
 

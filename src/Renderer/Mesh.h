@@ -4,6 +4,7 @@
 
 #include "Math/Math.h"
 #include "Core/Memory.h"
+#include "Core/Assert.h"
 
 #include "Resource/Resource.h"
 #include "Renderer/RenderTypes.h"
@@ -18,14 +19,16 @@ namespace yoyo
         Maximum
     };
 
-    // Default Vertex_PCNV used for static meshes.
+    // Default Vertex_PCNVT used for static meshes.
     struct YAPI Vertex
     {
         Vec3 position;
         Vec3 color;
+
         Vec3 normal;
 
         Vec2 uv;
+        Vec3 tangent;
     };
 
     enum class MeshType
@@ -77,7 +80,7 @@ namespace yoyo
     };
 
     template <typename VertexType, typename IndexType = uint32_t>
-    class Mesh : public IMesh
+    class YAPI Mesh : public IMesh
     {
     public:
         RESOURCE_TYPE(Mesh)
@@ -145,7 +148,6 @@ namespace yoyo
 
         std::vector<VertexType> vertices = {};
         std::vector<IndexType> indices = {};
-
     private:
         MeshDirtyFlags m_dirty = MeshDirtyFlags::Clean;
         MeshType m_type = MeshType::Uknown;

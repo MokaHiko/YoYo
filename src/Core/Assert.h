@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Defines.h"
-
 #include <Core/Log.h>
 #include <cassert>
 

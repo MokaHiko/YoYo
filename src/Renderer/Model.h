@@ -23,6 +23,7 @@ namespace yoyo
 
         std::vector<Ref<IMesh>> meshes;
         std::vector<Ref<Material>> materials;
+        std::vector<uint32_t> material_indices;
         std::vector<Mat4x4> model_matrices;
     };
 

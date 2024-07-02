@@ -60,7 +60,16 @@ namespace yoyo
             auto static_mesh = StaticMesh::Create(static_mesh_name);
 
             static_mesh->GetVertices().resize(hro_mesh.vertices.size());
-            memcpy(static_mesh->GetVertices().data(), hro_mesh.vertices.data(), hro_mesh.vertices.size() * sizeof(Vertex));
+
+            if(true){
+                const char* vertex_data = (char*)hro_mesh.vertices.data();
+				for (size_t i = 0; i < hro_mesh.vertices.size(); i++)
+				{
+					memcpy(&static_mesh->GetVertices()[i], vertex_data, sizeof(Vertex));
+                    vertex_data += (sizeof(hro::Vertex_F32_PNCVT));
+				}
+            }
+            //memcpy(static_mesh->GetVertices().data(), hro_mesh.vertices.data(), hro_mesh.vertices.size() * sizeof(Vertex));
 
             static_mesh->GetIndices().resize(hro_mesh.indices.size());
             memcpy(static_mesh->GetIndices().data(), hro_mesh.indices.data(), hro_mesh.indices.size() * sizeof(uint32_t));

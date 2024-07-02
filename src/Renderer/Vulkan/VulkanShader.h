@@ -22,6 +22,11 @@ namespace yoyo
             std::vector<ShaderInput> inputs;
         };
 
+        // Depth test
+        VkBool32 depth_test_enabled = VK_TRUE;
+        VkBool32 depth_write_enabled = VK_TRUE;
+        VkCompareOp depth_compare_op = VK_COMPARE_OP_LESS_OR_EQUAL;
+
         // Stencil test
         VkBool32 stencil_test_enabled = VK_FALSE;
         VkStencilOp stencil_fail_op = VK_STENCIL_OP_KEEP;

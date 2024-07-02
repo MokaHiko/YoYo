@@ -123,15 +123,15 @@ namespace yoyo
 
     bool VulkanResourceManager::UploadTexture(VulkanTexture *texture)
     {
-		YASSERT(texture->layers <= 1 != ((texture->GetTextureType() & TextureType::Array) == TextureType::Array),
+		YASSERT(texture->layers <= 1 != ((texture->GetTextureType() & TextureType::Array) == TextureType::Array || (texture->GetTextureType() & TextureType::CubeMap) == TextureType::CubeMap),
 				"Cannot have layer count greater than 1 that is not TextureType::Array or TextureType::CubeMap!");
 
 		// Copy to staging buffer
-		AllocatedBuffer<uint8_t> staging_buffer = CreateBuffer<uint8_t>(texture->raw_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, false);
+		AllocatedBuffer<uint8_t> staging_buffer = CreateBuffer<uint8_t>(texture->RawData().size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, false);
 
 		void *pixel_ptr;
 		MapMemory(staging_buffer.allocation, &pixel_ptr);
-		memcpy(pixel_ptr, texture->raw_data.data(), texture->raw_data.size());
+		memcpy(pixel_ptr, texture->RawData().data(), texture->RawData().size());
 		UnmapMemory(staging_buffer.allocation);
 
 		YASSERT(texture->layers > 0, "Cannot have texture with 0 layers!");
@@ -142,12 +142,24 @@ namespace yoyo
 		extent.height = static_cast<uint32_t>(texture->height);
 		extent.depth = 1;
 
-		VkDeviceSize texture_size = texture->raw_data.size() / texture->layers;
+		VkDeviceSize texture_size = texture->RawData().size() / texture->layers;
+
+			
+		VkImageCreateFlags image_flags = 0;
+		switch(texture->GetTextureType())
+		{
+			case(TextureType::CubeMap):
+			{
+				image_flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+			}break;
+			default:
+				break;
+		}
 
 		// Check if texture already allocated
 		if (!texture->IsInitialized())
 		{
-			texture->allocated_image = CreateImage(extent, ConvertTextureFormat(texture->format), VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, texture->layers);
+			texture->allocated_image = CreateImage(extent, ConvertTextureFormat(texture->format), VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, texture->layers, image_flags);
 		}
 
 		// Copy data to texture via immediate mode submit
@@ -221,6 +233,11 @@ namespace yoyo
 				view_type = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 			}
 			break;
+			case (TextureType::CubeMap):
+			{
+				view_type = VK_IMAGE_VIEW_TYPE_CUBE;
+			}
+			break;
 			default:
 				view_type = VK_IMAGE_VIEW_TYPE_2D;
 				break;
@@ -233,10 +250,10 @@ namespace yoyo
 			VkSamplerCreateInfo sampler_info = vkinit::SamplerCreateInfo((VkFilter)texture->GetSamplerType(), (VkSamplerAddressMode)texture->GetAddressMode());
 			VK_CHECK(vkCreateSampler(s_device, &sampler_info, nullptr, &texture->sampler));
 
-			s_deletion_queue->Push([=]()
-								   {
+			s_deletion_queue->Push([=](){
 				vkDestroySampler(s_device, texture->sampler, nullptr);
-				vkDestroyImageView(s_device, texture->image_view, nullptr); });
+				vkDestroyImageView(s_device, texture->image_view, nullptr); 
+			});
 		}
 
 		return true;
@@ -284,10 +301,10 @@ namespace yoyo
 		return shader_module;
 	}
 
-	AllocatedImage VulkanResourceManager::CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, uint32_t layer_count, bool manage_memory, bool mipmapped)
+	AllocatedImage VulkanResourceManager::CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, uint32_t layer_count, VkImageCreateFlags flags, bool manage_memory, bool mipmapped)
 	{
 		AllocatedImage image = {};
-		VkImageCreateInfo image_info = vkinit::ImageCreateInfo(format, extent, usage, layer_count);
+		VkImageCreateInfo image_info = vkinit::ImageCreateInfo(format, extent, usage, layer_count, flags);
 
 		VmaAllocationCreateInfo alloc_info = {};
 		alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;

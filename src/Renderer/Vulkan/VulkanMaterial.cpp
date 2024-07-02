@@ -53,6 +53,7 @@ namespace yoyo
         for(size_t i = 0; i < descriptors[mesh_pass_type].size(); i++)
         {
             const VulkanDescriptorSet& descriptor = descriptors[mesh_pass_type][i];
+
             if (descriptor.set == VK_NULL_HANDLE)
             {
                 continue;

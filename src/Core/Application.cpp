@@ -75,12 +75,12 @@ namespace yoyo
 
             Platform::PumpMessages();
 
-            const float dt = Time::DeltaTime();
+            const float dt = static_cast<float>(Time::DeltaTime());
             for (auto rit = m_layers.rbegin(); rit != m_layers.rend(); rit++)
             {
 #ifdef Y_DEBUG
                 ScopedTimer timer([&](const ScopedTimer& timer) {
-                    d_layer_profiles[(*rit)->Name()] = timer.delta;
+                    d_layer_profiles[(*rit)->Name()] = static_cast<float>(timer.delta);
                 });
 #endif
                 (*rit)->OnUpdate(dt);

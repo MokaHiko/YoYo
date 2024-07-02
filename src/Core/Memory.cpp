@@ -1,5 +1,7 @@
 #include "Memory.h"
+
 #include "Platform/Platform.h"
+#include "Core/Assert.h"
 
 static std::unordered_map<void*, yoyo::MemoryAllocation> s_memory_map = {};
 

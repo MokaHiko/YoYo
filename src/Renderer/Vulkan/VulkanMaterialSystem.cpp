@@ -15,13 +15,23 @@
 
 #include "VulkanResourceManager.h"
 
-// TODO: Remove
-const int MATERIAL_TEXTURE_SET_INDEX = 1;
-const int MATERIAL_MAIN_TEXTURE_DESCRIPTOR_SET_BINDING = 0;
-const int MATERIAL_SPECULAR_TEXTURE_DESCRIPTOR_SET_BINDING = 1;
+static const char *MATERIAL_TEXTURES_DESCRIPTOR_NAME = "material_textures";
 
 namespace yoyo
 {
+    VulkanMaterialSystem::VulkanMaterialSystem()
+        : m_deletion_queue(),
+          m_device(VK_NULL_HANDLE),          // Assuming m_device is of type VkDevice
+          m_linear_sampler(VK_NULL_HANDLE),  // Assuming m_linear_sampler is of type VkSampler
+          m_nearest_sampler(VK_NULL_HANDLE), // Assuming m_nearest_sampler is of type VkSampler
+          m_renderer(nullptr)
+    {
+    }
+
+    VulkanMaterialSystem::~VulkanMaterialSystem()
+    {
+    }
+
     void VulkanMaterialSystem::Init(VulkanRenderer *renderer)
     {
         m_renderer = renderer;
@@ -39,6 +49,8 @@ namespace yoyo
         m_nearest_sampler = {};
         VkSamplerCreateInfo nearest_sampler_info = vkinit::SamplerCreateInfo(VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT);
         vkCreateSampler(m_device, &nearest_sampler_info, nullptr, &m_nearest_sampler);
+
+        renderer->PhysicalDeviceProperties().limits.maxPerStageDescriptorSamplers;
 
         m_deletion_queue->Push([=]()
                                {
@@ -66,26 +78,10 @@ namespace yoyo
             // Resize descriptors for each shader pass
             material->descriptors[mesh_pass_type].resize(mesh_pass_descriptor_set_count);
 
-            // Map to textures
             for (const VulkanDescriptorSetInformation &set : shader_pass_sets)
             {
-                constexpr char *MAIN_TEXTURE_NAME = "main_texture";
-                constexpr char *SPECULAR_TEXTURE_NAME = "specular_texture";
-
                 for (auto &it = set.bindings.begin(); it != set.bindings.end(); it++)
                 {
-                    if (it->second.name == MAIN_TEXTURE_NAME)
-                    {
-                        material->texture_type_to_descriptor_set[MaterialTextureType::MainTexture] = set.index;
-                        continue;
-                    };
-
-                    if (it->second.name == SPECULAR_TEXTURE_NAME)
-                    {
-                        material->texture_type_to_descriptor_set[MaterialTextureType::SpecularMap] = set.index;
-                        continue;
-                    };
-
                     // Custom material properties
                     if (it->second.name == "Material")
                     {
@@ -130,12 +126,13 @@ namespace yoyo
                         property_buffer_info.range = VK_WHOLE_SIZE;
 
                         VulkanDescriptorSet &property_set = material->descriptors[MeshPassType::Forward][set.index];
-                        VkDescriptorSetLayout property_set_layout;
-                        DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get()).BindBuffer(binding_index, &property_buffer_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, material_property_set_info.shader_stage).Build(&property_set.set, &property_set_layout);
+                        VkDescriptorSetLayout property_set_layout = {};
+
+                        DescriptorBuilder builder = DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get());
+                        builder.BindBuffer(binding_index, &property_buffer_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, material_property_set_info.shader_stage);
+                        builder.Build(&property_set.set, &property_set_layout);
 
                         material->descriptors[MeshPassType::Forward][set.index].set = property_set.set;
-
-                        continue;
                     };
                 }
             }
@@ -179,9 +176,9 @@ namespace yoyo
 
         builder.rasterizer = vkinit::PipelineRasterizationStateCreateInfo(effect->polygon_mode, effect->line_width);
         builder.multisampling = vkinit::PipelineMultisampleStateCreateInfo();
-        builder.depth_stencil = vkinit::PipelineDepthStencilStateCreateInfo(true,
-                                                                            true,
-                                                                            VK_COMPARE_OP_LESS_OR_EQUAL,
+        builder.depth_stencil = vkinit::PipelineDepthStencilStateCreateInfo(effect->depth_test_enabled,
+                                                                            effect->depth_write_enabled,
+                                                                            effect->depth_compare_op,
                                                                             effect->stencil_test_enabled,
                                                                             effect->stencil_fail_op,
                                                                             effect->stencil_pass_op,
@@ -207,7 +204,7 @@ namespace yoyo
             for (auto it = descriptor.bindings.begin(); it != descriptor.bindings.end(); it++)
             {
                 uint32_t binding_index = it->first;
-                const VulkanBinding &binding = it->second;
+                VulkanBinding &binding = it->second;
 
                 if (binding.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || binding.type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                 {
@@ -215,7 +212,29 @@ namespace yoyo
                 }
                 else if (binding.type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
                 {
-                    builder.BindImage(binding_index, nullptr, binding.type, descriptor.shader_stage);
+                    const VulkanBinding::BindingProperty &property = binding.Properties().begin()->second;
+                    switch (property.type)
+                    {
+                    case (VulkanBindingPropertyType::Texture2D):
+                    case (VulkanBindingPropertyType::TextureCube):
+                    {
+                        builder.BindImage(binding_index, nullptr, binding.type, descriptor.shader_stage);
+                    }
+                    break;
+
+                    case (VulkanBindingPropertyType::Texture2DArray):
+                    case (VulkanBindingPropertyType::TextureCubeArray):
+                    {
+                        builder.BindImageArray(binding_index, nullptr, property.count, binding.type, descriptor.shader_stage);
+                    }
+                    break;
+
+                    default:
+                    {
+                        YERROR("Uknown image sampler binding type!");
+                    }
+                    break;
+                    }
                 }
             }
 
@@ -231,8 +250,8 @@ namespace yoyo
 
         builder.viewport.x = 0;
         builder.viewport.y = 0;
-        builder.viewport.width = m_renderer->Settings().width;
-        builder.viewport.height = m_renderer->Settings().height;
+        builder.viewport.width = static_cast<float>(m_renderer->Settings().width);
+        builder.viewport.height = static_cast<float>(m_renderer->Settings().height);
 
         builder.viewport.minDepth = 0;
         builder.viewport.maxDepth = 1.0f;
@@ -254,52 +273,125 @@ namespace yoyo
 
     void VulkanMaterialSystem::UpdateMaterial(Ref<VulkanMaterial> material)
     {
-        for (const VulkanDescriptorSetInformation &set_info : material->shader->shader_passes[MeshPassType::Forward]->effect->set_infos)
-        {
-            for (auto it = set_info.bindings.begin(); it != set_info.bindings.end(); it++)
-            {
-                uint32_t binding_index = it->first;
-                const VulkanBinding &binding = it->second;
-                // VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER = 1,
-                // binding.type
-            }
-        }
+        uint32_t texture_count = static_cast<uint32_t>(material->textures.size());
+        VkDescriptorSet material_textures_set = {};
+        VkDescriptorSetLayout material_textures_set_layout = {};
+        std::vector<VkDescriptorImageInfo> material_textures_infos = {};
 
         if ((material->DirtyFlags() & MaterialDirtyFlags::Texture) == MaterialDirtyFlags::Texture)
         {
-            Ref<VulkanTexture> main_texture = std::static_pointer_cast<VulkanTexture>(material->MainTexture());
-
-            VkDescriptorImageInfo main_texture_info = {};
-            main_texture_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            main_texture_info.imageView = main_texture->image_view;
-            main_texture_info.sampler = main_texture->sampler;
-
-            VkDescriptorImageInfo specular_texture_info = {};
-            if (material->GetTexture((int)MaterialTextureType::SpecularMap))
+            for (Ref<Texture> texture : material->textures)
             {
-                specular_texture_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                specular_texture_info.imageView = std::static_pointer_cast<VulkanTexture>(material->GetTexture((int)MaterialTextureType::SpecularMap))->image_view;
-                specular_texture_info.sampler = m_linear_sampler;
+                Ref<VulkanTexture> t = std::static_pointer_cast<VulkanTexture>(texture);
+
+                VkDescriptorImageInfo material_texture_info = {};
+                material_texture_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                material_texture_info.imageView = t->image_view;
+                material_texture_info.sampler = t->sampler;
+
+                material_textures_infos.push_back(material_texture_info);
             }
-            else
-            {
-                specular_texture_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                specular_texture_info.imageView = std::static_pointer_cast<VulkanTexture>(ResourceManager::Instance().Load<Texture>("assets/textures/white.yo"))->image_view;
-                specular_texture_info.sampler = m_linear_sampler;
-            }
-
-            VkDescriptorSet textures_set = {};
-            VkDescriptorSetLayout textures_set_layout = {};
-
-            DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
-                .BindImage(MATERIAL_MAIN_TEXTURE_DESCRIPTOR_SET_BINDING, &main_texture_info, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-                .BindImage(MATERIAL_SPECULAR_TEXTURE_DESCRIPTOR_SET_BINDING, &specular_texture_info, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-                .Build(&textures_set, &textures_set_layout);
-
-            material->descriptors[MeshPassType::Forward][MATERIAL_TEXTURE_SET_INDEX].set = textures_set;
         }
 
-        // Update properties
+        for (auto it = material->shader->shader_passes.begin(); it != material->shader->shader_passes.end(); it++)
+        {
+            const Ref<VulkanShaderPass> &shader_pass = it->second;
+            const MeshPassType shader_pass_type = it->first;
+
+            for (VulkanDescriptorSetInformation &descriptor_info : shader_pass->effect->set_infos)
+            {
+                DescriptorBuilder builder = DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get());
+                for (auto it = descriptor_info.bindings.begin(); it != descriptor_info.bindings.end(); it++)
+                {
+                    uint32_t binding_index = it->first;
+                    VulkanBinding &binding = it->second;
+
+                    switch (binding.type)
+                    {
+                    case (VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER):
+                    {
+                    }
+                    break;
+
+                    case (VK_DESCRIPTOR_TYPE_STORAGE_BUFFER):
+                    {
+                    }
+                    break;
+
+                    case (VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER):
+                    {
+                        if ((material->DirtyFlags() & MaterialDirtyFlags::Texture) == MaterialDirtyFlags::Texture)
+                        {
+                            if (binding.name != MATERIAL_TEXTURES_DESCRIPTOR_NAME)
+                            {
+                                continue;
+                            }
+
+                            const VulkanBinding::BindingProperty &property = binding.Properties().begin()->second;
+
+                            switch (property.type)
+                            {
+                            case (VulkanBindingPropertyType::Texture2DArray):
+                            {
+                                // Insert blank textures if not provided in material
+                                if (texture_count < property.count)
+                                {
+                                    for (int i = 0; i < (property.count - texture_count); i++)
+                                    {
+                                        Ref<VulkanTexture> blank_texture = std::static_pointer_cast<VulkanTexture>(ResourceManager::Instance().Load<Texture>("white"));
+                                        YASSERT(blank_texture != nullptr, "Invalid blank texture!");
+
+                                        VkDescriptorImageInfo texture_info = {};
+                                        texture_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                                        texture_info.imageView = blank_texture->image_view;
+                                        texture_info.sampler = blank_texture->sampler;
+
+                                        material_textures_infos.push_back(texture_info);
+                                    }
+                                }
+
+                                DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+                                    .BindImageArray(binding_index, material_textures_infos.data(), property.count, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, descriptor_info.shader_stage)
+                                    .Build(&material_textures_set, &material_textures_set_layout);
+
+                                material->descriptors[shader_pass_type][descriptor_info.index].set = material_textures_set;
+                            }
+                            break;
+
+                            case (VulkanBindingPropertyType::Texture2D):
+                            case (VulkanBindingPropertyType::TextureCube):
+                            {
+                                VkDescriptorSet texture_set = {};
+                                VkDescriptorSetLayout texture_set_layout = {};
+                                DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+                                    .BindImage(binding_index, material_textures_infos.data(), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, descriptor_info.shader_stage)
+                                    .Build(&texture_set, &texture_set_layout);
+
+                                material->descriptors[shader_pass_type][descriptor_info.index].set = texture_set;
+                            }
+                            break;
+
+                            default:
+                            {
+                                YERROR("Uknown material texture binding!");
+                            }
+                            break;
+                            }
+                        }
+                    }
+                    break;
+
+                    default:
+                    {
+                        YERROR("Uknown binding type at descriptor set: %u binding: %u", descriptor_info.index, binding_index);
+                    }
+                    break;
+                    }
+                }
+            }
+        }
+
+        // Update custom properties
         if ((material->DirtyFlags() & MaterialDirtyFlags::Property) == MaterialDirtyFlags::Property)
         {
             void *property_data;

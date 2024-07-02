@@ -16,6 +16,10 @@ namespace yoyo
         SpecularMap,
         NormalMap,
 
+        Ambient,
+        Displacement,
+        Height,
+
         Max
     };
 
@@ -107,7 +111,8 @@ namespace yoyo
 
         MaterialDirtyFlags& DirtyFlags() { return m_dirty; }
 
-        void SetProperty(const std::string& name, void* data);
+        void SetProperty(const std::string& name, const void* data);
+        void GetProperty(const std::string& name, void* data) const;
         void AddProperty(const std::string& name, const MaterialProperty& property);
 
         const void* PropertyData() const { return m_property_data; } // Raw ptr to material property buffer

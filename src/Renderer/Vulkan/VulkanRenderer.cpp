@@ -26,7 +26,35 @@ namespace yoyo
     VulkanRenderer::VulkanRenderer()
         : Renderer({RendererType::Vulkan, FRAMES_IN_FLIGHT, true}),
           m_instance(VK_NULL_HANDLE), m_surface(VK_NULL_HANDLE),
-          m_device(VK_NULL_HANDLE), m_physical_device(VK_NULL_HANDLE) {}
+          m_device(VK_NULL_HANDLE), m_physical_device(VK_NULL_HANDLE),
+          m_blit_output_texture_ds(VK_NULL_HANDLE),
+          m_blit_pass_ds_layout(VK_NULL_HANDLE),
+          m_blit_pipeline(VK_NULL_HANDLE),
+          m_blit_pipeline_layout(VK_NULL_HANDLE),
+          m_debug_messenger(VK_NULL_HANDLE),
+          m_directional_lights_buffer({}),
+          m_forward_frame_buffer(VK_NULL_HANDLE),
+          m_forward_pass(VK_NULL_HANDLE),
+          m_forward_pass_color_texture({}),
+          m_forward_pass_color_texture_view(VK_NULL_HANDLE),
+          m_forward_pass_depth_texture({}),
+          m_forward_pass_depth_texture_view(VK_NULL_HANDLE),
+          m_forward_pass_ds_layout(VK_NULL_HANDLE),
+          m_frame_count(0),
+          m_instanced_ds_layout(VK_NULL_HANDLE),
+          m_physical_device_properties({}),
+          m_post_process_render_pass(VK_NULL_HANDLE),
+          m_queues({}),
+          m_render_context({}),
+          m_scene_data_uniform_buffer({}),
+          m_shadow_frame_buffer(VK_NULL_HANDLE),
+          m_shadow_pass_depth_texture({}),
+          m_shadow_pass_depth_texture_view(VK_NULL_HANDLE),
+          m_shadow_pass_ds_layout(VK_NULL_HANDLE),
+          m_shadow_render_pass(VK_NULL_HANDLE),
+          m_swapchain(VK_NULL_HANDLE),
+          m_swapchain_image_format(VK_FORMAT_UNDEFINED),
+          m_swapchain_render_pass(VK_NULL_HANDLE) {}
 
     VulkanRenderer::~VulkanRenderer() {}
 
@@ -304,6 +332,24 @@ namespace yoyo
             Ref<Shader> shader = Shader::Create(DEFAULT_OUTLINE_SHADER_NAME);
             shader->shader_passes[MeshPassType::Forward] = shader_pass;
         }
+
+        // skybox shader
+        {
+            Ref<VulkanShaderEffect> effect = CreateRef<VulkanShaderEffect>();
+            effect->depth_compare_op = VK_COMPARE_OP_LESS_OR_EQUAL;
+
+            {
+                Ref<VulkanShaderModule> vertex_module = VulkanResourceManager::CreateShaderModule("assets/shaders/skybox_shader.vert.spv");
+                effect->PushShader(vertex_module, VK_SHADER_STAGE_VERTEX_BIT);
+
+                Ref<VulkanShaderModule> fragment_module = VulkanResourceManager::CreateShaderModule("assets/shaders/skybox_shader.frag.spv");
+                effect->PushShader(fragment_module, VK_SHADER_STAGE_FRAGMENT_BIT);
+            }
+
+            auto shader_pass = m_material_system->CreateShaderPass(m_forward_pass, effect);
+            Ref<Shader> shader = Shader::Create("skybox_shader");
+            shader->shader_passes[MeshPassType::Forward] = shader_pass;
+        }
 #endif
     }
 
@@ -523,12 +569,12 @@ namespace yoyo
                     if (index_count > 0)
                     {
                         Profile().draw_calls++;
-                        vkCmdDrawIndexed(cmd, index_count, batch->renderables.size(), 0, 0, batch->instance_index);
+                        vkCmdDrawIndexed(cmd, index_count, static_cast<uint32_t>(batch->renderables.size()), 0, 0, batch->instance_index);
                     }
                     else
                     {
                         Profile().draw_calls++;
-                        vkCmdDraw(cmd, batch->mesh->GetVertexCount(), batch->renderables.size(), 0, batch->instance_index);
+                        vkCmdDraw(cmd, batch->mesh->GetVertexCount(), static_cast<uint32_t>(batch->renderables.size()), 0, batch->instance_index);
                     }
                 }
             }
@@ -623,12 +669,12 @@ namespace yoyo
                     if (index_count > 0)
                     {
                         Profile().draw_calls++;
-                        vkCmdDrawIndexed(cmd, index_count, batch->renderables.size(), 0, 0, batch->instance_index);
+                        vkCmdDrawIndexed(cmd, index_count, static_cast<uint32_t>(batch->renderables.size()), 0, 0, batch->instance_index);
                     }
                     else
                     {
                         Profile().draw_calls++;
-                        vkCmdDraw(cmd, batch->mesh->GetVertexCount(), batch->renderables.size(), 0, batch->instance_index);
+                        vkCmdDraw(cmd, batch->mesh->GetVertexCount(), static_cast<uint32_t>(batch->renderables.size()), 0, batch->instance_index);
                     }
                 }
             }
@@ -996,8 +1042,8 @@ namespace yoyo
 
         builder.viewport.x = 0;
         builder.viewport.y = 0;
-        builder.viewport.width = Settings().width;
-        builder.viewport.height = Settings().height;
+        builder.viewport.width = static_cast<float>(Settings().width);
+        builder.viewport.height = static_cast<float>(Settings().height);
 
         builder.scissor = {};
         builder.scissor.extent.width = Settings().width;
@@ -1018,8 +1064,7 @@ namespace yoyo
         output_image_info.imageView = m_forward_pass_color_texture_view;
         output_image_info.sampler = m_material_system->LinearSampler();
 
-        DescriptorBuilder ds_builder = {};
-        ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+        DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
             .BindImage(0, &output_image_info, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
             .Build(&m_blit_output_texture_ds, &m_blit_pass_ds_layout);
     }
@@ -1159,8 +1204,7 @@ namespace yoyo
             obj_data_info.offset = 0;
             obj_data_info.range = VK_WHOLE_SIZE;
 
-            DescriptorBuilder ds_builder = {};
-            ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+            DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
                 .BindBuffer(SCENE_DATA_DESCRIPTOR_SET_BINDING, &scene_data_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
                 .BindBuffer(DIRECTIONAL_LIGHTS_SET_BINDING, &dir_light_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
                 .BindBuffer(OBJECT_DATA_SET_BINDING, &obj_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
@@ -1298,8 +1342,7 @@ namespace yoyo
 
             // TODO: Stop descriptors bindings bound to all stages used by descriptor
             {
-                DescriptorBuilder ds_builder = {};
-                ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+                DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
                     .BindBuffer(SCENE_DATA_DESCRIPTOR_SET_BINDING, &scene_data_info, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
                     .BindBuffer(DIRECTIONAL_LIGHTS_SET_BINDING, &dir_light_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
                     .BindImage(SHADOW_MAP_SET_BINDING, &shadow_map_info, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
@@ -1309,8 +1352,7 @@ namespace yoyo
 
             // Create descriptor to hold RenderSceneIds for instanced drawing
             {
-                DescriptorBuilder ds_builder = {};
-                ds_builder.Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
+                DescriptorBuilder::Begin(m_descriptor_layout_cache.get(), m_descriptor_allocator.get())
                     .BindBuffer(INSTANCED_OBJECT_DATA_SET_BINDING, &instanced_data_info, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
                     .Build(&m_instanced_dsets[i], &m_instanced_ds_layout);
             }

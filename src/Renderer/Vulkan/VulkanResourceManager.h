@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Core/Memory.h"
+#include "Core/Assert.h"
+
 #include "VulkanUtils.h"
 #include "VulkanStructures.h"
 
@@ -105,7 +107,7 @@ namespace yoyo
             return buffer;
         }
 
-        static AllocatedImage CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, uint32_t layer_count = 1, bool manage_memory = true /*If true memory will be managed by resource manager */, bool mipmapped = false);
+        static AllocatedImage CreateImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, uint32_t layer_count = 1, VkImageCreateFlags flags = 0, bool manage_memory = true /*If true memory will be managed by resource manager */, bool mipmapped = false);
 
         static const size_t PadToUniformBufferSize(size_t original_size);
         static const size_t PadToStorageBufferSize(size_t original_size);

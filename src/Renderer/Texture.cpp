@@ -57,13 +57,14 @@ namespace yoyo
 			hro_texture.ParseInfo(&hro_texture_info);
 
 			Ref<Texture> texture = Texture::Create(FileNameFromFullPath(asset_path), type);
+
 			texture->width = hro_texture_info.pixel_size[0];
 			texture->height = hro_texture_info.pixel_size[1];
 			texture->format = (TextureFormat)((int)hro_texture_info.format);
-			texture->raw_data.resize(hro_texture_info.size);
+			texture->RawData().resize(hro_texture_info.size);
 
-			hro_texture.Unpack(&hro_texture_info, texture->raw_data.data());
-			texture->raw_data.shrink_to_fit();
+			hro_texture.Unpack(&hro_texture_info, texture->RawData().data());
+			texture->RawData().shrink_to_fit();
 
 			return texture;
 		}

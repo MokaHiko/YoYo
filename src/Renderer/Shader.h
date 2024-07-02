@@ -19,7 +19,7 @@ namespace yoyo
     struct ShaderInput
     {
         std::string name;
-        Format format;
+        Format format = Format::UNDEFINED;
         uint32_t offset = 0; // offset into input in bytes
         uint32_t location = -1;
     };

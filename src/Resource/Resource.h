@@ -12,13 +12,19 @@ namespace yoyo
     using ResourceType = uint64_t;
 
     // ex. some_folder/my_file.extension => my_file.extension
-    const std::string FileNameFromFullPath(const std::string& full_path);
+    const std::string FileNameFromFullPath(const std::string &full_path);
 
-    #define RESOURCE_TYPE(type) const ResourceType Type() const override {return s_resource_type;}\
-                                inline static const ResourceType s_resource_type = Platform::GenerateUUIDV4();\
-                                inline static const std::string s_resource_type_name = #type;\
-                                inline static const std::string TypeName() {return s_resource_type_name;}\
+// #define RESOURCE_TYPE(type) const ResourceType Type() const override {return s_resource_type;}\
+//                                 inline static const ResourceType s_resource_type = Platform::GenerateUUIDV4();\
+//                                 inline static const std::string s_resource_type_name = #type;\
+//                                 inline static const std::string TypeName() {return s_resource_type_name;}\
 
+#define RESOURCE_TYPE(type) \
+    virtual const ResourceType Type() const override {return s_resource_type;} \
+    inline static const ResourceType s_resource_type = Platform::GenerateUUIDV4(); \
+    inline static constexpr const char* s_resource_type_name = #type; \
+    inline static constexpr const char* TypeName() { return s_resource_type_name; }
+                                
     // Base class for all resources in the engine
     class YAPI Resource
     {

@@ -75,6 +75,7 @@ namespace yoyo
 				model->model_matrices.push_back(model_matrix);
 
 				Ref<StaticMesh> mesh = StaticMesh::LoadFromAsset(hro_mesh.original_file_path.c_str());
+				model->material_indices.push_back(hro_mesh.material_id);
 
 				if (hro_mesh.bone_count > 0)
 				{
@@ -106,6 +107,17 @@ namespace yoyo
 				material->SetVec4("diffuse_color", yoyo::Vec4{ hro_mat.diffuse_color[0], hro_mat.diffuse_color[1], hro_mat.diffuse_color[2], 1.0f });
 				material->SetVec4("specular_color", yoyo::Vec4{ hro_mat.specular_color[0], hro_mat.specular_color[1], hro_mat.specular_color[2], 1.0f });
 
+				if (!hro_mat.ambient_texture_path.empty())
+				{
+					std::string texture_name = "assets/textures/" + FileNameFromFullPath(hro_mat.ambient_texture_path) + ".yo";
+					material->SetTexture(MaterialTextureType::MainTexture, ResourceManager::Instance().Load<Texture>(texture_name));
+				}
+				else
+				{
+					std::string texture_name = "assets/textures/" + FileNameFromFullPath("white") + ".yo";
+					material->SetTexture(MaterialTextureType::MainTexture, ResourceManager::Instance().Load<Texture>(texture_name));
+				}
+
 				if (!hro_mat.diffuse_texture_path.empty())
 				{
 					std::string texture_name = "assets/textures/" + FileNameFromFullPath(hro_mat.diffuse_texture_path) + ".yo";
@@ -115,6 +127,28 @@ namespace yoyo
 				{
 					std::string texture_name = "assets/textures/" + FileNameFromFullPath("white") + ".yo";
 					material->SetTexture(MaterialTextureType::MainTexture, ResourceManager::Instance().Load<Texture>(texture_name));
+				}
+
+				if (!hro_mat.specular_texture_path.empty())
+				{
+					std::string texture_name = "assets/textures/" + FileNameFromFullPath(hro_mat.specular_texture_path) + ".yo";
+					material->SetTexture(MaterialTextureType::SpecularMap, ResourceManager::Instance().Load<Texture>(texture_name));
+				}
+				else
+				{
+					std::string texture_name = "assets/textures/" + FileNameFromFullPath("white") + ".yo";
+					material->SetTexture(MaterialTextureType::SpecularMap, ResourceManager::Instance().Load<Texture>(texture_name));
+				}
+
+				if (!hro_mat.normal_texture_path.empty())
+				{
+					std::string texture_name = "assets/textures/" + FileNameFromFullPath(hro_mat.normal_texture_path) + ".yo";
+					material->SetTexture(MaterialTextureType::NormalMap, ResourceManager::Instance().Load<Texture>(texture_name));
+				}
+				else
+				{
+					std::string texture_name = "assets/textures/" + FileNameFromFullPath("white") + ".yo";
+					material->SetTexture(MaterialTextureType::NormalMap, ResourceManager::Instance().Load<Texture>(texture_name));
 				}
 
 				model->materials.push_back(material);

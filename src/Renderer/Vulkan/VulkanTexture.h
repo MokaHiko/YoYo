@@ -8,6 +8,9 @@ namespace yoyo
     class VulkanTexture : public Texture
     {
     public:
+        VulkanTexture();
+        ~VulkanTexture();
+
         AllocatedImage allocated_image;
         VkImageView image_view;
         VkSampler sampler;

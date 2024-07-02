@@ -71,7 +71,7 @@ void Material::SetTexture(int index, Ref<Texture> texture)
 		SetTexture((int)type, texture);
 	}
 
-	void Material::SetProperty(const std::string& name, void* data)
+	void Material::SetProperty(const std::string& name, const void* data)
 	{
 		auto it = m_properties.find(name);
 
@@ -87,7 +87,22 @@ void Material::SetTexture(int index, Ref<Texture> texture)
 		}
 	}
 
-	void Material::AddProperty(const std::string& name, const MaterialProperty& property)
+    void Material::GetProperty(const std::string &name, void *data) const
+    {
+		auto it = m_properties.find(name);
+
+		if (it != m_properties.end())
+		{
+			const MaterialProperty& prop = it->second;
+			memcpy(data, (char*)m_property_data + prop.offset, prop.size);
+		}
+		else
+		{
+			YERROR("Material has no such property: \"%s\"", name.c_str());
+		}
+    }
+
+    void Material::AddProperty(const std::string& name, const MaterialProperty& property)
 	{
 		if (m_properties.find(name) != m_properties.end())
 		{

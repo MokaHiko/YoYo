@@ -56,7 +56,11 @@ namespace yoyo {
             if(!cache)
             {
                 cache = new ResourceCache;
-                YINFO("Resource Cache %s[%lu] Generated", T::s_resource_type_name.c_str(), T::s_resource_type);
+
+                // TODO: Remove
+                //YINFO("Resource Cache %s[%lu] Generated", T::s_resource_type_name.c_str(), T::s_resource_type);
+
+                YINFO("Resource Cache %s[%lu] Generated", T::s_resource_type_name, T::s_resource_type);
             }
 
             return *cache;

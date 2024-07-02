@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Defines.h"
 #include "Math/Math.h"
 
 namespace yoyo
@@ -21,7 +22,7 @@ namespace yoyo
     class YAPI Camera
     {
     public:
-        Camera(const Vec3& start_position = { 0.0f }, const Vec3& up = { 0.0f, 1.0f, 0.0f }, float start_yaw = YAW, float start_pitch = PITCH, float aspect_ratio = 1920.0f/1080.0f, float fov = 90.0f);
+        Camera(const Vec3& start_position = { 0.0f }, const Vec3& up = { 0.0f, 1.0f, 0.0f }, float start_yaw = YAW, float start_pitch = PITCH, float aspect_ratio = 1920.0f/1080.0f, float fov = 45.0f);
         ~Camera();
 
         void UpdateCameraVectors();

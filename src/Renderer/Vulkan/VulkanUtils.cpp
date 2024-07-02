@@ -305,16 +305,49 @@ namespace yoyo
 
         m_bindings.push_back(layout_binding);
 
-        VkWriteDescriptorSet write = {};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.pNext = nullptr;
+        if (buffer_info != nullptr)
+        {
+			VkWriteDescriptorSet write = {};
+			write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			write.pNext = nullptr;
 
-        write.descriptorType = type;
-        write.descriptorCount = 1;
-        write.pBufferInfo = buffer_info;
-        write.dstBinding = binding;
+			write.descriptorType = type;
+			write.descriptorCount = 1;
+			write.pBufferInfo = buffer_info;
+			write.dstBinding = binding;
 
-        m_writes.push_back(write);
+			m_writes.push_back(write);
+        }
+
+        return *this;
+    }
+
+    DescriptorBuilder &DescriptorBuilder::BindImageArray(uint32_t binding, VkDescriptorImageInfo *image_infos, uint32_t image_count, VkDescriptorType type, VkShaderStageFlags shader_stage)
+    {
+        VkDescriptorSetLayoutBinding layout_binding = {};
+        layout_binding.binding = binding;
+        layout_binding.descriptorType = type;
+        layout_binding.stageFlags = shader_stage;
+
+        layout_binding.pImmutableSamplers = nullptr;
+
+        layout_binding.descriptorCount = image_count;
+
+        m_bindings.push_back(layout_binding);
+
+        if (image_infos != nullptr)
+        {
+			VkWriteDescriptorSet write = {};
+			write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			write.pNext = nullptr;
+
+			write.descriptorType = type;
+			write.descriptorCount = image_count;
+			write.pImageInfo = image_infos;
+			write.dstBinding = binding;
+
+			m_writes.push_back(write);
+        }
 
         return *this;
     }
@@ -332,23 +365,26 @@ namespace yoyo
 
         m_bindings.push_back(layout_binding);
 
-        VkWriteDescriptorSet write = {};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.pNext = nullptr;
 
-        write.descriptorType = type;
-        write.descriptorCount = 1;
-        write.pImageInfo = image_info;
-        write.dstBinding = binding;
+        if (image_info != nullptr)
+        {
+			VkWriteDescriptorSet write = {};
+			write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			write.pNext = nullptr;
 
-        m_writes.push_back(write);
+			write.descriptorType = type;
+			write.descriptorCount = 1;
+			write.pImageInfo = image_info;
+			write.dstBinding = binding;
+
+			m_writes.push_back(write);
+        }
 
         return *this;
     }
 
     bool DescriptorBuilder::Build(VkDescriptorSet *set, VkDescriptorSetLayout *layout)
     {
-
         // Create layout
         VkDescriptorSetLayoutCreateInfo layout_create_info = {};
         layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -357,28 +393,37 @@ namespace yoyo
         layout_create_info.bindingCount = static_cast<uint32_t>(m_bindings.size());
         layout_create_info.pBindings = m_bindings.data();
 
-        *layout = m_cache->CreateDescriptorSetLayout(&layout_create_info);
-
         // Check if only caching layout
-        if (!set)
+        if (!layout)
         {
-            return false;
+            m_cache->CreateDescriptorSetLayout(&layout_create_info);
+        }
+        else
+        {
+            *layout = m_cache->CreateDescriptorSetLayout(&layout_create_info);
         }
 
-        // Allocate descriptor
-        if (!(m_allocator->Allocate(set, *layout)))
+        if (set != nullptr && layout != nullptr)
         {
-            return false;
+			// Allocate descriptor
+			if (!(m_allocator->Allocate(set, *layout)))
+			{
+                YERROR("Failed to allocate descriptor set!");
+				return false;
+			}
         }
 
-        // Assign descriptor set to each write
-        for (auto &write : m_writes)
+		// Update descriptors
+        if (set != nullptr)
         {
-            write.dstSet = *set;
-        }
+		    // Assign descriptor set to each write
+			for (auto &write : m_writes)
+			{
+				write.dstSet = *set;
+			}
 
-        // Update descriptors
-        vkUpdateDescriptorSets(m_allocator->m_device_h, static_cast<uint32_t>(m_writes.size()), m_writes.data(), 0, nullptr);
+		    vkUpdateDescriptorSets(m_allocator->m_device_h, static_cast<uint32_t>(m_writes.size()), m_writes.data(), 0, nullptr);
+        }
 
         return true;
     }

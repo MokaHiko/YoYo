@@ -8,6 +8,8 @@
 
 #include "Core/Assert.h"
 
+#include "Renderer/Light.h"
+
 namespace yoyo
 {
     RendererLayer::RendererLayer(Application* app)
@@ -16,8 +18,8 @@ namespace yoyo
         m_renderer = CreateRenderer();
 
         // Renderer settings
-        m_renderer->Settings().width = app->Settings().width;
-        m_renderer->Settings().height = app->Settings().height;
+        m_renderer->Settings().width = static_cast<uint32_t>(app->Settings().width);
+        m_renderer->Settings().height = static_cast<uint32_t>(app->Settings().height);
 
         m_app = app;
     }
@@ -158,14 +160,30 @@ namespace yoyo
 
     void RendererLayer::OnImGuiRender()
     {
-        ImGui::Begin("Renderer");
+        ImGui::Begin("Renderer Layer");
 
-        ImGui::Text("%.3ffps / %.6fms", floor(1.0f/m_dt), m_dt);
+        ImGui::Text("%.3ffps / %.6fms", floor(1.0f / m_dt), m_dt);
         ImGui::Text("Shadow renderables: %d", m_scene->GetShadowPassCount());
         ImGui::Text("Forward renderables: %d", m_scene->GetForwardPassCount());
         ImGui::Text("Blit pass renderables: %d", 1);
 
         ImGui::Text("Draw calls: %d", m_renderer->Profile().draw_calls);
+
+        for (Ref<DirectionalLight> dir_light : m_scene->directional_lights)
+        {
+            if (ImGui::TreeNode("Directional Light"))
+            {
+                Vec3 direction{dir_light->direction.x, dir_light->direction.y, dir_light->direction.z};
+                if(ImGui::DragFloat3("Direction", direction.elements, 0.1f))
+                {
+                    direction = Normalize(direction);
+                    dir_light->direction = Vec4{direction.x, direction.y, direction.z, 0.0f};
+                }
+
+                ImGui::DragFloat4("Color", dir_light->color.elements);
+                ImGui::TreePop();
+            }
+        }
 
         ImGui::End();
     }

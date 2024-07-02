@@ -136,9 +136,16 @@ namespace yoyo
         // Queues image to descriptor binding
         DescriptorBuilder &BindImage(uint32_t binding, VkDescriptorImageInfo *image_info, VkDescriptorType type, VkShaderStageFlags shader_stage);
 
+        // Queues image array to descriptor binding
+        DescriptorBuilder &BindImageArray(uint32_t binding, VkDescriptorImageInfo *image_infos, uint32_t image_count, VkDescriptorType type, VkShaderStageFlags shader_stage);
+
+        // Retuns trueh if both descriptor set and layout were built
         bool Build(VkDescriptorSet *set, VkDescriptorSetLayout *layout);
 
     private:
+        DescriptorBuilder()
+            :m_cache(nullptr), m_allocator(nullptr){}
+
         std::vector<VkWriteDescriptorSet> m_writes;
         std::vector<VkDescriptorSetLayoutBinding> m_bindings;
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Defines.h"
-#include "Core/Assert.h"
+//#include "Core/Assert.h"
 
 namespace yoyo
 {
@@ -70,7 +70,7 @@ YAPI constexpr Ref<T> CreateRef(Args &&...args)
         delete ptr;
     });
 
-	YASSERT(data, "Failed to allocate memory!");
+	//YASSERT(data, "Failed to allocate memory!");
     yoyo::AddToMemoryMap((void*)data.get(), sizeof(T), yoyo::MemoryTag::SmartPtr);
 
     return data;
@@ -86,7 +86,7 @@ YAPI constexpr Scope<T> CreateScope(Args &&...args)
         delete ptr;
     });
 
-	YASSERT(data, "Failed to allocate memory!");
+	//YASSERT(data, "Failed to allocate memory!");
     yoyo::AddToMemoryMap((void*)data.get(), sizeof(T), yoyo::MemoryTag::SmartPtr);
 
     return data;

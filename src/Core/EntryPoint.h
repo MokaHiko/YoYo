@@ -5,7 +5,7 @@
 
 extern yoyo::Application* CreateApplication();
 
-YAPI int main()
+int main()
 {
     yoyo::Application* app = CreateApplication();
 

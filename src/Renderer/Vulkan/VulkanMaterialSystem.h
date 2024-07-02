@@ -7,12 +7,16 @@
 namespace yoyo
 {
     class VulkanMaterial;
-    class VulkanShaderEffect;
-    class VulkanShaderPass;
     class VulkanRenderer;
+    struct VulkanShaderEffect;
+    struct VulkanShaderPass;
+
     class VulkanMaterialSystem
     {
     public:
+        VulkanMaterialSystem();
+        ~VulkanMaterialSystem();
+
         void Init(VulkanRenderer* renderer);
         void Shutdown();
 

@@ -77,7 +77,7 @@ namespace yoyo
         RESOURCE_TYPE(Texture)
 
         Texture();
-        ~Texture();
+        virtual ~Texture();
 
         const TextureType GetTextureType() const { return m_type; }
         void SetTextureType(TextureType type);
@@ -87,6 +87,8 @@ namespace yoyo
 
         const TextureAddressMode GetAddressMode() const { return m_sampler_address_mode; }
         void SetAddressMode(TextureAddressMode mode);
+
+        std::vector<char>& RawData();
 
         virtual void UploadTextureData(bool free_host_memory = false) = 0;
 
@@ -100,10 +102,9 @@ namespace yoyo
         // Used for array textures if greater than 1
         int layers;
 
-        const TextureDirtyFlags &DirtyFlags() { return m_dirty; }
+        const TextureDirtyFlags DirtyFlags() const { return m_dirty; }
 
         TextureFormat format;
-        std::vector<char> raw_data;
         friend class ResourceManager;
     protected:
         TextureType m_type;
@@ -112,6 +113,8 @@ namespace yoyo
 
         bool m_live;
         TextureDirtyFlags m_dirty;
+    private:
+        std::vector<char> m_raw_data;
     };
 }
 

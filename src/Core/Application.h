@@ -12,11 +12,11 @@ namespace yoyo
     {
         std::string app_name;
 
-        float x;
-        float y;
+        float x = 0;
+        float y = 0;
 
-        float width;
-        float height;
+        float width = 0;
+        float height = 0;
     };
 
     class YAPI Application

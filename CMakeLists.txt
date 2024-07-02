@@ -104,7 +104,7 @@ target_precompile_headers(${PROJECT_NAME} PUBLIC src/ypch.h)
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_include_directories(${PROJECT_NAME} PUBLIC src include)
 
-add_compile_definitions(Y_EXPORT)
+target_compile_definitions(${PROJECT_NAME} PRIVATE Y_EXPORT)
 
 add_subdirectory(vendor/Hurno)
 
@@ -135,12 +135,12 @@ target_compile_definitions(${PROJECT_NAME}
 )
 
 if(MSVC)
-    add_compile_definitions(Y_COMPILER_MSVC)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC Y_COMPILER_MSVC)
     set_property(TARGET HurnoConverter PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/Sandbox)
 endif()
 
 if (WIN32)
-    add_compile_definitions(Y_PLATFORM_WIN32)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC Y_PLATFORM_WIN32)
     target_sources(${PROJECT_NAME} PRIVATE src/Platform/Win32/PlatformWin32.h src/Platform/Win32/PlatformWin32.cpp)
 
     add_subdirectory(vendor/SDL)
@@ -151,7 +151,7 @@ if (WIN32)
 
     set(YRENDERERTYPE "VULKAN")
 elseif (APPLE)
-    add_compile_definitions(Y_PLATFORM_APPLE)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC Y_PLATFORM_APPLE)
     target_sources(${PROJECT_NAME} PRIVATE src/Platform/OSX/OSX.h src/Platform/OSX/OSX.cpp)
 
     add_subdirectory(vendor/SDL)

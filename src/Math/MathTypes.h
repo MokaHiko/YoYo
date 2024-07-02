@@ -6,11 +6,11 @@ namespace yoyo
 {
     union YAPI Vec2
     {
-        Vec2() : x(0),y(0) {}
-        Vec2(float val) : x(val), y(val) {};
-
-        Vec2(float _x, float _y) : x(_x), y(_y) {}
-        float elements[2] = {};
+        Vec2() : x(0), y(0) { elements[0] = x; elements[1] = y; }
+        Vec2(float val) : x(val), y(val) { elements[0] = x; elements[1] = y; }
+        Vec2(float _x, float _y) : x(_x), y(_y) { elements[0] = x; elements[1] = y; }
+        
+        float elements[2];
 
         struct
         {
@@ -46,14 +46,11 @@ namespace yoyo
 
     union YAPI Vec3
     {
-        Vec3() : x(0),y(0),z(0){}
-        Vec3(float val) : x(val), y(val), z(val) {};
+        Vec3() : x(0), y(0), z(0) { elements[0] = x; elements[1] = y; elements[2] = z; }
+        Vec3(float val) : x(val), y(val), z(val) { elements[0] = x; elements[1] = y; elements[2] = z; }
+        Vec3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) { elements[0] = x; elements[1] = y; elements[2] = z; }
 
-        Vec3(float _x, float _y, float _z)
-            :x(_x), y(_y), z(_z) {}
-        ~Vec3() = default;
-
-        float elements[3] = {0.0f};
+        float elements[3];
 
         struct
         {
@@ -80,15 +77,8 @@ namespace yoyo
         Vec3& operator-=(const Vec3& other);
         Vec3& operator*=(const Vec3& other);
 
-        bool operator==(const Vec3& other) const
-        {
-            return x - other.x + y - other.y + z - other.z == 0.0f;
-        };
-
-        bool operator!=(const Vec3& other) const
-        {
-            return x - other.x + y - other.y + z - other.z != 0.0f;
-        };
+        bool operator==(const Vec3& other) const;
+        bool operator!=(const Vec3& other) const;
     };
 
     union YAPI IVec3
@@ -111,24 +101,17 @@ namespace yoyo
             };
         };
 
-        bool operator==(const IVec3& other) const
-        {
-            return x - other.x + y - other.y + z - other.z == 0;
-        };
-
-        bool operator!=(const IVec3& other) const
-        {
-            return x - other.x + y - other.y + z - other.z != 0;
-        };
+        bool operator==(const IVec3& other) const;
+        bool operator!=(const IVec3& other) const;
     };
 
     union YAPI Vec4
     {
 #ifdef YUSESIMD
-        // Use SIMD
         alignas(16) _m128 data;
 #endif
         alignas(16) float elements[4];
+
         struct
         {
             union
@@ -149,16 +132,16 @@ namespace yoyo
             };
         };
 
-        operator Vec3() const { return { x,y,z }; }
+        operator Vec3() const { return { x, y, z }; }
     };
 
     union YAPI IVec4
     {
 #ifdef YUSESIMD
-        // Use SIMD
         alignas(16) _m128 data;
 #endif
         alignas(16) int elements[4];
+
         struct
         {
             union
@@ -180,16 +163,11 @@ namespace yoyo
         };
     };
 
-    /*
-        By Default the YoYo math library assumes column major.
-        Matrices by default are the identity matrix nxn.
-    */
     union YAPI Mat4x4
     {
         Mat4x4();
         ~Mat4x4();
 
-        // Initializes all values of the matrix to val
         Mat4x4(float val);
 
         alignas(16) float data[16];
@@ -201,4 +179,21 @@ namespace yoyo
         float& operator[](int index);
     };
 
-};
+    // Definitions for Vec3 and IVec3 comparison operators
+    inline bool Vec3::operator==(const Vec3& other) const {
+        return x == other.x && y == other.y && z == other.z;
+    }
+
+    inline bool Vec3::operator!=(const Vec3& other) const {
+        return !(*this == other);
+    }
+
+    inline bool IVec3::operator==(const IVec3& other) const {
+        return x == other.x && y == other.y && z == other.z;
+    }
+
+    inline bool IVec3::operator!=(const IVec3& other) const {
+        return !(*this == other);
+    }
+}
+

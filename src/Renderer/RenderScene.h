@@ -1,21 +1,20 @@
 #pragma once
 
+#include "Defines.h"
 #include "Core/Memory.h"
 #include "Core/Assert.h"
 
 #include "Renderer/RenderPass.h"
 namespace yoyo
 {
-    class Camera;
-    class DirectionalLight;
-    class PointLight;
+    class YAPI Camera;
+    struct YAPI DirectionalLight;
+    struct YAPI PointLight;
+    struct YAPI MeshPassObject;
 
     // Render packet flags
 
     // Structure that sends info about updates to the scene
-    // class Camera;
-    // class DirectionalLight;
-    struct MeshPassObject;
     struct YAPI RenderPacket
     {
         RenderPacket(bool reset_after_process = false)

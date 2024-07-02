@@ -1,5 +1,7 @@
 #include "ParticleSystem.h"
 
+#include "Core/Assert.h"
+
 #include "ParticleSystemEvents.h"
 
 #include "Renderer/RenderPass.h"

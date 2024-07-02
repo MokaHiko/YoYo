@@ -78,24 +78,31 @@ namespace yoyo
         VmaAllocation allocation;
     };
 
-    enum class VulkanBindingPropertType
+    enum class VulkanBindingPropertyType
     {
+        Uknown, 
+
         Int32,
         Float32,
         Vec4,
-        Texture,
+        Texture2D,
+        Texture2DArray,
+        TextureCube,
+        TextureCubeArray,
     };
 
     struct VulkanBinding
     {
         std::string name;
-        VkDescriptorType type;
+        VkDescriptorType type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
 
         struct BindingProperty
         {
-            uint64_t size;    // size of binding property member in bytes
-            uint64_t offset;  // offset of binding property member in bytes
-            VulkanBindingPropertType type;
+            uint64_t size = 0;    // size of binding property member in bytes
+            uint64_t offset = 0;  // offset of binding property member in bytes
+            VulkanBindingPropertyType type = VulkanBindingPropertyType::Uknown;
+
+            uint32_t count = 0; // Used only for array type properties
         };
 
         // Size of binding in bytes
@@ -104,9 +111,10 @@ namespace yoyo
             return m_size;
         }
 
-        void AddProperty(const std::string& name, const BindingProperty& binding_prop)
+        void AddProperty(const std::string& name, const BindingProperty& binding_prop, uint32_t count = 1)
         {
             m_properties[name] = binding_prop;
+            m_properties[name].count = count;
             m_size += binding_prop.size;
         }
 
@@ -115,16 +123,16 @@ namespace yoyo
             return m_properties;
         }
     private:
-        uint64_t m_size;  
+        uint64_t m_size = 0;  
         std::unordered_map<std::string, BindingProperty> m_properties;
     };
 
     struct VulkanDescriptorSetInformation
     {
-        VkShaderStageFlagBits shader_stage;
-        VkDescriptorSetLayout descriptor_set_layout;
+        VkShaderStageFlagBits shader_stage = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+        VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
 
-        uint32_t index;
+        uint32_t index = -1;
         std::map<uint32_t, VulkanBinding> bindings;
 
         void AddBinding(uint32_t index, VkShaderStageFlagBits stage, const VulkanBinding& binding)
@@ -143,7 +151,7 @@ namespace yoyo
 
     struct VulkanDescriptorSet
     {
-        VkDescriptorSet set;
+        VkDescriptorSet set = VK_NULL_HANDLE;
         VulkanDescriptorSetInformation info;
     };
 
