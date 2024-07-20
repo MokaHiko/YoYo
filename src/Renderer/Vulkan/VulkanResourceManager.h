@@ -6,7 +6,7 @@
 #include "VulkanUtils.h"
 #include "VulkanStructures.h"
 
-#include "VulkanMesh.h"
+#include "Renderer/Mesh.h"
 
 namespace yoyo
 {

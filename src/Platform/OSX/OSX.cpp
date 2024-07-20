@@ -8,6 +8,7 @@
 
 #include "Core/Log.h"
 #include "Core/Memory.h"
+#include "Core/Assert.h"
 
 #include "Events/Event.h"
 #include "Events/ApplicationEvent.h"
@@ -46,6 +47,12 @@ namespace yoyo
 	void Platform::ConsoleWrite(const char *message, uint8_t color)
     {
         printf("message");
+    }
+
+    void* Platform::NativeAppWindow()
+    {
+        YASSERT(window, "Platform Init Not called before requesting native window instance");
+        return window;
     }
 
     void Platform::PumpMessages()
@@ -87,7 +94,7 @@ namespace yoyo
             *size = file.tellg();
             file.seekg(0);
 
-            *buffer = (char *)YAllocate(*size, MemoryTag::STRING);
+            *buffer = (char *)YAllocate(*size, MemoryTag::String);
             file.read(*buffer, *size);
 
             file.close();
@@ -100,8 +107,9 @@ namespace yoyo
         }
     }
 
-    std::string GenerateUUIDV4()
+    uint64_t Platform::GenerateUUIDV4()
     {
-        return {};
+        // TODO: Properly generate UUIDs
+        return rand();
     }
 }

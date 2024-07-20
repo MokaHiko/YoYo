@@ -80,10 +80,10 @@ namespace yoyo
 
             for (const VulkanDescriptorSetInformation &set : shader_pass_sets)
             {
-                for (auto &it = set.bindings.begin(); it != set.bindings.end(); it++)
+                for (const auto &binding : set.bindings)
                 {
                     // Custom material properties
-                    if (it->second.name == "Material")
+                    if (binding.second.name == "Material")
                     {
                         // TODO: Clean this re direction
                         VulkanDescriptorSetInformation &material_property_set_info = material->descriptors[MeshPassType::Forward][set.index].info;

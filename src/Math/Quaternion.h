@@ -6,14 +6,14 @@ namespace yoyo
 {
     union YAPI Quat
     {
-        Quat() : x(0.0f), y(0.0f), z(0.0f), w(1.0f), elements{0.0f, 0.0f, 0.0f, 1.0f} {} // Initialize elements in the default constructor
+        Quat() : x(0.0f), y(0.0f), z(0.0f), w(1.0f) {} // Initialize elements in the default constructor
         ~Quat() = default;
 
         Quat(float v_x, float v_y, float v_z, float scalar)
-            : x(v_x), y(v_y), z(v_z), w(scalar), elements{v_x, v_y, v_z, scalar} {} // Initialize elements in the parameterized constructor
+            : x(v_x), y(v_y), z(v_z), w(scalar) {} // Initialize elements in the parameterized constructor
 
         Quat(const Vec3 &v, float scalar)
-            : x(v.x), y(v.y), z(v.z), w(scalar), elements{v.x, v.y, v.z, scalar} {}
+            : x(v.x), y(v.y), z(v.z), w(scalar) {}
 #ifdef YUSESIMD
         // Use SIMD
         alignas(16) _m128 data;

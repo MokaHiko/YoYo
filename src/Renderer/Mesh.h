@@ -11,6 +11,14 @@
 
 namespace yoyo
 {
+    class YAPI IMesh;
+}
+
+template <>
+struct std::hash<yoyo::IMesh>;
+
+namespace yoyo
+{
     enum class VertexInputRate
     {
         Vertex = 0,
@@ -55,6 +63,40 @@ namespace yoyo
     inline MeshDirtyFlags &operator|=(MeshDirtyFlags &a, MeshDirtyFlags b) { return (MeshDirtyFlags &)((int &)a |= (int)b); }
     inline MeshDirtyFlags &operator&=(MeshDirtyFlags &a, MeshDirtyFlags b) { return (MeshDirtyFlags &)((int &)a &= (int)b); }
     inline MeshDirtyFlags &operator^=(MeshDirtyFlags &a, MeshDirtyFlags b) { return (MeshDirtyFlags &)((int &)a ^= (int)b); }
+
+    template <typename VertexType, typename IndexType>
+    class YAPI Mesh;
+    class YAPI MeshFactory
+    {
+    public:
+        template <typename VertexType, typename IndexType>
+        using MeshCreateFunc = std::function<Ref<Mesh<VertexType, IndexType>>(const std::string &)>;
+
+        template <typename VertexType, typename IndexType>
+        static void Register(const std::string &type, MeshCreateFunc<VertexType, IndexType> func)
+        {
+            GetRegistry<VertexType, IndexType>()[type] = func;
+        }
+
+        template <typename VertexType, typename IndexType>
+        static Ref<Mesh<VertexType, IndexType>> Create(const std::string &type, const std::string &name)
+        {
+            auto &registry = GetRegistry<VertexType, IndexType>();
+            if (registry.find(type) == registry.end())
+            {
+                YASSERT(0, "Mesh type not registered.");
+            }
+            return registry[type](name);
+        }
+
+    private:
+        template <typename VertexType, typename IndexType>
+        static std::unordered_map<std::string, MeshCreateFunc<VertexType, IndexType>> &GetRegistry()
+        {
+            static std::unordered_map<std::string, MeshCreateFunc<VertexType, IndexType>> registry;
+            return registry;
+        }
+    };
 
     class YAPI IMesh : public Resource
     {
@@ -109,11 +151,13 @@ namespace yoyo
 
         virtual uint64_t Hash() const override
         {
-            return std::hash<IMesh>{}(*this);
+            //return std::hash<IMesh>{}(*this);
+            // TODO: Properly use hash function
+            return rand();
         }
 
         // Implemented by backend render api
-        static Ref<Mesh<VertexType, IndexType>> Mesh<VertexType, IndexType>::CreateImpl(const std::string& type, const std::string& name = "")
+        static Ref<Mesh<VertexType, IndexType>> CreateImpl(const std::string &type, const std::string &name = "")
         {
             return MeshFactory::Create<VertexType, IndexType>(type, name);
         }
@@ -130,6 +174,7 @@ namespace yoyo
 
             return mesh;
         }
+
     public:
         const virtual uint32_t GetIndexCount() const override final { return static_cast<uint32_t>(static_cast<uint32_t>(indices.size())); }
         const virtual uint32_t GetVertexCount() const override final { return static_cast<uint32_t>(static_cast<uint32_t>(vertices.size())); }
@@ -151,38 +196,6 @@ namespace yoyo
     private:
         MeshDirtyFlags m_dirty = MeshDirtyFlags::Clean;
         MeshType m_type = MeshType::Uknown;
-    };
-
-    class YAPI MeshFactory
-    {
-    public:
-        template <typename VertexType, typename IndexType>
-        using MeshCreateFunc = std::function<Ref<Mesh<VertexType, IndexType>>(const std::string &)>;
-
-        template <typename VertexType, typename IndexType>
-        static void Register(const std::string &type, MeshCreateFunc<VertexType, IndexType> func)
-        {
-            GetRegistry<VertexType, IndexType>()[type] = func;
-        }
-
-        template <typename VertexType, typename IndexType>
-        static Ref<Mesh<VertexType, IndexType>> Create(const std::string &type, const std::string &name)
-        {
-            auto &registry = GetRegistry<VertexType, IndexType>();
-            if (registry.find(type) == registry.end())
-            {
-                YASSERT(0, "Mesh type not registered.");
-            }
-            return registry[type](name);
-        }
-
-    private:
-        template <typename VertexType, typename IndexType>
-        static std::unordered_map<std::string, MeshCreateFunc<VertexType, IndexType>> &GetRegistry()
-        {
-            static std::unordered_map<std::string, MeshCreateFunc<VertexType, IndexType>> registry;
-            return registry;
-        }
     };
 
     class YAPI StaticMesh : public Mesh<yoyo::Vertex, uint32_t>
