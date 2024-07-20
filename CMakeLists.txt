@@ -93,9 +93,6 @@ add_library(YoYo SHARED
     src/Renderer/Particles/ParticleSystemEvents.h
     src/Renderer/Particles/ParticleSystemEvents.cpp
 
-    # src/Renderer/Voxel/BlockMesh.h
-    # src/Renderer/Voxel/BlockMesh.cpp
-
     src/Core/EntryPoint.h
     include/Yoyo.h
 )
