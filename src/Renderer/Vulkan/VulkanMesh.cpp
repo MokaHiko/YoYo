@@ -1,10 +1,14 @@
 #include "VulkanMesh.h"
 
-#include "VulkanResourceManager.h"
 #include "Resource/ResourceEvent.h"
 
 namespace yoyo
 {
+    void Test()
+    {
+        VulkanResourceManager::Shutdown();
+    };
+
     const std::vector<VkVertexInputAttributeDescription> &VertexAttributeDescriptions()
     {
         static std::vector<VkVertexInputAttributeDescription> attributes = {};

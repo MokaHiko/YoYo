@@ -507,6 +507,26 @@ namespace yoyo
         VkCommandBufferBeginInfo cmd_begin_info = vkinit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
 
+        // Depth Stencil Barrier
+        {
+            VkImageMemoryBarrier shadow_map_barrier = {};
+            shadow_map_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            shadow_map_barrier.srcAccessMask = 0;
+            shadow_map_barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            shadow_map_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            shadow_map_barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;;
+            shadow_map_barrier.image = m_shadow_pass_depth_texture.image;
+
+            VkImageSubresourceRange shadow_map_range = {};
+            shadow_map_range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+            shadow_map_range.layerCount = 1;
+            shadow_map_range.baseArrayLayer = 0;
+            shadow_map_range.levelCount = 1;
+
+            shadow_map_barrier.subresourceRange = shadow_map_range;
+            vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, 0, 0, nullptr, 0, 0, 1, &shadow_map_barrier);
+        }
+
         // Bind shadow pass and draw shadow mesh passes
         {
             VkRect2D rect = {};
@@ -581,7 +601,7 @@ namespace yoyo
             vkCmdEndRenderPass(cmd);
         }
 
-        // Shadow map barrier
+        // ShadowMap to Shader Read barrier
         {
             VkImageMemoryBarrier shadow_map_barrier = {};
             shadow_map_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

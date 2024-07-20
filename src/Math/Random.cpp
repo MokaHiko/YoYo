@@ -1,6 +1,9 @@
 #include "Random.h"
 
-#include <objbase.h>
+#ifdef Y_PLATFORM_WINDOWS
+	#include <objbase.h>
+#endif
+
 #include <Core/Log.h>
 
 namespace yoyo

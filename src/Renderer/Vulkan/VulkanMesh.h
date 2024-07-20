@@ -4,8 +4,8 @@
 #include "Renderer/Mesh.h"
 #include "Renderer/SkinnedMesh.h"
 
-#include "VulkanStructures.h"
 #include "VulkanResourceManager.h"
+#include "VulkanStructures.h"
 
 namespace yoyo
 {
@@ -29,6 +29,10 @@ namespace yoyo
     class VulkanStaticMesh : public VulkanMesh<VertexType, IndexType>
     {
     public:
+        using VulkanMesh<VertexType, IndexType>::vertices;
+        using VulkanMesh<VertexType, IndexType>::indices;
+        using VulkanMesh<VertexType, IndexType>::RemoveDirtyFlags;
+
         VulkanStaticMesh() = default;
         virtual ~VulkanStaticMesh() = default;
 
@@ -39,16 +43,17 @@ namespace yoyo
 
             if (!indices.empty())
             {
-                vkCmdBindIndexBuffer(ctx->cmd, index_buffer.buffer, offset, VK_INDEX_TYPE_UINT32);
+                vkCmdBindIndexBuffer(ctx->cmd, this->index_buffer.buffer, offset, VK_INDEX_TYPE_UINT32);
             }
 
-            vkCmdBindVertexBuffers(ctx->cmd, 0, 1, &vertex_buffer.buffer, &offset);
+            vkCmdBindVertexBuffers(ctx->cmd, 0, 1, &this->vertex_buffer.buffer, &offset);
         }
 
         virtual void Unbind() override {}
 
         virtual void UploadMeshData(bool free_host_memory = false) override
         {
+            // TODO: Fix template singleton
             VulkanResourceManager::UploadMesh<VertexType, IndexType>(this);
 
             if (free_host_memory)
