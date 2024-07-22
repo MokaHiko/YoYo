@@ -4,7 +4,7 @@
 
 #ifdef Y_DEBUG
 
-#ifdef Y_PLATFORM_WINDOWS
+#ifdef Y_PLATFORM_WIN32
 #include <cassert>
 #define YASSERT(value, ...)	if(!(value)){YERROR("Assertion Failed: %s", __VA_ARGS__);} \
 							assert(value)
@@ -14,10 +14,8 @@
 #define YASSERT(value, ...)
 #endif
 
+#elif
+#define YASSERT(value, ...)
+
 #endif
-
-namespace yoyo
-{
-};
-
 
